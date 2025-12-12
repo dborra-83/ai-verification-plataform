@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Verification Platform - Detalle del Análisis</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="css/styles.css" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Configuration -->
+    <script src="config.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="bi bi-shield-check me-2"></i>AI Verification</h1>
+                <p>Plataforma de Verificación</p>
+            </div>
+            
+            <div class="sidebar-nav">
+                <a href="index.html" class="nav-item">
+                    <i class="bi bi-speedometer2"></i>
+                    Dashboard
+                </a>
+                <a href="index.html" class="nav-item">
+                    <i class="bi bi-cloud-upload"></i>
+                    Nuevo Análisis
+                </a>
+                <a href="index.html" class="nav-item">
+                    <i class="bi bi-clock-history"></i>
+                    Historial
+                </a>
+                <a href="#" class="nav-item active">
+                    <i class="bi bi-file-text"></i>
+                    Detalle del Análisis
+                </a>
+                <hr style="border-color: rgba(255,255,255,0.2); margin: 1rem 1.5rem;">
+                <a href="#" class="nav-item" onclick="logout()">
+                    <i class="bi bi-box-arrow-right"></i>
+                    Cerrar Sesión
+                </a>
+            </div>
+        </nav>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Topbar -->
+            <div class="topbar">
+                <h2 id="pageTitle">Detalle del Análisis</h2>
+                <div class="topbar-actions">
+                    <button class="btn btn-secondary" onclick="goBack()">
+                        <i class="bi bi-arrow-left me-2"></i>
+                        Volver
+                    </button>
+                    <div class="user-avatar" title="Admin">
+                        A
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Loading State -->
+                <div id="loadingState" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Cargando detalles del análisis...</p>
+                </div>
+                
+                <!-- Analysis Detail -->
+                <div id="analysisDetail" style="display: none;">
+                    <!-- Header Card -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col">
+                                    <h4 class="mb-1" id="studentName">-</h4>
+                                    <p class="text-muted mb-0">
+                                        <span id="courseName">-</span> • <span id="assignmentName">-</span>
+                                    </p>
+                                    <small class="text-muted">
+                                        Analizado el <span id="analysisDate">-</span>
+                                    </small>
+                                </div>
+                                <div class="col-auto">
+                                    <span class="badge badge-success" id="statusBadge">Completado</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Scores Card -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-graph-up me-2"></i>
+                                Puntuaciones del Análisis
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <h6>Probabilidad de IA</h6>
+                                    <div class="progress mb-2" style="height: 20px;">
+                                        <div class="progress-bar progress-bar-primary" id="aiScoreBar" role="progressbar" style="width: 0%">
+                                            <span id="aiScoreText">0%</span>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">Probabilidad de contenido generado por IA</small>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6>Puntuación de Originalidad</h6>
+                                    <div class="progress mb-2" style="height: 20px;">
+                                        <div class="progress-bar progress-bar-success" id="originalityScoreBar" role="progressbar" style="width: 0%">
+                                            <span id="originalityScoreText">0%</span>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">Nivel de originalidad del contenido</small>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6>Confianza del Análisis</h6>
+                                    <div class="progress mb-2" style="height: 20px;">
+                                        <div class="progress-bar progress-bar-warning" id="confidenceBar" role="progressbar" style="width: 0%">
+                                            <span id="confidenceText">0%</span>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">Confianza en los resultados</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Summary Card -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-file-text me-2"></i>
+                                Resumen del Análisis
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p id="analysisSummary" class="mb-0">-</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Signals Card -->
+                    <div class="card mb-4" id="signalsCard">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                Señales Detectadas
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="accordion" id="signalsAccordion">
+                                <!-- Signals will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recommendations Card -->
+                    <div class="card mb-4" id="recommendationsCard">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-lightbulb me-2"></i>
+                                Recomendaciones
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="recommendationsList">
+                                <!-- Recommendations will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Limitations Card -->
+                    <div class="card mb-4" id="limitationsCard">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-info-circle me-2"></i>
+                                Limitaciones del Análisis
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="limitationsList">
+                                <!-- Limitations will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Actions Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-gear me-2"></i>
+                                Acciones
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button class="btn btn-primary" id="downloadPdfBtn">
+                                    <i class="bi bi-download me-2"></i>
+                                    Descargar PDF Original
+                                </button>
+                                <button class="btn btn-secondary" onclick="exportReport()">
+                                    <i class="bi bi-file-earmark-text me-2"></i>
+                                    Exportar Informe
+                                </button>
+                                <button class="btn btn-outline-primary" onclick="shareAnalysis()">
+                                    <i class="bi bi-share me-2"></i>
+                                    Compartir
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Technical Details (Collapsible) -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <button class="btn btn-link text-decoration-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#technicalDetails">
+                                <i class="bi bi-chevron-down me-2"></i>
+                                Detalles Técnicos
+                            </button>
+                        </div>
+                        <div class="collapse" id="technicalDetails">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Información del Análisis</h6>
+                                        <ul class="list-unstyled">
+                                            <li><strong>ID del Análisis:</strong> <span id="analysisId">-</span></li>
+                                            <li><strong>Modelo Utilizado:</strong> <span id="modelUsed">-</span></li>
+                                            <li><strong>Versión del Prompt:</strong> <span id="promptVersion">-</span></li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Información del Archivo</h6>
+                                        <ul class="list-unstyled">
+                                            <li><strong>Bucket S3:</strong> <span id="s3Bucket">-</span></li>
+                                            <li><strong>Clave S3:</strong> <span id="s3Key">-</span></li>
+                                            <li><strong>Profesor:</strong> <span id="teacher">-</span></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Error State -->
+                <div id="errorState" style="display: none;" class="text-center py-5">
+                    <i class="bi bi-exclamation-triangle text-warning" style="font-size: 3rem;"></i>
+                    <h4 class="mt-3">Error al cargar el análisis</h4>
+                    <p class="text-muted">No se pudo cargar la información del análisis solicitado.</p>
+                    <button class="btn btn-primary" onclick="goBack()">
+                        <i class="bi bi-arrow-left me-2"></i>
+                        Volver al Dashboard
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="js/app.js"></script>
+    <script src="js/detail.js"></script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+{
+  "name": "ai-verification-platform",
+  "version": "1.0.0",
+  "description": "AWS-based AI verification platform for academic documents",
+  "author": {
+    "name": "Diego Borra",
+    "email": "diego.borra@cloudhesive.com",
+    "company": "CloudHesive"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dborra-83/ai-verification-plataform.git"
+  },
+  "keywords": [
+    "ai-detection",
+    "aws",
+    "bedrock",
+    "academic-integrity",
+    "pdf-analysis",
+    "serverless",
+    "typescript",
+    "python"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "cdk": "cdk",
+    "deploy": "cdk deploy",
+    "destroy": "cdk destroy",
+    "build:frontend": "npm run copy:frontend",
+    "copy:frontend": "if not exist dist\\frontend mkdir dist\\frontend && xcopy frontend dist\\frontend /E /I /Y",
+    "update:config": "node scripts/update-frontend-config.js",
+    "deploy:frontend": "npm run update:config && npm run copy:frontend && aws s3 sync dist/frontend s3://$(aws cloudformation describe-stacks --stack-name AiVerificationPlatformStack --query 'Stacks[0].Outputs[?OutputKey==`FrontendBucketName`].OutputValue' --output text) --delete",
+    "deploy:all": "npm run deploy && npm run deploy:frontend"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.5",
+    "@types/node": "20.6.3",
+    "aws-cdk": "2.100.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "~5.2.2"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "2.100.0",
+    "constructs": "^10.0.0"
+  }
+}
