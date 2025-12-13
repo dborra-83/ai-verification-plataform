@@ -1122,7 +1122,66 @@ kbd {
   font-size: 0.9rem;
 }
 
-/* Bar Chart Styles */
+/* Line Chart Styles */
+.line-chart {
+  position: relative;
+  height: 200px;
+  padding: 1rem;
+  border-bottom: 2px solid #e9ecef;
+  overflow: hidden;
+}
+
+.line-chart-container {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+.line-chart-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.line-chart-line {
+  fill: none;
+  stroke: #008FD0;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.line-chart-area {
+  fill: rgba(0, 143, 208, 0.1);
+}
+
+.line-chart-point {
+  fill: #008FD0;
+  stroke: white;
+  stroke-width: 2;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.line-chart-point:hover {
+  r: 6;
+  fill: #0056b3;
+}
+
+.line-chart-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  padding: 0 1rem;
+}
+
+.line-chart-label {
+  font-size: 0.7rem;
+  color: #6c757d;
+  text-align: center;
+  flex: 1;
+}
+
+/* Bar Chart Styles (for other charts) */
 .bar-chart {
   display: flex;
   align-items: end;
@@ -1131,6 +1190,7 @@ kbd {
   padding: 1rem 0;
   border-bottom: 2px solid #e9ecef;
   position: relative;
+  overflow: hidden;
 }
 
 .bar-item {
@@ -1139,6 +1199,7 @@ kbd {
   align-items: center;
   flex: 1;
   margin: 0 2px;
+  max-width: 40px;
 }
 
 .bar {
@@ -1156,11 +1217,13 @@ kbd {
 }
 
 .bar-label {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: #6c757d;
   margin-top: 0.5rem;
-  transform: rotate(-45deg);
-  white-space: nowrap;
+  text-align: center;
+  line-height: 1;
+  max-width: 35px;
+  word-wrap: break-word;
 }
 
 /* Pie Chart Fallback Styles */
@@ -1267,6 +1330,16 @@ kbd {
 
 /* Responsive adjustments for fallback charts */
 @media (max-width: 768px) {
+  .line-chart {
+    height: 150px;
+  }
+
+  .line-chart-label {
+    font-size: 0.6rem;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+
   .bar-chart {
     height: 150px;
   }
@@ -1287,6 +1360,10 @@ kbd {
 
   .metric-value {
     font-size: 1.5rem;
+  }
+
+  .chart-title {
+    font-size: 0.8rem;
   }
 }
 

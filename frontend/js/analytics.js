@@ -119,7 +119,7 @@ function createFallbackCharts(filteredAnalyses, completedAnalyses, period) {
         period: period
     });
     
-    // Analysis Time Chart (simple bar chart)
+    // Analysis Time Chart (line chart)
     const analysisTimeChart = document.getElementById('analysisTimeChart');
     if (analysisTimeChart) {
         const parent = analysisTimeChart.parentElement;
@@ -143,26 +143,63 @@ function createFallbackCharts(filteredAnalyses, completedAnalyses, period) {
         });
         
         const maxCount = Math.max(...Object.values(dateGroups), 1);
+        const dataPoints = Object.entries(dateGroups);
+        
+        // Create SVG line chart
+        const svgWidth = 100; // percentage
+        const svgHeight = 160; // pixels
+        const padding = 20;
+        
+        // Calculate points for the line
+        const points = dataPoints.map(([date, count], index) => {
+            const x = (index / (dataPoints.length - 1)) * (svgWidth - 2 * padding) + padding;
+            const y = svgHeight - padding - ((count / maxCount) * (svgHeight - 2 * padding));
+            return { x, y, count, date };
+        });
+        
+        // Create SVG path
+        const linePath = points.map((point, index) => 
+            `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`
+        ).join(' ');
+        
+        // Create area path (for fill under line)
+        const areaPath = `M ${points[0].x} ${svgHeight - padding} L ${points.map(p => `${p.x} ${p.y}`).join(' L ')} L ${points[points.length - 1].x} ${svgHeight - padding} Z`;
         
         parent.innerHTML = `
             <div class="fallback-chart">
-                <div class="chart-title mb-3">Análisis por día (últimos ${period} días)</div>
-                <div class="bar-chart">
-                    ${Object.entries(dateGroups).map(([date, count]) => {
-                        const height = (count / maxCount) * 100;
-                        const dateLabel = new Date(date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
-                        return `
-                            <div class="bar-item">
-                                <div class="bar" style="height: ${height}%; background-color: #008FD0;" title="${count} análisis el ${dateLabel}"></div>
-                                <div class="bar-label">${dateLabel}</div>
-                            </div>
-                        `;
-                    }).join('')}
+                <div class="chart-title mb-3">Tendencia de Análisis (últimos ${period} días)</div>
+                <div class="line-chart">
+                    <div class="line-chart-container">
+                        <svg class="line-chart-svg" viewBox="0 0 100 ${svgHeight}" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" style="stop-color:rgba(0, 143, 208, 0.3);stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:rgba(0, 143, 208, 0.05);stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <path class="line-chart-area" d="${areaPath}" fill="url(#areaGradient)" />
+                            <path class="line-chart-line" d="${linePath}" />
+                            ${points.map(point => `
+                                <circle class="line-chart-point" 
+                                        cx="${point.x}" 
+                                        cy="${point.y}" 
+                                        r="4" 
+                                        title="${point.count} análisis el ${new Date(point.date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}">
+                                </circle>
+                            `).join('')}
+                        </svg>
+                    </div>
+                    <div class="line-chart-labels">
+                        ${dataPoints.map(([date, count]) => {
+                            const dateLabel = new Date(date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
+                            return `<div class="line-chart-label">${dateLabel}</div>`;
+                        }).join('')}
+                    </div>
                 </div>
             </div>
         `;
         
-        console.log('Analysis time chart created');
+        console.log('Analysis time line chart created');
     }
     
     // Risk Distribution Chart (simple pie representation)
