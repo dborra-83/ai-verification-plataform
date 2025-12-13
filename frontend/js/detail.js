@@ -366,3 +366,58 @@ Generado por AI Verification Platform
 // Export functions for global access
 window.exportReport = exportReport;
 window.shareAnalysis = shareAnalysis;
+
+// Tags functionality for detail page
+function showTagModalForDetail() {
+    if (!currentAnalysis) {
+        showError('No hay análisis cargado');
+        return;
+    }
+    
+    showTagModal(currentAnalysis.analysisId, currentAnalysis.studentName || 'Sin nombre');
+}
+
+// Update tags display in detail page
+function updateTagsDisplay() {
+    if (!currentAnalysis) return;
+    
+    const tagsDisplay = document.getElementById('analysisTagsDisplay');
+    if (!tagsDisplay) return;
+    
+    const tags = getAnalysisTags(currentAnalysis.analysisId);
+    
+    if (tags.length === 0) {
+        tagsDisplay.innerHTML = '<span class="text-muted small">Sin etiquetas</span>';
+    } else {
+        tagsDisplay.innerHTML = renderAnalysisTags(currentAnalysis.analysisId);
+    }
+}
+
+// Override the original showTagModal to refresh display after changes
+const originalShowTagModal = window.showTagModal;
+if (originalShowTagModal) {
+    window.showTagModal = function(analysisId, studentName) {
+        const result = originalShowTagModal(analysisId, studentName);
+        
+        // Always refresh after a delay, regardless of return type
+        setTimeout(updateTagsDisplay, 1000);
+        
+        return result;
+    };
+}
+
+// Update populateAnalysisDetail to include tags
+const originalPopulateAnalysisDetail = window.populateAnalysisDetail;
+if (originalPopulateAnalysisDetail) {
+    window.populateAnalysisDetail = function(analysis) {
+        originalPopulateAnalysisDetail(analysis);
+        updateTagsDisplay();
+    };
+} else {
+    // If populateAnalysisDetail doesn't exist yet, we'll add it to the existing function
+    const existingPopulate = populateAnalysisDetail;
+    populateAnalysisDetail = function(analysis) {
+        existingPopulate(analysis);
+        updateTagsDisplay();
+    };
+}

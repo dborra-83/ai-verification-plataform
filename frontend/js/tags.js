@@ -356,3 +356,32 @@ window.filterAnalysesByTag = filterAnalysesByTag;
 window.filterAnalysesByText = filterAnalysesByText;
 window.showTagStatistics = showTagStatistics;
 window.showBulkTagModal = showBulkTagModal;
+
+// Render tag icons (compact version for dashboard)
+function renderTagIcons(analysisId) {
+    const tags = getAnalysisTags(analysisId);
+    
+    if (tags.length === 0) {
+        return '';
+    }
+    
+    // Show only first 3 tags as icons, with a counter if more
+    const visibleTags = tags.slice(0, 3);
+    const remainingCount = tags.length - 3;
+    
+    let iconsHtml = visibleTags.map(tagKey => {
+        const tag = AVAILABLE_TAGS[tagKey];
+        if (!tag) return '';
+        
+        return `<span class="badge bg-${tag.color} me-1" style="font-size: 0.7rem;" title="${tag.label}">${tag.emoji}</span>`;
+    }).join('');
+    
+    if (remainingCount > 0) {
+        iconsHtml += `<span class="badge bg-secondary" style="font-size: 0.7rem;" title="${remainingCount} etiquetas más">+${remainingCount}</span>`;
+    }
+    
+    return iconsHtml;
+}
+
+// Export the new function
+window.renderTagIcons = renderTagIcons;

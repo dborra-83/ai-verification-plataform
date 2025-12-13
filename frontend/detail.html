@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Verification Platform - Detalle del Análisis</title>
-    
+
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -18,6 +19,7 @@
     <!-- Configuration -->
     <script src="config.js"></script>
 </head>
+
 <body>
     <div class="app-container">
         <!-- Sidebar -->
@@ -26,7 +28,7 @@
                 <h1><i class="bi bi-shield-check me-2"></i>AI Verification</h1>
                 <p>Plataforma de Verificación</p>
             </div>
-            
+
             <div class="sidebar-nav">
                 <a href="index.html" class="nav-item">
                     <i class="bi bi-speedometer2"></i>
@@ -51,7 +53,7 @@
                 </a>
             </div>
         </nav>
-        
+
         <!-- Main Content -->
         <main class="main-content">
             <!-- Topbar -->
@@ -67,7 +69,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Content Area -->
             <div class="content-area">
                 <!-- Loading State -->
@@ -77,7 +79,7 @@
                     </div>
                     <p class="mt-3 text-muted">Cargando detalles del análisis...</p>
                 </div>
-                
+
                 <!-- Analysis Detail -->
                 <div id="analysisDetail" style="display: none;">
                     <!-- Header Card -->
@@ -97,9 +99,28 @@
                                     <span class="badge badge-success" id="statusBadge">Completado</span>
                                 </div>
                             </div>
+
+                            <!-- Tags Section -->
+                            <div class="row mt-3">
+                                <div class="col">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <h6 class="mb-2">Etiquetas</h6>
+                                            <div id="analysisTagsDisplay">
+                                                <span class="text-muted small">Sin etiquetas</span>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-outline-primary btn-sm" onclick="showTagModalForDetail()"
+                                            title="Gestionar etiquetas">
+                                            <i class="bi bi-tags me-1"></i>
+                                            Gestionar Etiquetas
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    
+
                     <!-- Scores Card -->
                     <div class="card mb-4">
                         <div class="card-header">
@@ -113,7 +134,8 @@
                                 <div class="col-md-4">
                                     <h6>Probabilidad de IA</h6>
                                     <div class="progress mb-2" style="height: 20px;">
-                                        <div class="progress-bar progress-bar-primary" id="aiScoreBar" role="progressbar" style="width: 0%">
+                                        <div class="progress-bar progress-bar-primary" id="aiScoreBar"
+                                            role="progressbar" style="width: 0%">
                                             <span id="aiScoreText">0%</span>
                                         </div>
                                     </div>
@@ -122,7 +144,8 @@
                                 <div class="col-md-4">
                                     <h6>Puntuación de Originalidad</h6>
                                     <div class="progress mb-2" style="height: 20px;">
-                                        <div class="progress-bar progress-bar-success" id="originalityScoreBar" role="progressbar" style="width: 0%">
+                                        <div class="progress-bar progress-bar-success" id="originalityScoreBar"
+                                            role="progressbar" style="width: 0%">
                                             <span id="originalityScoreText">0%</span>
                                         </div>
                                     </div>
@@ -131,7 +154,8 @@
                                 <div class="col-md-4">
                                     <h6>Confianza del Análisis</h6>
                                     <div class="progress mb-2" style="height: 20px;">
-                                        <div class="progress-bar progress-bar-warning" id="confidenceBar" role="progressbar" style="width: 0%">
+                                        <div class="progress-bar progress-bar-warning" id="confidenceBar"
+                                            role="progressbar" style="width: 0%">
                                             <span id="confidenceText">0%</span>
                                         </div>
                                     </div>
@@ -140,7 +164,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Summary Card -->
                     <div class="card mb-4">
                         <div class="card-header">
@@ -153,7 +177,7 @@
                             <p id="analysisSummary" class="mb-0">-</p>
                         </div>
                     </div>
-                    
+
                     <!-- Signals Card -->
                     <div class="card mb-4" id="signalsCard">
                         <div class="card-header">
@@ -168,7 +192,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Recommendations Card -->
                     <div class="card mb-4" id="recommendationsCard">
                         <div class="card-header">
@@ -183,7 +207,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Limitations Card -->
                     <div class="card mb-4" id="limitationsCard">
                         <div class="card-header">
@@ -198,7 +222,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Actions Card -->
                     <div class="card">
                         <div class="card-header">
@@ -224,11 +248,12 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Technical Details (Collapsible) -->
                     <div class="card mt-4">
                         <div class="card-header">
-                            <button class="btn btn-link text-decoration-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#technicalDetails">
+                            <button class="btn btn-link text-decoration-none p-0" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#technicalDetails">
                                 <i class="bi bi-chevron-down me-2"></i>
                                 Detalles Técnicos
                             </button>
@@ -241,7 +266,8 @@
                                         <ul class="list-unstyled">
                                             <li><strong>ID del Análisis:</strong> <span id="analysisId">-</span></li>
                                             <li><strong>Modelo Utilizado:</strong> <span id="modelUsed">-</span></li>
-                                            <li><strong>Versión del Prompt:</strong> <span id="promptVersion">-</span></li>
+                                            <li><strong>Versión del Prompt:</strong> <span id="promptVersion">-</span>
+                                            </li>
                                         </ul>
                                     </div>
                                     <div class="col-md-6">
@@ -257,7 +283,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Error State -->
                 <div id="errorState" style="display: none;" class="text-center py-5">
                     <i class="bi bi-exclamation-triangle text-warning" style="font-size: 3rem;"></i>
@@ -276,6 +302,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom JS -->
     <script src="js/app.js"></script>
+    <script src="js/tags.js"></script>
     <script src="js/detail.js"></script>
 </body>
+
 </html>

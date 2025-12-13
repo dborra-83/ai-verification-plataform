@@ -147,9 +147,12 @@ function loadRecentAnalysesTable(analyses) {
                         <div class="me-2">
                             <i class="bi bi-person-circle text-muted"></i>
                         </div>
-                        <div>
+                        <div class="flex-grow-1">
                             <div class="fw-medium">${analysis.studentName || 'Sin nombre'}</div>
                             ${analysis.metadata?.studentId ? `<small class="text-muted">ID: ${analysis.metadata.studentId}</small>` : ''}
+                        </div>
+                        <div class="ms-2">
+                            ${renderTagIcons ? renderTagIcons(analysis.analysisId) : ''}
                         </div>
                     </div>
                 </td>

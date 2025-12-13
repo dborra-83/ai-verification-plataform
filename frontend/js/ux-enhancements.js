@@ -229,6 +229,9 @@ function setupBreadcrumbs() {
     const topbar = document.querySelector('.topbar');
     if (!topbar) return;
     
+    // Check if breadcrumb already exists
+    if (document.getElementById('breadcrumbNav')) return;
+    
     // Create breadcrumb container
     const breadcrumbContainer = document.createElement('div');
     breadcrumbContainer.className = 'breadcrumb-container';
@@ -429,10 +432,12 @@ function handleFileSelect(file) {
     // Update file input
     const fileInput = document.getElementById('fileInput');
     if (fileInput) {
-        // Create a new FileList with the selected file
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        fileInput.files = dt.files;
+        // Only update if file is a File object
+        if (file instanceof File) {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            fileInput.files = dt.files;
+        }
     }
     
     // Show file info with enhanced preview
@@ -499,12 +504,25 @@ if (originalShowSettingsSection) {
     };
 }
 
+// Store original analytics function if it exists
+if (typeof window.showAnalyticsSection === 'function') {
+    window.showAnalyticsSection.original = window.showAnalyticsSection;
+}
+
 // Override analytics function
 window.showAnalyticsSection = function() {
-    if (window.showAnalyticsSection.original) {
-        window.showAnalyticsSection.original();
-    }
+    hideAllSections();
+    document.getElementById('analyticsSection').style.display = 'block';
+    document.getElementById('pageTitle').textContent = 'Analytics Avanzados';
+    updateActiveNavItem('Analytics');
     updateBreadcrumbs('Analytics Avanzados');
+    
+    // Load analytics data
+    setTimeout(() => {
+        if (typeof loadAnalyticsData === 'function') {
+            loadAnalyticsData();
+        }
+    }, 100);
 };
 
 // Export functions for global access
