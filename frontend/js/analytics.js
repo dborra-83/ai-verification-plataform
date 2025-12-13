@@ -29,6 +29,8 @@ function showAnalyticsSection() {
     
     // Load analytics data
     setTimeout(() => {
+        console.log('Chart available:', typeof Chart !== 'undefined');
+        console.log('window.Chart available:', typeof window.Chart !== 'undefined');
         loadAnalyticsData();
     }, 500);
 }
@@ -36,10 +38,23 @@ function showAnalyticsSection() {
 // Load analytics data and create charts
 async function loadAnalyticsData() {
     try {
-        // Check if Chart.js is available
-        if (typeof window.Chart === 'undefined') {
-            showError('Chart.js no está disponible. Por favor recarga la página.');
-            return;
+        // Wait for Chart.js to load if it's not available yet
+        if (typeof Chart === 'undefined') {
+            console.log('Chart.js not loaded yet, waiting...');
+            
+            // Try to wait for Chart.js to load
+            let attempts = 0;
+            while (typeof Chart === 'undefined' && attempts < 20) {
+                await new Promise(resolve => setTimeout(resolve, 300));
+                attempts++;
+                console.log(`Waiting for Chart.js... attempt ${attempts}`);
+            }
+            
+            if (typeof Chart === 'undefined') {
+                console.error('Chart.js failed to load from CDN');
+                showError('Chart.js no está disponible. Por favor recarga la página.');
+                return;
+            }
         }
         
         const period = document.getElementById('analyticsPeriod')?.value || '30';
@@ -116,7 +131,7 @@ function createAnalysisTimeChart(analyses, period) {
     });
     const data = Object.values(dateGroups);
     
-    analysisTimeChart = new window.Chart(ctx, {
+    analysisTimeChart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
@@ -169,7 +184,7 @@ function createRiskDistributionChart(analyses) {
         else highRisk++;
     });
     
-    riskDistributionChart = new window.Chart(ctx, {
+    riskDistributionChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: ['Bajo Riesgo (0-39%)', 'Riesgo Medio (40-69%)', 'Alto Riesgo (70-100%)'],
@@ -232,7 +247,7 @@ function createCourseScoresChart(analyses) {
         return '#28a745';
     });
     
-    courseScoresChart = new window.Chart(ctx, {
+    courseScoresChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: labels,
@@ -296,7 +311,7 @@ function createConfidenceOriginalityChart(analyses) {
         return 'rgba(40, 167, 69, 0.6)';
     });
     
-    confidenceOriginalityChart = new window.Chart(ctx, {
+    confidenceOriginalityChart = new Chart(ctx, {
         type: 'scatter',
         data: {
             datasets: [{

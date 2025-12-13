@@ -141,29 +141,10 @@ function setupTooltips() {
     });
 }
 
-// Setup enhanced drag & drop - SIMPLIFIED to avoid conflicts
+// Drag & drop is handled by upload.js - no enhancements needed to avoid conflicts
 function setupDragDropEnhancements() {
-    // Simplified version that doesn't interfere with existing upload functionality
-    // Just adds some visual enhancements without breaking the original behavior
-    
-    const uploadZone = document.getElementById('uploadZone');
-    if (!uploadZone) return;
-    
-    // Only add visual feedback, don't handle the actual drop
-    uploadZone.addEventListener('dragenter', (e) => {
-        e.preventDefault();
-        uploadZone.classList.add('drag-over');
-    });
-    
-    uploadZone.addEventListener('dragleave', (e) => {
-        e.preventDefault();
-        uploadZone.classList.remove('drag-over');
-    });
-    
-    uploadZone.addEventListener('drop', (e) => {
-        uploadZone.classList.remove('drag-over');
-        // Let the original upload.js handle the actual drop
-    });
+    // Do nothing - let upload.js handle everything
+    return;
 }
 
 // Setup breadcrumbs navigation
@@ -367,12 +348,7 @@ function getCurrentSection() {
     return 'dashboardSection'; // default
 }
 
-// Enhanced file selection with preview - DISABLED to avoid conflicts
-// The original upload.js handles file selection properly
-function handleFileSelect(file) {
-    // Do nothing - let the original upload.js handle this
-    return;
-}
+// File selection is handled by upload.js - no interference needed
 
 // Initialize on DOM load
 document.addEventListener('DOMContentLoaded', () => {
@@ -436,5 +412,4 @@ window.showAnalyticsSection = function() {
 
 // Export functions for global access
 window.showHelpModal = showHelpModal;
-window.handleFileSelect = handleFileSelect;
 window.updateBreadcrumbs = updateBreadcrumbs;

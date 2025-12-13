@@ -92,6 +92,9 @@ function populateAnalysisDetail(analysis) {
     
     // Setup download button
     setupDownloadButton(analysis.analysisId);
+    
+    // Update tags display
+    updateTagsDisplay();
 }
 
 function populateScores(analysis) {
@@ -374,7 +377,11 @@ function showTagModalForDetail() {
         return;
     }
     
-    showTagModal(currentAnalysis.analysisId, currentAnalysis.studentName || 'Sin nombre');
+    if (typeof showTagModal === 'function') {
+        showTagModal(currentAnalysis.analysisId, currentAnalysis.studentName || 'Sin nombre');
+    } else {
+        showError('Función de etiquetas no disponible');
+    }
 }
 
 // Update tags display in detail page
@@ -421,3 +428,7 @@ if (originalPopulateAnalysisDetail) {
         updateTagsDisplay();
     };
 }
+
+// Export functions for global access
+window.showTagModalForDetail = showTagModalForDetail;
+window.updateTagsDisplay = updateTagsDisplay;

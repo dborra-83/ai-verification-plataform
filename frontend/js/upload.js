@@ -11,15 +11,24 @@ function setupUploadZone() {
     const uploadZone = document.getElementById('uploadZone');
     const fileInput = document.getElementById('fileInput');
     
-    if (!uploadZone || !fileInput) return;
+    if (!uploadZone || !fileInput) {
+        console.log('Upload zone or file input not found');
+        return;
+    }
+    
+    console.log('Setting up upload zone...');
     
     // Click to select file
     uploadZone.addEventListener('click', () => {
+        console.log('Upload zone clicked');
         fileInput.click();
     });
     
     // File input change
-    fileInput.addEventListener('change', handleFileSelect);
+    fileInput.addEventListener('change', (e) => {
+        console.log('File input changed:', e.target.files);
+        handleFileSelect(e);
+    });
     
     // Drag and drop events
     uploadZone.addEventListener('dragover', handleDragOver);
@@ -69,13 +78,19 @@ function handleDrop(e) {
 
 // File selection handler
 function handleFileSelect(e) {
+    console.log('handleFileSelect called:', e);
     const files = e.target.files;
-    if (files.length === 0) return;
+    if (files.length === 0) {
+        console.log('No files selected');
+        return;
+    }
     
     const file = files[0];
+    console.log('File selected:', file.name, file.type, file.size);
     
     // Validate file type
     if (file.type !== 'application/pdf') {
+        console.log('Invalid file type:', file.type);
         Swal.fire({
             icon: 'error',
             title: 'Tipo de archivo no válido',
@@ -88,6 +103,7 @@ function handleFileSelect(e) {
     // Validate file size (max 10MB)
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
+        console.log('File too large:', file.size);
         Swal.fire({
             icon: 'error',
             title: 'Archivo muy grande',
@@ -98,6 +114,7 @@ function handleFileSelect(e) {
     }
     
     selectedFile = file;
+    console.log('File accepted, showing info...');
     showFileInfo(file);
     validateForm();
 }
