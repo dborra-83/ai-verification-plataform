@@ -461,9 +461,11 @@ function displayExtractedTopics() {
     if (!renderedTree || renderedTree.trim() === "") {
       console.error("renderTopicTree returned empty result");
       console.error("Topic tree keys:", Object.keys(topicTree));
-      
+
       // Fallback: create a simple list from the original topics
-      const fallbackHtml = createFallbackTopicList(examGeneratorState.extractedTopics);
+      const fallbackHtml = createFallbackTopicList(
+        examGeneratorState.extractedTopics
+      );
       if (fallbackHtml && fallbackHtml.trim() !== "") {
         console.log("Using fallback topic rendering");
         topicsContainer.innerHTML = fallbackHtml;
@@ -587,7 +589,10 @@ function renderTopicTree(tree, level = 0) {
   }
 
   const treeKeys = Object.keys(tree);
-  console.log(`Rendering tree at level ${level} with ${treeKeys.length} nodes:`, treeKeys);
+  console.log(
+    `Rendering tree at level ${level} with ${treeKeys.length} nodes:`,
+    treeKeys
+  );
 
   Object.values(tree).forEach((node, index) => {
     // Ensure node and node.title exist with better validation
@@ -601,7 +606,9 @@ function renderTopicTree(tree, level = 0) {
       return;
     }
 
-    console.log(`Processing node ${index + 1}/${treeKeys.length}: "${node.title}"`);}
+    console.log(
+      `Processing node ${index + 1}/${treeKeys.length}: "${node.title}"`
+    );
 
     const hasChildren = node.children && Object.keys(node.children).length > 0;
     const indent = level * 20;
@@ -671,11 +678,13 @@ function renderTopicTree(tree, level = 0) {
         `;
   });
 
-  console.log(`Finished rendering tree at level ${level}, HTML length: ${html.length}`);
+  console.log(
+    `Finished rendering tree at level ${level}, HTML length: ${html.length}`
+  );
   if (html.length === 0) {
     console.warn("Generated HTML is empty at level", level);
   }
-  
+
   return html;
 }
 
@@ -694,7 +703,7 @@ function createFallbackTopicList(topics) {
   }
 
   let html = "";
-  
+
   topics.forEach((topic, index) => {
     let topicTitle = "";
     let subtopics = [];
@@ -703,14 +712,15 @@ function createFallbackTopicList(topics) {
     if (typeof topic === "string") {
       topicTitle = topic;
     } else if (topic && typeof topic === "object") {
-      topicTitle = topic.topic || topic.title || topic.name || `Tema ${index + 1}`;
+      topicTitle =
+        topic.topic || topic.title || topic.name || `Tema ${index + 1}`;
       subtopics = topic.subtopics || topic.children || topic.items || [];
     }
 
     if (!topicTitle) return;
 
     const topicId = `fallback_topic_${index}`;
-    
+
     html += `
       <div class="topic-item mb-3">
         <div class="form-check">
@@ -752,10 +762,10 @@ function createFallbackTopicList(topics) {
           `;
         }
       });
-      html += '</div>';
+      html += "</div>";
     }
 
-    html += '</div>';
+    html += "</div>";
   });
 
   return html;
