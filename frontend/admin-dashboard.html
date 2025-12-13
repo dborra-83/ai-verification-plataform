@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTech AI - Analytics y Reportes</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="css/styles.css" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Chart.js for advanced analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <!-- Configuration -->
+    <script src="config.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="bi bi-mortarboard me-2"></i>EduTech AI</h1>
+                <p>Plataforma Educativa Docente</p>
+            </div>
+
+            <div class="sidebar-nav">
+                <!-- Sección Detección de IA -->
+                <div class="nav-section-header">
+                    <i class="bi bi-shield-check me-2"></i>
+                    Detección de IA
+                </div>
+                <a href="index.html" class="nav-item">
+                    <i class="bi bi-speedometer2"></i>
+                    Dashboard
+                </a>
+                <a href="index.html#upload" class="nav-item">
+                    <i class="bi bi-cloud-upload"></i>
+                    Nuevo Análisis
+                </a>
+                <a href="index.html#history" class="nav-item">
+                    <i class="bi bi-clock-history"></i>
+                    Historial
+                </a>
+                <a href="index.html#analytics" class="nav-item">
+                    <i class="bi bi-graph-up"></i>
+                    Analytics y Reportes
+                </a>
+                
+                <!-- Sección Generación de Exámenes -->
+                <div class="nav-section-header">
+                    <i class="bi bi-file-earmark-text me-2"></i>
+                    Exámenes con IA
+                </div>
+                <a href="exam-dashboard.html" class="nav-item">
+                    <i class="bi bi-speedometer2"></i>
+                    Dashboard
+                </a>
+                <a href="exam-generator.html" class="nav-item">
+                    <i class="bi bi-plus-circle"></i>
+                    Generador de Exámenes
+                </a>
+                <a href="exam-history.html" class="nav-item">
+                    <i class="bi bi-journal-text"></i>
+                    Historial de Exámenes
+                </a>
+                <a href="admin-dashboard.html" class="nav-item active">
+                    <i class="bi bi-graph-up"></i>
+                    Analytics y Reportes
+                </a>
+                
+                <!-- Configuración General -->
+                <hr style="border-color: rgba(255,255,255,0.2); margin: 1rem 1.5rem;">
+                <a href="index.html#settings" class="nav-item">
+                    <i class="bi bi-gear"></i>
+                    Configuración
+                </a>
+                <a href="#" class="nav-item" onclick="logout()">
+                    <i class="bi bi-box-arrow-right"></i>
+                    Cerrar Sesión
+                </a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Topbar -->
+            <div class="topbar">
+                <h2 id="pageTitle">Analytics y Reportes - Exámenes con IA</h2>
+            </div>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Breadcrumb -->
+                <div class="breadcrumb-container mb-3">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Analytics y Reportes</li>
+                        </ol>
+                    </nav>
+                </div>
+
+                <!-- Page Header -->
+                <div class="row mb-4">
+                    <div class="col">
+                        <h1 class="h3 mb-0">
+                            <i class="bi bi-graph-up me-2"></i>
+                            Analytics y Reportes del Sistema
+                        </h1>
+                        <p class="text-muted">Supervisión y métricas del sistema de generación de exámenes</p>
+                    </div>
+                    <div class="col-auto">
+                        <div class="btn-group">
+                            <button class="btn btn-outline-primary" onclick="refreshDashboard()" title="Actualizar">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                            <button class="btn btn-outline-info" onclick="exportReport()" title="Exportar Reporte">
+                                <i class="bi bi-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Key Metrics Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body kpi-card">
+                                <h3 class="kpi-value text-primary" id="totalExams">-</h3>
+                                <p class="kpi-label">Exámenes Generados</p>
+                                <small class="kpi-trend text-muted">Últimos 30 días</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body kpi-card">
+                                <h3 class="kpi-value text-success" id="successRate">-</h3>
+                                <p class="kpi-label">Tasa de Éxito</p>
+                                <small class="kpi-trend text-muted">Generaciones exitosas</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body kpi-card">
+                                <h3 class="kpi-value text-info" id="activeUsers">-</h3>
+                                <p class="kpi-label">Usuarios Activos</p>
+                                <small class="kpi-trend text-muted">Profesores registrados</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body kpi-card">
+                                <h3 class="kpi-value text-warning" id="avgProcessingTime">-</h3>
+                                <p class="kpi-label">Tiempo Promedio</p>
+                                <small class="kpi-trend text-muted">Procesamiento</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+        <!-- Charts Row -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-bar-chart me-2"></i>
+                            Tendencia de Generación de Exámenes
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="examTrendChart" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-pie-chart me-2"></i>
+                            Estado de Exámenes
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="examStatusChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Performance and Audit Trail -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-speedometer2 me-2"></i>
+                            Rendimiento del Sistema
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <div class="progress mb-2" style="height: 10px;">
+                                        <div class="progress-bar bg-success" id="cpuUsage" style="width: 0%"></div>
+                                    </div>
+                                    <small class="text-muted">CPU Usage</small>
+                                    <div class="fw-bold" id="cpuPercentage">0%</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <div class="progress mb-2" style="height: 10px;">
+                                        <div class="progress-bar bg-info" id="memoryUsage" style="width: 0%"></div>
+                                    </div>
+                                    <small class="text-muted">Memory Usage</small>
+                                    <div class="fw-bold" id="memoryPercentage">0%</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="fw-bold text-primary" id="apiResponseTime">-</div>
+                                <small class="text-muted">API Response</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="fw-bold text-success" id="uptime">-</div>
+                                <small class="text-muted">Uptime</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="fw-bold text-warning" id="errorRate">-</div>
+                                <small class="text-muted">Error Rate</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-journal-check me-2"></i>
+                            Registro de Auditoría
+                        </h5>
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewFullAuditLog()">
+                            Ver Todo
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="auditTrail" style="max-height: 300px; overflow-y: auto;">
+                            <div class="text-center text-muted">
+                                <i class="bi bi-hourglass-split me-2"></i>
+                                Cargando registro de auditoría...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity and Alerts -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-activity me-2"></i>
+                            Actividad Reciente
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Hora</th>
+                                        <th>Usuario</th>
+                                        <th>Acción</th>
+                                        <th>Estado</th>
+                                        <th>Detalles</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentActivityTable">
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">
+                                            <i class="bi bi-hourglass-split me-2"></i>
+                                            Cargando actividad reciente...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Alertas del Sistema
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="systemAlerts">
+                            <div class="text-center text-muted">
+                                <i class="bi bi-check-circle me-2"></i>
+                                No hay alertas activas
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Log Modal -->
+    <div class="modal fade" id="auditLogModal" tabindex="-1" aria-labelledby="auditLogModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="auditLogModalLabel">
+                        <i class="bi bi-journal-check me-2"></i>
+                        Registro Completo de Auditoría
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="auditDateFrom" class="form-label">Desde</label>
+                            <input type="date" class="form-control" id="auditDateFrom">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="auditDateTo" class="form-label">Hasta</label>
+                            <input type="date" class="form-control" id="auditDateTo">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="auditAction" class="form-label">Acción</label>
+                            <select class="form-select" id="auditAction">
+                                <option value="">Todas las acciones</option>
+                                <option value="EXAM_GENERATION">Generación de Examen</option>
+                                <option value="FILE_UPLOAD">Subida de Archivo</option>
+                                <option value="USER_LOGIN">Inicio de Sesión</option>
+                                <option value="EXPORT_DATA">Exportación de Datos</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Usuario</th>
+                                    <th>Acción</th>
+                                    <th>Recurso</th>
+                                    <th>Estado</th>
+                                    <th>IP</th>
+                                    <th>Detalles</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fullAuditTable">
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">
+                                        <i class="bi bi-hourglass-split me-2"></i>
+                                        Cargando registro de auditoría...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" onclick="exportAuditLog()">
+                        <i class="bi bi-download me-2"></i>
+                        Exportar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Session Manager -->
+    <script src="js/session-manager.js"></script>
+    
+    <!-- Admin Dashboard JS -->
+    <script src="js/admin-dashboard.js"></script>
+</body>
+</html>

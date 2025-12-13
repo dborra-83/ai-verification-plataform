@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTech AI - Generador de Exámenes</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="css/styles.css" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Configuration -->
+    <script src="config.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="bi bi-mortarboard me-2"></i>EduTech AI</h1>
+                <p>Plataforma Educativa Docente</p>
+            </div>
+
+            <div class="sidebar-nav">
+                <!-- Sección Detección de IA -->
+                <div class="nav-section-header">
+                    <i class="bi bi-shield-check me-2"></i>
+                    Detección de IA
+                </div>
+                <a href="index.html" class="nav-item">
+                    <i class="bi bi-speedometer2"></i>
+                    Dashboard
+                </a>
+                <a href="index.html#upload" class="nav-item">
+                    <i class="bi bi-cloud-upload"></i>
+                    Nuevo Análisis
+                </a>
+                <a href="index.html#history" class="nav-item">
+                    <i class="bi bi-clock-history"></i>
+                    Historial
+                </a>
+                <a href="index.html#analytics" class="nav-item">
+                    <i class="bi bi-graph-up"></i>
+                    Analytics y Reportes
+                </a>
+                
+                <!-- Sección Generación de Exámenes -->
+                <div class="nav-section-header">
+                    <i class="bi bi-file-earmark-text me-2"></i>
+                    Exámenes con IA
+                </div>
+                <a href="exam-dashboard.html" class="nav-item">
+                    <i class="bi bi-speedometer2"></i>
+                    Dashboard
+                </a>
+                <a href="exam-generator.html" class="nav-item active">
+                    <i class="bi bi-plus-circle"></i>
+                    Generador de Exámenes
+                </a>
+                <a href="exam-history.html" class="nav-item">
+                    <i class="bi bi-journal-text"></i>
+                    Historial de Exámenes
+                </a>
+                <a href="admin-dashboard.html" class="nav-item">
+                    <i class="bi bi-graph-up"></i>
+                    Analytics y Reportes
+                </a>
+                
+                <!-- Configuración General -->
+                <hr style="border-color: rgba(255,255,255,0.2); margin: 1rem 1.5rem;">
+                <a href="index.html#settings" class="nav-item">
+                    <i class="bi bi-gear"></i>
+                    Configuración
+                </a>
+                <a href="#" class="nav-item" onclick="logout()">
+                    <i class="bi bi-box-arrow-right"></i>
+                    Cerrar Sesión
+                </a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Topbar -->
+            <div class="topbar">
+                <h2 id="pageTitle">Generador de Exámenes</h2>
+                <div class="topbar-actions">
+                    <div class="search-box">
+                        <i class="bi bi-search"></i>
+                        <input type="text" placeholder="Buscar documentos..." id="searchInput">
+                    </div>
+                    <button class="btn btn-outline-info btn-sm me-2" onclick="window.location.href='admin-dashboard.html'" title="Analytics para Exámenes con IA">
+                        <i class="bi bi-file-earmark-text me-1"></i>Analytics - Exámenes IA
+                    </button>
+                    <div class="user-avatar" title="Admin">
+                        A
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Breadcrumb -->
+                <div class="breadcrumb-container mb-3">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Generador de Exámenes</li>
+                        </ol>
+                    </nav>
+                </div>
+
+                <!-- Step Progress Indicator -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="step-indicator" data-step="1">
+                                        <div class="step-circle active">
+                                            <i class="bi bi-cloud-upload"></i>
+                                        </div>
+                                        <div class="step-label">Subir Documentos</div>
+                                    </div>
+                                    <div class="step-line"></div>
+                                    <div class="step-indicator" data-step="2">
+                                        <div class="step-circle">
+                                            <i class="bi bi-list-task"></i>
+                                        </div>
+                                        <div class="step-label">Seleccionar Temas</div>
+                                    </div>
+                                    <div class="step-line"></div>
+                                    <div class="step-indicator" data-step="3">
+                                        <div class="step-circle">
+                                            <i class="bi bi-gear"></i>
+                                        </div>
+                                        <div class="step-label">Configurar Examen</div>
+                                    </div>
+                                    <div class="step-line"></div>
+                                    <div class="step-indicator" data-step="4">
+                                        <div class="step-circle">
+                                            <i class="bi bi-play-circle"></i>
+                                        </div>
+                                        <div class="step-label">Generar</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 1: Document Upload -->
+                <div id="step1" class="step-content">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-cloud-upload me-2"></i>
+                                        Paso 1: Subir Documentos PDF
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Multi-file Upload Zone -->
+                                    <div class="upload-zone mb-4" id="multiUploadZone">
+                                        <div class="upload-icon">
+                                            <i class="bi bi-files"></i>
+                                        </div>
+                                        <div class="upload-text">
+                                            Arrastra hasta 5 archivos PDF aquí
+                                        </div>
+                                        <div class="upload-subtext">
+                                            o haz clic para seleccionar archivos
+                                        </div>
+                                        <input type="file" id="multiFileInput" accept=".pdf" multiple style="display: none;">
+                                    </div>
+
+                                    <!-- Uploaded Files List -->
+                                    <div id="uploadedFilesList" style="display: none;">
+                                        <h6 class="mb-3">Documentos Subidos:</h6>
+                                        <div id="filesList"></div>
+                                    </div>
+
+                                    <!-- Upload Progress -->
+                                    <div id="uploadProgress" style="display: none;" class="mb-4">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span>Subiendo documentos...</span>
+                                            <span id="uploadPercentage">0%</span>
+                                        </div>
+                                        <div class="progress">
+                                            <div class="progress-bar progress-bar-primary" id="uploadProgressBar" 
+                                                 role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Action Buttons -->
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-primary" id="nextToTopicsBtn" 
+                                                onclick="proceedToTopicExtraction()" disabled>
+                                            <i class="bi bi-arrow-right me-2"></i>
+                                            Extraer Temas
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="clearAllFiles()">
+                                            <i class="bi bi-trash me-2"></i>
+                                            Limpiar Todo
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        Información
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <h6>Requisitos de Documentos</h6>
+                                    <ul class="list-unstyled">
+                                        <li><i class="bi bi-check-circle text-success me-2"></i>Formato PDF únicamente</li>
+                                        <li><i class="bi bi-check-circle text-success me-2"></i>Máximo 5 documentos</li>
+                                        <li><i class="bi bi-check-circle text-success me-2"></i>Tamaño máximo: 5MB por archivo</li>
+                                        <li><i class="bi bi-check-circle text-success me-2"></i>Contenido de texto extraíble</li>
+                                    </ul>
+
+                                    <h6 class="mt-3">Proceso de Generación</h6>
+                                    <ol class="small">
+                                        <li>Subir documentos fuente</li>
+                                        <li>Extraer temas automáticamente</li>
+                                        <li>Seleccionar temas relevantes</li>
+                                        <li>Configurar parámetros del examen</li>
+                                        <li>Generar examen con IA</li>
+                                    </ol>
+
+                                    <div class="alert alert-info mt-3">
+                                        <small>
+                                            <i class="bi bi-lightbulb me-1"></i>
+                                            Los documentos se procesan con Claude 3.5 Sonnet para extraer temas de forma inteligente
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Topic Selection -->
+                <div id="step2" class="step-content" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="row align-items-center">
+                                        <div class="col">
+                                            <h5 class="mb-0">
+                                                <i class="bi bi-list-task me-2"></i>
+                                                Paso 2: Seleccionar Temas
+                                            </h5>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" onclick="selectAllTopics()">
+                                                    <i class="bi bi-check-all me-1"></i>Seleccionar Todo
+                                                </button>
+                                                <button class="btn btn-outline-secondary" onclick="clearAllTopics()">
+                                                    <i class="bi bi-x-circle me-1"></i>Limpiar Todo
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Topic Extraction Progress -->
+                                    <div id="topicExtractionProgress" style="display: none;" class="mb-4">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span>Extrayendo temas con IA...</span>
+                                            <span id="extractionPercentage">0%</span>
+                                        </div>
+                                        <div class="progress">
+                                            <div class="progress-bar progress-bar-primary" id="extractionProgressBar" 
+                                                 role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Topics Tree -->
+                                    <div id="topicsContainer">
+                                        <div class="text-center text-muted py-4">
+                                            <i class="bi bi-hourglass-split me-2"></i>
+                                            Esperando extracción de temas...
+                                        </div>
+                                    </div>
+
+                                    <!-- Selected Topics Summary -->
+                                    <div id="selectedTopicsSummary" style="display: none;" class="mt-4">
+                                        <div class="alert alert-info">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <i class="bi bi-info-circle me-2"></i>
+                                                    <strong>Temas Seleccionados:</strong> 
+                                                    <span id="selectedTopicsCount">0</span>
+                                                </div>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="showSelectedTopics()">
+                                                    <i class="bi bi-eye me-1"></i>Ver Lista
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Action Buttons -->
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-secondary" onclick="goBackToUpload()">
+                                            <i class="bi bi-arrow-left me-2"></i>
+                                            Volver a Documentos
+                                        </button>
+                                        <button type="button" class="btn btn-primary" id="nextToConfigBtn" 
+                                                onclick="proceedToConfiguration()" disabled>
+                                            <i class="bi bi-arrow-right me-2"></i>
+                                            Configurar Examen
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-lightbulb me-2"></i>
+                                        Guía de Selección
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <h6>Tipos de Temas</h6>
+                                    <ul class="list-unstyled small">
+                                        <li><i class="bi bi-folder text-primary me-2"></i><strong>Categorías:</strong> Temas principales</li>
+                                        <li><i class="bi bi-file-text text-info me-2"></i><strong>Subtemas:</strong> Conceptos específicos</li>
+                                        <li><i class="bi bi-tag text-success me-2"></i><strong>Detalles:</strong> Puntos clave</li>
+                                    </ul>
+
+                                    <h6 class="mt-3">Recomendaciones</h6>
+                                    <ul class="small">
+                                        <li>Selecciona entre 3-10 temas principales</li>
+                                        <li>Incluye subtemas para mayor detalle</li>
+                                        <li>Evita temas muy específicos o generales</li>
+                                        <li>Considera el nivel de dificultad deseado</li>
+                                    </ul>
+
+                                    <div class="alert alert-warning mt-3">
+                                        <small>
+                                            <i class="bi bi-exclamation-triangle me-1"></i>
+                                            Selecciona al menos 2 temas para generar un examen completo
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Document Sources -->
+                            <div class="card mt-3">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-files me-2"></i>
+                                        Documentos Fuente
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="sourceDocumentsList">
+                                        <!-- Will be populated dynamically -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Exam Configuration -->
+                <div id="step3" class="step-content" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-gear me-2"></i>
+                                        Paso 3: Configurar Examen
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="examConfigForm">
+                                        <!-- Basic Configuration -->
+                                        <div class="row mb-4">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="questionCount" class="form-label">Número de Preguntas *</label>
+                                                    <select class="form-select" id="questionCount" required>
+                                                        <option value="">Seleccionar cantidad</option>
+                                                        <option value="5">5 preguntas</option>
+                                                        <option value="10" selected>10 preguntas</option>
+                                                        <option value="15">15 preguntas</option>
+                                                        <option value="20">20 preguntas</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="difficulty" class="form-label">Nivel de Dificultad *</label>
+                                                    <select class="form-select" id="difficulty" required>
+                                                        <option value="">Seleccionar nivel</option>
+                                                        <option value="easy">Fácil</option>
+                                                        <option value="medium" selected>Intermedio</option>
+                                                        <option value="hard">Difícil</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Question Types -->
+                                        <div class="mb-4">
+                                            <label class="form-label">Tipos de Preguntas *</label>
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="multipleChoice" 
+                                                               value="multiple_choice" checked>
+                                                        <label class="form-check-label" for="multipleChoice">
+                                                            <i class="bi bi-list-ul me-2"></i>Opción Múltiple
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="trueFalse" 
+                                                               value="true_false">
+                                                        <label class="form-check-label" for="trueFalse">
+                                                            <i class="bi bi-check-square me-2"></i>Verdadero/Falso
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="mixed" 
+                                                               value="mixed">
+                                                        <label class="form-check-label" for="mixed">
+                                                            <i class="bi bi-shuffle me-2"></i>Mixto
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Advanced Options -->
+                                        <div class="row mb-4">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="versions" class="form-label">Número de Versiones</label>
+                                                    <select class="form-select" id="versions">
+                                                        <option value="1">1 versión</option>
+                                                        <option value="2" selected>2 versiones</option>
+                                                        <option value="3">3 versiones</option>
+                                                        <option value="4">4 versiones</option>
+                                                    </select>
+                                                    <small class="text-muted">Versiones equivalentes con diferente orden</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="language" class="form-label">Idioma del Examen</label>
+                                                    <select class="form-select" id="language">
+                                                        <option value="es" selected>Español</option>
+                                                        <option value="en">Inglés</option>
+                                                        <option value="fr">Francés</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Self-Assessment Option -->
+                                        <div class="mb-4">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="includeSelfAssessment" checked>
+                                                <label class="form-check-label" for="includeSelfAssessment">
+                                                    <i class="bi bi-person-check me-2"></i>
+                                                    <strong>Incluir Autoevaluación</strong>
+                                                </label>
+                                            </div>
+                                            <small class="text-muted">Genera preguntas adicionales para que los estudiantes evalúen su comprensión</small>
+                                        </div>
+
+                                        <!-- Action Buttons -->
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-secondary" onclick="goBackToTopics()">
+                                                <i class="bi bi-arrow-left me-2"></i>
+                                                Volver a Temas
+                                            </button>
+                                            <button type="button" class="btn btn-primary" onclick="proceedToGeneration()">
+                                                <i class="bi bi-arrow-right me-2"></i>
+                                                Revisar y Generar
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-eye me-2"></i>
+                                        Vista Previa de Configuración
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="configPreview">
+                                        <div class="mb-3">
+                                            <small class="text-muted">Preguntas:</small>
+                                            <div class="fw-medium" id="previewQuestionCount">10</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <small class="text-muted">Dificultad:</small>
+                                            <div class="fw-medium" id="previewDifficulty">Intermedio</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <small class="text-muted">Tipos:</small>
+                                            <div class="fw-medium" id="previewQuestionTypes">Opción Múltiple</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <small class="text-muted">Versiones:</small>
+                                            <div class="fw-medium" id="previewVersions">2</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <small class="text-muted">Idioma:</small>
+                                            <div class="fw-medium" id="previewLanguage">Español</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <small class="text-muted">Autoevaluación:</small>
+                                            <div class="fw-medium" id="previewSelfAssessment">Sí</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Selected Topics Summary -->
+                            <div class="card mt-3">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-tags me-2"></i>
+                                        Temas Seleccionados
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="selectedTopicsPreview">
+                                        <!-- Will be populated dynamically -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Generation -->
+                <div id="step4" class="step-content" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-play-circle me-2"></i>
+                                        Paso 4: Generar Examen
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Generation Summary -->
+                                    <div id="generationSummary" class="mb-4">
+                                        <h6>Resumen de Generación:</h6>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <ul class="list-unstyled">
+                                                    <li><strong>Documentos:</strong> <span id="summaryDocCount">0</span></li>
+                                                    <li><strong>Temas:</strong> <span id="summaryTopicCount">0</span></li>
+                                                    <li><strong>Preguntas:</strong> <span id="summaryQuestionCount">0</span></li>
+                                                </ul>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <ul class="list-unstyled">
+                                                    <li><strong>Dificultad:</strong> <span id="summaryDifficulty">-</span></li>
+                                                    <li><strong>Versiones:</strong> <span id="summaryVersions">0</span></li>
+                                                    <li><strong>Idioma:</strong> <span id="summaryLanguage">-</span></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Generation Progress -->
+                                    <div id="generationProgress" style="display: none;" class="mb-4">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span id="generationStatusText">Iniciando generación...</span>
+                                            <span id="generationPercentage">0%</span>
+                                        </div>
+                                        <div class="progress">
+                                            <div class="progress-bar progress-bar-primary" id="generationProgressBar" 
+                                                 role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                        <small class="text-muted mt-2" id="generationSubtext">
+                                            Este proceso puede tomar varios minutos...
+                                        </small>
+                                    </div>
+
+                                    <!-- Generation Results -->
+                                    <div id="generationResults" style="display: none;" class="mb-4">
+                                        <div class="alert alert-success">
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-check-circle-fill me-3" style="font-size: 1.5rem;"></i>
+                                                <div>
+                                                    <h6 class="mb-1">¡Examen Generado Exitosamente!</h6>
+                                                    <p class="mb-0">El examen ha sido creado y está listo para descargar.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Generated Files -->
+                                        <div id="generatedFilesList">
+                                            <!-- Will be populated dynamically -->
+                                        </div>
+                                    </div>
+
+                                    <!-- Action Buttons -->
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-secondary" onclick="goBackToConfig()" 
+                                                id="backToConfigBtn">
+                                            <i class="bi bi-arrow-left me-2"></i>
+                                            Volver a Configuración
+                                        </button>
+                                        <button type="button" class="btn btn-primary" onclick="startGeneration()" 
+                                                id="startGenerationBtn">
+                                            <i class="bi bi-play-circle me-2"></i>
+                                            Iniciar Generación
+                                        </button>
+                                        <button type="button" class="btn btn-success" onclick="goToExamHistory()" 
+                                                id="viewHistoryBtn" style="display: none;">
+                                            <i class="bi bi-journal-text me-2"></i>
+                                            Ver Historial de Exámenes
+                                        </button>
+                                        <button type="button" class="btn btn-outline-primary" onclick="startNewExam()" 
+                                                id="newExamBtn" style="display: none;">
+                                            <i class="bi bi-plus-circle me-2"></i>
+                                            Nuevo Examen
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        Proceso de Generación
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="timeline">
+                                        <div class="timeline-item" id="timelineUpload">
+                                            <div class="timeline-marker"></div>
+                                            <div class="timeline-content">
+                                                <h6>Análisis de Documentos</h6>
+                                                <small class="text-muted">Procesamiento de contenido</small>
+                                            </div>
+                                        </div>
+                                        <div class="timeline-item" id="timelineTopics">
+                                            <div class="timeline-marker"></div>
+                                            <div class="timeline-content">
+                                                <h6>Selección de Temas</h6>
+                                                <small class="text-muted">Identificación de conceptos clave</small>
+                                            </div>
+                                        </div>
+                                        <div class="timeline-item" id="timelineGeneration">
+                                            <div class="timeline-marker"></div>
+                                            <div class="timeline-content">
+                                                <h6>Generación con IA</h6>
+                                                <small class="text-muted">Creación de preguntas y respuestas</small>
+                                            </div>
+                                        </div>
+                                        <div class="timeline-item" id="timelineFiles">
+                                            <div class="timeline-marker"></div>
+                                            <div class="timeline-content">
+                                                <h6>Creación de Archivos</h6>
+                                                <small class="text-muted">Formato PDF y almacenamiento</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tips -->
+                            <div class="card mt-3">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-lightbulb me-2"></i>
+                                        Consejos
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="small">
+                                        <li>El proceso puede tomar 2-5 minutos</li>
+                                        <li>Se generarán versiones para estudiantes y profesores</li>
+                                        <li>Los archivos se guardan automáticamente</li>
+                                        <li>Puedes descargar los exámenes inmediatamente</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="js/app.js"></script>
+    <script src="js/exam-generator.js"></script>
+    <script src="js/topic-selection.js"></script>
+    <script src="js/exam-config.js"></script>
+</body>
+
+</html>
+</content>

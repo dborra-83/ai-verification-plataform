@@ -72,9 +72,13 @@
             
             // Mock authentication
             if (username === 'admin' && password === 'admin') {
-                // Store session in localStorage
-                localStorage.setItem('isAuthed', 'true');
-                localStorage.setItem('username', username);
+                // Store session using SessionManager (if available) or fallback
+                if (window.SessionManager) {
+                    window.SessionManager.setSession(username);
+                } else {
+                    localStorage.setItem('isAuthed', 'true');
+                    localStorage.setItem('username', username);
+                }
                 
                 Swal.fire({
                     icon: 'success',

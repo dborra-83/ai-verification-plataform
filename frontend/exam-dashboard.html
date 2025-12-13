@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTech AI - Dashboard de Exámenes</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="css/styles.css" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Chart.js for advanced analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- html2canvas for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Configuration -->
+    <script src="config.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="bi bi-mortarboard me-2"></i>EduTech AI</h1>
+                <p>Plataforma Educativa Docente</p>
+            </div>
+
+            <div class="sidebar-nav">
+                <!-- Sección Detección de IA -->
+                <div class="nav-section-header">
+                    <i class="bi bi-shield-check me-2"></i>
+                    Detección de IA
+                </div>
+                <a href="index.html" class="nav-item">
+                    <i class="bi bi-speedometer2"></i>
+                    Dashboard
+                </a>
+                <a href="index.html#upload" class="nav-item">
+                    <i class="bi bi-cloud-upload"></i>
+                    Nuevo Análisis
+                </a>
+                <a href="index.html#history" class="nav-item">
+                    <i class="bi bi-clock-history"></i>
+                    Historial
+                </a>
+                <a href="index.html#analytics" class="nav-item">
+                    <i class="bi bi-graph-up"></i>
+                    Analytics y Reportes
+                </a>
+                
+                <!-- Sección Generación de Exámenes -->
+                <div class="nav-section-header">
+                    <i class="bi bi-file-earmark-text me-2"></i>
+                    Exámenes con IA
+                </div>
+                <a href="exam-dashboard.html" class="nav-item active">
+                    <i class="bi bi-speedometer2"></i>
+                    Dashboard
+                </a>
+                <a href="exam-generator.html" class="nav-item">
+                    <i class="bi bi-plus-circle"></i>
+                    Generador de Exámenes
+                </a>
+                <a href="exam-history.html" class="nav-item">
+                    <i class="bi bi-journal-text"></i>
+                    Historial de Exámenes
+                </a>
+                <a href="admin-dashboard.html" class="nav-item">
+                    <i class="bi bi-graph-up"></i>
+                    Analytics y Reportes
+                </a>
+                
+                <!-- Configuración General -->
+                <hr style="border-color: rgba(255,255,255,0.2); margin: 1rem 1.5rem;">
+                <a href="index.html#settings" class="nav-item">
+                    <i class="bi bi-gear"></i>
+                    Configuración
+                </a>
+                <a href="#" class="nav-item" onclick="logout()">
+                    <i class="bi bi-box-arrow-right"></i>
+                    Cerrar Sesión
+                </a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Topbar -->
+            <div class="topbar">
+                <h2 id="pageTitle">Dashboard - Exámenes con IA</h2>
+                <div class="topbar-actions">
+                    <div class="search-box">
+                        <i class="bi bi-search"></i>
+                        <input type="text" placeholder="Buscar exámenes..." id="searchInput">
+                    </div>
+                    <button class="btn btn-outline-info btn-sm me-2" onclick="window.location.href='admin-dashboard.html'" title="Analytics para Exámenes con IA">
+                        <i class="bi bi-file-earmark-text me-1"></i>Analytics - Exámenes IA
+                    </button>
+                    <div class="user-avatar" title="Admin">
+                        A
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- KPI Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body kpi-card">
+                                <h3 class="kpi-value text-primary" id="totalExams">-</h3>
+                                <p class="kpi-label">Total Exámenes</p>
+                                <small class="kpi-trend text-muted">Últimos 30 días</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body kpi-card">
+                                <h3 class="kpi-value text-success" id="completedExams">-</h3>
+                                <p class="kpi-label">Exámenes Completados</p>
+                                <small class="kpi-trend text-muted">Listos para descargar</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body kpi-card">
+                                <h3 class="kpi-value text-success" id="systemStatus">Activo</h3>
+                                <p class="kpi-label">Estado del Sistema</p>
+                                <small class="kpi-trend trend-up">
+                                    <i class="bi bi-check-circle me-1"></i>Operativo
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional KPIs -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body kpi-card">
+                                <h3 class="kpi-value text-warning" id="processingExams">-</h3>
+                                <p class="kpi-label">En Proceso</p>
+                                <small class="kpi-trend text-muted">Generándose ahora</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body kpi-card">
+                                <h3 class="kpi-value text-info" id="avgQuestions">-</h3>
+                                <p class="kpi-label">Promedio Preguntas</p>
+                                <small class="kpi-trend text-muted">Por examen</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body kpi-card">
+                                <h3 class="kpi-value text-primary" id="todayExams">-</h3>
+                                <p class="kpi-label">Exámenes Hoy</p>
+                                <small class="kpi-trend text-muted">Últimas 24 horas</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body kpi-card">
+                                <h3 class="kpi-value text-success" id="successRate">-</h3>
+                                <p class="kpi-label">Tasa de Éxito</p>
+                                <small class="kpi-trend text-muted">Generaciones exitosas</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-plus-circle me-2"></i>
+                                    Generar Nuevo Examen
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <p class="text-muted mb-3">Crea exámenes personalizados con IA a partir de tus documentos PDF
+                                            usando tecnología Amazon Bedrock Claude 3.5 Sonnet</p>
+                                        <button class="btn btn-primary" onclick="window.location.href='exam-generator.html'">
+                                            <i class="bi bi-plus-circle me-2"></i>
+                                            Crear Examen
+                                        </button>
+                                    </div>
+                                    <div class="col-md-4 text-center">
+                                        <div class="d-flex justify-content-center align-items-center">
+                                            <div class="me-3">
+                                                <i class="bi bi-file-earmark-text"
+                                                    style="font-size: 2rem; color: var(--ch-blue);"></i>
+                                            </div>
+                                            <div class="text-start">
+                                                <small class="text-muted">Powered by</small><br>
+                                                <strong>Amazon Bedrock</strong><br>
+                                                <small class="text-muted">Claude 3.5 Sonnet</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Features Info Banner -->
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="alert alert-primary">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <i class="bi bi-lightbulb me-2"></i>
+                                    <strong>💡 Funcionalidades Disponibles:</strong>
+                                    Genera exámenes con <span class="badge bg-info">Múltiple Opción</span>,
+                                    <span class="badge bg-success">Verdadero/Falso</span>, y
+                                    <span class="badge bg-warning">Mixtos</span> con diferentes niveles de dificultad.
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <button class="btn btn-outline-primary btn-sm me-2"
+                                        onclick="window.location.href='exam-history.html'">
+                                        <i class="bi bi-journal-text me-1"></i>Ver Historial
+                                    </button>
+                                    <button class="btn btn-outline-info btn-sm" onclick="showHelpModal()">
+                                        <i class="bi bi-question-circle me-1"></i>Ayuda
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Exams -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-clock-history me-2"></i>
+                                    Exámenes Recientes
+                                </h5>
+                            </div>
+                            <div class="col-auto">
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" onclick="exportExamDashboardToPDF()"
+                                        title="Exportar Dashboard a PDF">
+                                        <i class="bi bi-file-earmark-pdf"></i>
+                                    </button>
+                                    <button class="btn btn-outline-success" onclick="exportExamDashboardToExcel()"
+                                        title="Exportar Datos a Excel">
+                                        <i class="bi bi-file-earmark-excel"></i>
+                                    </button>
+                                    <button class="btn btn-outline-info" onclick="window.location.href='admin-dashboard.html'"
+                                        title="Ver Analytics Avanzados">
+                                        <i class="bi bi-graph-up"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID Examen</th>
+                                        <th>Profesor</th>
+                                        <th>Fecha</th>
+                                        <th>Preguntas</th>
+                                        <th>Dificultad</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentExamsTable">
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted">
+                                            <i class="bi bi-hourglass-split me-2"></i>
+                                            Cargando exámenes recientes...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="js/app.js"></script>
+    <script src="js/exam-dashboard.js"></script>
+</body>
+
+</html>
