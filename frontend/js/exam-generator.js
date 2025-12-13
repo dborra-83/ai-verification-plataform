@@ -444,11 +444,22 @@ function displayExtractedTopics() {
   }
 
   try {
+    console.log("=== DEBUGGING TOPIC RENDERING ===");
+    console.log("Raw extracted topics:", examGeneratorState.extractedTopics);
+    console.log("Topics type:", typeof examGeneratorState.extractedTopics);
+    console.log(
+      "Topics is array:",
+      Array.isArray(examGeneratorState.extractedTopics)
+    );
+
     // Build hierarchical topic tree
     const topicTree = buildTopicTree(examGeneratorState.extractedTopics);
     console.log("Topic tree built successfully:", topicTree);
+    console.log("Topic tree type:", typeof topicTree);
+    console.log("Topic tree keys:", Object.keys(topicTree));
 
     const renderedTree = renderTopicTree(topicTree);
+    console.log("Rendered tree type:", typeof renderedTree);
     console.log(
       "Rendered tree length:",
       renderedTree ? renderedTree.length : 0
@@ -461,18 +472,31 @@ function displayExtractedTopics() {
     if (!renderedTree || renderedTree.trim() === "") {
       console.error("renderTopicTree returned empty result");
       console.error("Topic tree keys:", Object.keys(topicTree));
+      console.error("Topic tree values:", Object.values(topicTree));
 
       // Fallback: create a simple list from the original topics
+      console.log("Attempting fallback rendering...");
       const fallbackHtml = createFallbackTopicList(
         examGeneratorState.extractedTopics
       );
+      console.log(
+        "Fallback HTML length:",
+        fallbackHtml ? fallbackHtml.length : 0
+      );
+      console.log(
+        "Fallback HTML preview:",
+        fallbackHtml ? fallbackHtml.substring(0, 200) : "null/undefined"
+      );
+
       if (fallbackHtml && fallbackHtml.trim() !== "") {
         console.log("Using fallback topic rendering");
         topicsContainer.innerHTML = fallbackHtml;
       } else {
+        console.error("Fallback rendering also failed");
         throw new Error("No se pudo renderizar el árbol de temas");
       }
     } else {
+      console.log("Using main topic tree rendering");
       topicsContainer.innerHTML = renderedTree;
     }
 
@@ -698,13 +722,20 @@ function escapeHtml(text) {
 
 // Fallback function to create a simple topic list
 function createFallbackTopicList(topics) {
+  console.log("=== FALLBACK RENDERING ===");
+  console.log("Input topics:", topics);
+  console.log("Topics type:", typeof topics);
+  console.log("Topics is array:", Array.isArray(topics));
+
   if (!topics || !Array.isArray(topics)) {
+    console.log("Invalid topics input, returning empty string");
     return "";
   }
 
   let html = "";
 
   topics.forEach((topic, index) => {
+    console.log(`Processing fallback topic ${index}:`, topic);
     let topicTitle = "";
     let subtopics = [];
 
