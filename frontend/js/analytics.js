@@ -36,6 +36,12 @@ function showAnalyticsSection() {
 // Load analytics data and create charts
 async function loadAnalyticsData() {
     try {
+        // Check if Chart.js is available
+        if (typeof window.Chart === 'undefined') {
+            showError('Chart.js no está disponible. Por favor recarga la página.');
+            return;
+        }
+        
         const period = document.getElementById('analyticsPeriod')?.value || '30';
         
         // Show loading state
@@ -110,7 +116,7 @@ function createAnalysisTimeChart(analyses, period) {
     });
     const data = Object.values(dateGroups);
     
-    analysisTimeChart = new Chart(ctx, {
+    analysisTimeChart = new window.Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
@@ -163,7 +169,7 @@ function createRiskDistributionChart(analyses) {
         else highRisk++;
     });
     
-    riskDistributionChart = new Chart(ctx, {
+    riskDistributionChart = new window.Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: ['Bajo Riesgo (0-39%)', 'Riesgo Medio (40-69%)', 'Alto Riesgo (70-100%)'],
@@ -226,7 +232,7 @@ function createCourseScoresChart(analyses) {
         return '#28a745';
     });
     
-    courseScoresChart = new Chart(ctx, {
+    courseScoresChart = new window.Chart(ctx, {
         type: 'bar',
         data: {
             labels: labels,
@@ -290,7 +296,7 @@ function createConfidenceOriginalityChart(analyses) {
         return 'rgba(40, 167, 69, 0.6)';
     });
     
-    confidenceOriginalityChart = new Chart(ctx, {
+    confidenceOriginalityChart = new window.Chart(ctx, {
         type: 'scatter',
         data: {
             datasets: [{

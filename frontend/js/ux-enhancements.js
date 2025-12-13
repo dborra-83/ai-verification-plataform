@@ -141,87 +141,29 @@ function setupTooltips() {
     });
 }
 
-// Setup enhanced drag & drop
+// Setup enhanced drag & drop - SIMPLIFIED to avoid conflicts
 function setupDragDropEnhancements() {
+    // Simplified version that doesn't interfere with existing upload functionality
+    // Just adds some visual enhancements without breaking the original behavior
+    
     const uploadZone = document.getElementById('uploadZone');
     if (!uploadZone) return;
     
-    let dragCounter = 0;
-    
-    // Enhanced drag & drop with visual feedback
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        uploadZone.addEventListener(eventName, preventDefaults, false);
-        document.body.addEventListener(eventName, preventDefaults, false);
-    });
-    
-    ['dragenter', 'dragover'].forEach(eventName => {
-        uploadZone.addEventListener(eventName, highlight, false);
-    });
-    
-    ['dragleave', 'drop'].forEach(eventName => {
-        uploadZone.addEventListener(eventName, unhighlight, false);
-    });
-    
-    uploadZone.addEventListener('drop', handleDrop, false);
-    
-    // Global drag enter/leave for body
-    document.body.addEventListener('dragenter', (e) => {
-        dragCounter++;
-        if (dragCounter === 1) {
-            showGlobalDropZone();
-        }
-    });
-    
-    document.body.addEventListener('dragleave', (e) => {
-        dragCounter--;
-        if (dragCounter === 0) {
-            hideGlobalDropZone();
-        }
-    });
-    
-    document.body.addEventListener('drop', (e) => {
-        dragCounter = 0;
-        hideGlobalDropZone();
-    });
-    
-    function preventDefaults(e) {
+    // Only add visual feedback, don't handle the actual drop
+    uploadZone.addEventListener('dragenter', (e) => {
         e.preventDefault();
-        e.stopPropagation();
-    }
-    
-    function highlight(e) {
         uploadZone.classList.add('drag-over');
-    }
+    });
     
-    function unhighlight(e) {
+    uploadZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
         uploadZone.classList.remove('drag-over');
-    }
+    });
     
-    function handleDrop(e) {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        
-        if (files.length > 0) {
-            const file = files[0];
-            if (file.type === 'application/pdf') {
-                handleFileSelect(file);
-            } else {
-                showError('Solo se permiten archivos PDF');
-            }
-        }
-    }
-    
-    function showGlobalDropZone() {
-        // Only show if we're on upload section or dashboard
-        const currentSection = getCurrentSection();
-        if (currentSection === 'uploadSection' || currentSection === 'dashboardSection') {
-            document.body.classList.add('global-drag-active');
-        }
-    }
-    
-    function hideGlobalDropZone() {
-        document.body.classList.remove('global-drag-active');
-    }
+    uploadZone.addEventListener('drop', (e) => {
+        uploadZone.classList.remove('drag-over');
+        // Let the original upload.js handle the actual drop
+    });
 }
 
 // Setup breadcrumbs navigation
@@ -425,44 +367,11 @@ function getCurrentSection() {
     return 'dashboardSection'; // default
 }
 
-// Enhanced file selection with preview
+// Enhanced file selection with preview - DISABLED to avoid conflicts
+// The original upload.js handles file selection properly
 function handleFileSelect(file) {
-    if (!file) return;
-    
-    // Update file input
-    const fileInput = document.getElementById('fileInput');
-    if (fileInput) {
-        // Only update if file is a File object
-        if (file instanceof File) {
-            const dt = new DataTransfer();
-            dt.items.add(file);
-            fileInput.files = dt.files;
-        }
-    }
-    
-    // Show file info with enhanced preview
-    const fileInfo = document.getElementById('fileInfo');
-    const fileName = document.getElementById('fileName');
-    
-    if (fileInfo && fileName) {
-        const fileSize = (file.size / 1024 / 1024).toFixed(2);
-        fileName.innerHTML = `
-            <div class="d-flex align-items-center">
-                <i class="bi bi-file-earmark-pdf text-danger me-2" style="font-size: 1.2rem;"></i>
-                <div>
-                    <div class="fw-medium">${file.name}</div>
-                    <small class="text-muted">${fileSize} MB • PDF</small>
-                </div>
-            </div>
-        `;
-        fileInfo.style.display = 'block';
-    }
-    
-    // Enable analyze button
-    const analyzeBtn = document.getElementById('analyzeBtn');
-    if (analyzeBtn) {
-        analyzeBtn.disabled = false;
-    }
+    // Do nothing - let the original upload.js handle this
+    return;
 }
 
 // Initialize on DOM load
