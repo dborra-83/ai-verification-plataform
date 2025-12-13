@@ -23,7 +23,7 @@ async function loadExamDashboardData() {
 
     // Try to load real data from API
     try {
-      const response = await apiCall("/exam-history?pageSize=100");
+      const response = await apiCall("/exam/history?pageSize=100");
       const exams = response.items || response.exams || []; // Support both formats
 
       // Calculate KPIs
@@ -88,7 +88,7 @@ async function loadRecentExams() {
   const tableBody = document.getElementById("recentExamsTable");
 
   try {
-    const response = await apiCall("/exam-history?pageSize=5");
+    const response = await apiCall("/exam/history?pageSize=5");
     const exams = response.items || response.exams || []; // Support both formats
 
     if (exams.length === 0) {

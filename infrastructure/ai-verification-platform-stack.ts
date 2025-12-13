@@ -283,27 +283,57 @@ export class AiVerificationPlatformStack extends cdk.Stack {
     );
 
     // Exam history endpoints
-    const historyResource = examResource.addResource("history");
+    const historyResource = examResource.addResource("history", {
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: ["Content-Type", "Authorization"],
+      },
+    });
     historyResource.addMethod(
       "GET",
       new apigateway.LambdaIntegration(examHistoryLambda)
     );
 
-    const historyExamIdResource = historyResource.addResource("{examId}");
+    const historyExamIdResource = historyResource.addResource("{examId}", {
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: ["Content-Type", "Authorization"],
+      },
+    });
     historyExamIdResource.addMethod(
       "GET",
       new apigateway.LambdaIntegration(examHistoryLambda)
     );
 
-    const exportResource = historyResource.addResource("export");
+    const exportResource = historyResource.addResource("export", {
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: ["Content-Type", "Authorization"],
+      },
+    });
     exportResource.addMethod(
       "POST",
       new apigateway.LambdaIntegration(examHistoryLambda)
     );
 
     // Exam download endpoints
-    const examDownloadResource = examResource.addResource("download");
-    const fileIdResource = examDownloadResource.addResource("{fileId}");
+    const examDownloadResource = examResource.addResource("download", {
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: ["Content-Type", "Authorization"],
+      },
+    });
+    const fileIdResource = examDownloadResource.addResource("{fileId}", {
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: ["Content-Type", "Authorization"],
+      },
+    });
     fileIdResource.addMethod(
       "GET",
       new apigateway.LambdaIntegration(examHistoryLambda)

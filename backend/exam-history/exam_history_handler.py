@@ -55,9 +55,10 @@ def handle_list_exams(event, context):
         end_date = query_params.get('endDate')
         topic_filter = query_params.get('topic')
         try:
-            limit = int(query_params.get('limit', '50'))
+            # Support both 'limit' and 'pageSize' parameters for compatibility
+            limit = int(query_params.get('limit') or query_params.get('pageSize', '50'))
         except ValueError:
-            return create_error_response(400, 'INVALID_LIMIT', 'Limit parameter must be a valid integer')
+            return create_error_response(400, 'INVALID_LIMIT', 'Limit/pageSize parameter must be a valid integer')
         
         # Get table reference
         table = dynamodb.Table(os.environ['ANALYSIS_TABLE'])
@@ -89,15 +90,22 @@ def handle_list_exams(event, context):
 
         exams = []
         for item in response.get('Items', []):
+            exam_config = item.get('examConfig', {})
             exam_data = {
                 'examId': item['analysisId'].replace('exam-', ''),
                 'teacherId': item.get('teacherId'),
                 'createdAt': item.get('createdAt'),
                 'status': item.get('status'),
-                'examConfig': item.get('examConfig', {}),
+                'examConfig': exam_config,
                 'selectedTopics': item.get('selectedTopics', []),
                 'sourceDocuments': item.get('sourceDocuments', []),
-                'generatedFiles': item.get('generatedFiles', [])
+                'generatedFiles': item.get('generatedFiles', []),
+                # Add flattened fields for easier access in frontend
+                'questionCount': exam_config.get('questionCount'),
+                'difficulty': exam_config.get('difficulty'),
+                'versions': exam_config.get('versions'),
+                'questionTypes': exam_config.get('questionTypes', []),
+                'includeSelfAssessment': exam_config.get('includeSelfAssessment', False)
             }
             
             # Apply topic filtering if specified

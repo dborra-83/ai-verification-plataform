@@ -101,20 +101,54 @@ def handle_list_analyses(event):
             if items:
                 print(f"Sample item: {items[0]}")
             
-            # Filter to only include AI detection analysis records
+            # Enhanced filtering to only include AI detection analysis records
             # These should have aiLikelihoodScore and not be exam/topic extraction records
             filtered_items = []
             for item in items:
+                analysis_id = item.get('analysisId', '')
+                item_type = item.get('type', '')
+                
+                # Check for exam-related prefixes
+                has_exam_prefix = analysis_id.startswith('exam-')
+                has_topic_prefix = analysis_id.startswith('topic-extraction-')
+                
+                # Check for exam-related types
+                is_exam_type = item_type in ['TOPIC_EXTRACTION', 'EXAM_GENERATION']
+                
+                # Check for AI detection scores
+                has_ai_score = 'aiLikelihoodScore' in item
+                has_originality_score = 'originalityScore' in item
+                
+                # Check for exam-specific fields that shouldn't be in AI detection records
+                has_exam_config = 'examConfig' in item
+                has_topic_outline = 'topicOutline' in item
+                has_selected_topics = 'selectedTopics' in item
+                has_generated_files = 'generatedFiles' in item
+                
+                # A valid AI detection record should:
+                # 1. NOT have exam/topic prefixes
+                # 2. NOT be exam/topic type
+                # 3. HAVE AI detection scores
+                # 4. NOT have exam-specific fields
                 is_valid = (
-                    not item.get('analysisId', '').startswith('exam-') and
-                    not item.get('analysisId', '').startswith('topic-extraction-') and
-                    item.get('type') != 'TOPIC_EXTRACTION' and
-                    item.get('type') != 'EXAM_GENERATION' and
-                    'aiLikelihoodScore' in item  # Must have AI detection results
+                    not has_exam_prefix and
+                    not has_topic_prefix and
+                    not is_exam_type and
+                    has_ai_score and
+                    has_originality_score and
+                    not has_exam_config and
+                    not has_topic_outline and
+                    not has_selected_topics and
+                    not has_generated_files
                 )
                 
                 if not is_valid:
-                    print(f"Filtering out item: analysisId={item.get('analysisId')}, type={item.get('type')}, hasAIScore={'aiLikelihoodScore' in item}")
+                    print(f"🔍 BACKEND FILTERING OUT: analysisId={analysis_id}, type={item_type}, "
+                          f"hasExamPrefix={has_exam_prefix}, hasTopicPrefix={has_topic_prefix}, "
+                          f"isExamType={is_exam_type}, hasAIScore={has_ai_score}, "
+                          f"hasOriginalityScore={has_originality_score}, hasExamConfig={has_exam_config}, "
+                          f"hasTopicOutline={has_topic_outline}, hasSelectedTopics={has_selected_topics}, "
+                          f"hasGeneratedFiles={has_generated_files}")
                 else:
                     filtered_items.append(item)
             

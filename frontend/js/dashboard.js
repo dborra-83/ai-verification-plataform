@@ -13,26 +13,65 @@ async function loadDashboardKPIs() {
     console.log("Raw analyses received:", analyses.length);
     console.log("Sample analyses:", analyses.slice(0, 3));
 
-    // Double-check: Filter out any exam/topic extraction records that might have leaked through
+    // Enhanced filtering: Filter out any exam/topic extraction records that might have leaked through
     const aiDetectionAnalyses = analyses.filter((analysis) => {
+      // Check multiple criteria to ensure this is an AI detection analysis
+      const hasExamPrefix = analysis.analysisId?.startsWith("exam-");
+      const hasTopicPrefix =
+        analysis.analysisId?.startsWith("topic-extraction-");
+      const isExamType =
+        analysis.type === "TOPIC_EXTRACTION" ||
+        analysis.type === "EXAM_GENERATION";
+      const hasAIScore = analysis.hasOwnProperty("aiLikelihoodScore");
+      const hasOriginalityScore = analysis.hasOwnProperty("originalityScore");
+
+      // Additional checks for exam-related data
+      const hasExamConfig = analysis.hasOwnProperty("examConfig");
+      const hasTopicOutline = analysis.hasOwnProperty("topicOutline");
+      const hasSelectedTopics = analysis.hasOwnProperty("selectedTopics");
+      const hasGeneratedFiles = analysis.hasOwnProperty("generatedFiles");
+
+      // Check GSI1PK to ensure it's from the correct partition
+      const isFromResultsPartition = analysis.GSI1PK === "RESULTS";
+
+      // A valid AI detection analysis should:
+      // 1. NOT have exam/topic prefixes
+      // 2. NOT be exam/topic type
+      // 3. HAVE AI detection scores
+      // 4. NOT have exam-specific fields
+      // 5. BE from the RESULTS partition
       const isValidAIDetection =
-        !analysis.analysisId?.startsWith("exam-") &&
-        !analysis.analysisId?.startsWith("topic-extraction-") &&
-        analysis.type !== "TOPIC_EXTRACTION" &&
-        analysis.type !== "EXAM_GENERATION" &&
-        analysis.hasOwnProperty("aiLikelihoodScore") &&
-        analysis.hasOwnProperty("originalityScore");
+        !hasExamPrefix &&
+        !hasTopicPrefix &&
+        !isExamType &&
+        hasAIScore &&
+        hasOriginalityScore &&
+        !hasExamConfig &&
+        !hasTopicOutline &&
+        !hasSelectedTopics &&
+        !hasGeneratedFiles &&
+        isFromResultsPartition;
 
       if (!isValidAIDetection) {
-        console.log("Filtering out record:", {
+        console.log("🔍 FILTERING OUT RECORD:", {
           analysisId: analysis.analysisId,
           type: analysis.type,
-          hasAIScore: analysis.hasOwnProperty("aiLikelihoodScore"),
-          hasOriginalityScore: analysis.hasOwnProperty("originalityScore"),
+          GSI1PK: analysis.GSI1PK,
+          hasExamPrefix,
+          hasTopicPrefix,
+          isExamType,
+          hasAIScore,
+          hasOriginalityScore,
+          hasExamConfig,
+          hasTopicOutline,
+          hasSelectedTopics,
+          hasGeneratedFiles,
+          isFromResultsPartition,
           studentName: analysis.studentName,
           createdAt: analysis.createdAt,
           status: analysis.status,
-          fullRecord: analysis,
+          // Show first few keys to identify the record type
+          recordKeys: Object.keys(analysis).slice(0, 10),
         });
       }
 
@@ -298,24 +337,65 @@ async function loadHistoryData(filters = {}) {
       console.log("History - Sample analysis:", analyses[0]);
     }
 
-    // Filter out exam generation records (ensure only AI detection analyses)
+    // Enhanced filtering for history: Filter out exam generation records (ensure only AI detection analyses)
     analyses = analyses.filter((analysis) => {
+      // Check multiple criteria to ensure this is an AI detection analysis
+      const hasExamPrefix = analysis.analysisId?.startsWith("exam-");
+      const hasTopicPrefix =
+        analysis.analysisId?.startsWith("topic-extraction-");
+      const isExamType =
+        analysis.type === "TOPIC_EXTRACTION" ||
+        analysis.type === "EXAM_GENERATION";
+      const hasAIScore = analysis.hasOwnProperty("aiLikelihoodScore");
+      const hasOriginalityScore = analysis.hasOwnProperty("originalityScore");
+
+      // Additional checks for exam-related data
+      const hasExamConfig = analysis.hasOwnProperty("examConfig");
+      const hasTopicOutline = analysis.hasOwnProperty("topicOutline");
+      const hasSelectedTopics = analysis.hasOwnProperty("selectedTopics");
+      const hasGeneratedFiles = analysis.hasOwnProperty("generatedFiles");
+
+      // Check GSI1PK to ensure it's from the correct partition
+      const isFromResultsPartition = analysis.GSI1PK === "RESULTS";
+
+      // A valid AI detection analysis should:
+      // 1. NOT have exam/topic prefixes
+      // 2. NOT be exam/topic type
+      // 3. HAVE AI detection scores
+      // 4. NOT have exam-specific fields
+      // 5. BE from the RESULTS partition
       const isValidAIDetection =
-        !analysis.analysisId?.startsWith("exam-") &&
-        !analysis.analysisId?.startsWith("topic-extraction-") &&
-        analysis.type !== "TOPIC_EXTRACTION" &&
-        analysis.type !== "EXAM_GENERATION" &&
-        analysis.hasOwnProperty("aiLikelihoodScore");
+        !hasExamPrefix &&
+        !hasTopicPrefix &&
+        !isExamType &&
+        hasAIScore &&
+        hasOriginalityScore &&
+        !hasExamConfig &&
+        !hasTopicOutline &&
+        !hasSelectedTopics &&
+        !hasGeneratedFiles &&
+        isFromResultsPartition;
 
       if (!isValidAIDetection) {
-        console.log("History - Filtering out record:", {
+        console.log("🔍 HISTORY - FILTERING OUT RECORD:", {
           analysisId: analysis.analysisId,
           type: analysis.type,
-          hasAIScore: analysis.hasOwnProperty("aiLikelihoodScore"),
+          GSI1PK: analysis.GSI1PK,
+          hasExamPrefix,
+          hasTopicPrefix,
+          isExamType,
+          hasAIScore,
+          hasOriginalityScore,
+          hasExamConfig,
+          hasTopicOutline,
+          hasSelectedTopics,
+          hasGeneratedFiles,
+          isFromResultsPartition,
           studentName: analysis.studentName,
           createdAt: analysis.createdAt,
           status: analysis.status,
-          fullRecord: analysis,
+          // Show first few keys to identify the record type
+          recordKeys: Object.keys(analysis).slice(0, 10),
         });
       }
 
