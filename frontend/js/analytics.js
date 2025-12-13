@@ -9,6 +9,8 @@ let confidenceOriginalityChart = null;
 
 // Show analytics section
 function showAnalyticsSection() {
+    console.log('Showing analytics section');
+    
     if (typeof hideAllSections === 'function') {
         hideAllSections();
     }
@@ -27,120 +29,29 @@ function showAnalyticsSection() {
         updateActiveNavItem('Analytics');
     }
     
-    // Load analytics data with Chart.js check
+    // Load analytics data immediately
     setTimeout(() => {
-        ensureChartJSLoaded().then(() => {
-            loadAnalyticsData();
-        }).catch(() => {
-            loadAnalyticsData(); // Load without charts
-        });
-    }, 500);
-}
-
-// Ensure Chart.js is loaded
-async function ensureChartJSLoaded() {
-    return new Promise((resolve, reject) => {
-        // Check if already loaded
-        if (typeof Chart !== 'undefined' || typeof window.Chart !== 'undefined') {
-            resolve();
-            return;
-        }
-        
-        // Try to load Chart.js dynamically
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js';
-        script.onload = () => {
-            if (typeof Chart !== 'undefined' || typeof window.Chart !== 'undefined') {
-                resolve();
-            } else {
-                reject(new Error('Chart.js failed to load'));
-            }
-        };
-        script.onerror = () => {
-            reject(new Error('Failed to load Chart.js script'));
-        };
-        
-        document.head.appendChild(script);
-        
-        // Timeout after 10 seconds
-        setTimeout(() => {
-            reject(new Error('Chart.js loading timeout'));
-        }, 10000);
-    });
+        loadAnalyticsData();
+    }, 100);
 }
 
 // Load analytics data and create charts
 async function loadAnalyticsData() {
+    console.log('Starting loadAnalyticsData');
+    
     try {
-        // Check if Chart.js is available
-        if (typeof Chart === 'undefined' || typeof window.Chart === 'undefined') {
-            console.error('Chart.js is not available');
-            
-            // Show fallback charts using CSS and basic HTML
-            console.log('Using fallback charts without Chart.js');
-            
-            // Get data first
-            const period = document.getElementById('analyticsPeriod')?.value || '30';
-            showLoading('Cargando datos de analytics...');
-            
-            const response = await apiCall(`/analysis?pageSize=1000`);
-            const analyses = response.items || [];
-            
-            const now = new Date();
-            const periodAgo = new Date(now.getTime() - (parseInt(period) * 24 * 60 * 60 * 1000));
-            
-            const filteredAnalyses = analyses.filter(analysis => {
-                const analysisDate = new Date(analysis.createdAt);
-                return analysisDate >= periodAgo;
-            });
-            
-            const completedAnalyses = filteredAnalyses.filter(analysis => analysis.status === 'COMPLETED');
-            
-            hideLoading();
-            
-            // Create fallback charts
-            createFallbackCharts(filteredAnalyses, completedAnalyses, period);
-            
-            // Update tables
-            updateTopCourses(completedAnalyses);
-            updateTopStudents(completedAnalyses);
-            
-            return;
-            
-            // Still load the data for tables
-            const period = document.getElementById('analyticsPeriod')?.value || '30';
-            showLoading('Cargando datos de analytics...');
-            
-            const response = await apiCall(`/analysis?pageSize=1000`);
-            const analyses = response.items || [];
-            
-            const now = new Date();
-            const periodAgo = new Date(now.getTime() - (parseInt(period) * 24 * 60 * 60 * 1000));
-            
-            const filteredAnalyses = analyses.filter(analysis => {
-                const analysisDate = new Date(analysis.createdAt);
-                return analysisDate >= periodAgo;
-            });
-            
-            const completedAnalyses = filteredAnalyses.filter(analysis => analysis.status === 'COMPLETED');
-            
-            hideLoading();
-            
-            // Update tables only
-            updateTopCourses(completedAnalyses);
-            updateTopStudents(completedAnalyses);
-            
-            return;
-        }
-        
         const period = document.getElementById('analyticsPeriod')?.value || '30';
         
         // Show loading state
         showLoading('Cargando datos de analytics...');
         
         // Get data from API
+        console.log('Calling API for analysis data...');
         const response = await apiCall(`/analysis?pageSize=1000`);
         const analyses = response.items || [];
+        
+        console.log('API Response:', response);
+        console.log('Total analyses loaded:', analyses.length);
         
         // Filter by period
         const now = new Date();
@@ -153,294 +64,233 @@ async function loadAnalyticsData() {
         
         const completedAnalyses = filteredAnalyses.filter(analysis => analysis.status === 'COMPLETED');
         
+        console.log('Filtered analyses (last', period, 'days):', filteredAnalyses.length);
+        console.log('Completed analyses:', completedAnalyses.length);
+        
         hideLoading();
         
-        // Create charts
-        createAnalysisTimeChart(filteredAnalyses, period);
-        createRiskDistributionChart(completedAnalyses);
-        createCourseScoresChart(completedAnalyses);
-        createConfidenceOriginalityChart(completedAnalyses);
+        // Always use fallback charts for now (more reliable)
+        console.log('Creating fallback charts...');
+        createFallbackCharts(filteredAnalyses, completedAnalyses, period);
         
         // Update top rankings
+        console.log('Updating top rankings...');
         updateTopCourses(completedAnalyses);
         updateTopStudents(completedAnalyses);
+        
+        console.log('Analytics data loading completed');
         
     } catch (error) {
         hideLoading();
         console.error('Error loading analytics data:', error);
         showError('Error al cargar datos de analytics: ' + error.message);
+        
+        // Show error message in analytics section
+        const analyticsSection = document.getElementById('analyticsSection');
+        if (analyticsSection) {
+            const chartsContainer = analyticsSection.querySelector('.row.mb-4');
+            if (chartsContainer && chartsContainer.children.length > 1) {
+                chartsContainer.innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-danger">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-exclamation-triangle me-3" style="font-size: 2rem;"></i>
+                                <div>
+                                    <h5 class="alert-heading">Error al cargar analytics</h5>
+                                    <p class="mb-2">No se pudieron cargar los datos de analytics: ${error.message}</p>
+                                    <button class="btn btn-outline-danger btn-sm" onclick="loadAnalyticsData()">
+                                        <i class="bi bi-arrow-clockwise me-1"></i>Reintentar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
     }
 }
 
-// Create analysis time trend chart
-function createAnalysisTimeChart(analyses, period) {
-    const ctx = document.getElementById('analysisTimeChart');
-    if (!ctx) return;
+// Create fallback charts using CSS and HTML when Chart.js is not available
+function createFallbackCharts(filteredAnalyses, completedAnalyses, period) {
+    console.log('Creating fallback charts with data:', {
+        filtered: filteredAnalyses.length,
+        completed: completedAnalyses.length,
+        period: period
+    });
     
-    // Destroy existing chart
+    // Analysis Time Chart (simple bar chart)
+    const analysisTimeChart = document.getElementById('analysisTimeChart');
     if (analysisTimeChart) {
-        analysisTimeChart.destroy();
-    }
-    
-    // Group analyses by date
-    const dateGroups = {};
-    const days = parseInt(period);
-    
-    // Initialize all dates in period
-    for (let i = days - 1; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateKey = date.toISOString().split('T')[0];
-        dateGroups[dateKey] = 0;
-    }
-    
-    // Count analyses by date
-    analyses.forEach(analysis => {
-        const date = new Date(analysis.createdAt).toISOString().split('T')[0];
-        if (dateGroups.hasOwnProperty(date)) {
-            dateGroups[date]++;
+        const parent = analysisTimeChart.parentElement;
+        
+        // Group analyses by date
+        const dateGroups = {};
+        const days = parseInt(period);
+        
+        for (let i = days - 1; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateKey = date.toISOString().split('T')[0];
+            dateGroups[dateKey] = 0;
         }
-    });
-    
-    const labels = Object.keys(dateGroups).map(date => {
-        return new Date(date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
-    });
-    const data = Object.values(dateGroups);
-    
-    analysisTimeChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Análisis por Día',
-                data: data,
-                borderColor: '#008FD0',
-                backgroundColor: 'rgba(0, 143, 208, 0.1)',
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1
-                    }
-                }
+        
+        filteredAnalyses.forEach(analysis => {
+            const date = new Date(analysis.createdAt).toISOString().split('T')[0];
+            if (dateGroups.hasOwnProperty(date)) {
+                dateGroups[date]++;
             }
-        }
-    });
-}
-
-// Create risk distribution pie chart
-function createRiskDistributionChart(analyses) {
-    const ctx = document.getElementById('riskDistributionChart');
-    if (!ctx) return;
+        });
+        
+        const maxCount = Math.max(...Object.values(dateGroups), 1);
+        
+        parent.innerHTML = `
+            <div class="fallback-chart">
+                <div class="chart-title mb-3">Análisis por día (últimos ${period} días)</div>
+                <div class="bar-chart">
+                    ${Object.entries(dateGroups).map(([date, count]) => {
+                        const height = (count / maxCount) * 100;
+                        const dateLabel = new Date(date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
+                        return `
+                            <div class="bar-item">
+                                <div class="bar" style="height: ${height}%; background-color: #008FD0;" title="${count} análisis el ${dateLabel}"></div>
+                                <div class="bar-label">${dateLabel}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+        
+        console.log('Analysis time chart created');
+    }
     
-    // Destroy existing chart
+    // Risk Distribution Chart (simple pie representation)
+    const riskDistributionChart = document.getElementById('riskDistributionChart');
     if (riskDistributionChart) {
-        riskDistributionChart.destroy();
+        const parent = riskDistributionChart.parentElement;
+        
+        let lowRisk = 0, mediumRisk = 0, highRisk = 0;
+        
+        completedAnalyses.forEach(analysis => {
+            const score = analysis.aiLikelihoodScore || 0;
+            if (score < 40) lowRisk++;
+            else if (score < 70) mediumRisk++;
+            else highRisk++;
+        });
+        
+        const total = lowRisk + mediumRisk + highRisk;
+        
+        parent.innerHTML = `
+            <div class="fallback-chart">
+                <div class="chart-title mb-3">Distribución de Riesgo IA</div>
+                <div class="pie-chart-fallback">
+                    <div class="risk-item">
+                        <div class="risk-color" style="background-color: #28a745;"></div>
+                        <span>Bajo Riesgo: ${lowRisk} (${total > 0 ? ((lowRisk/total)*100).toFixed(1) : 0}%)</span>
+                    </div>
+                    <div class="risk-item">
+                        <div class="risk-color" style="background-color: #ffc107;"></div>
+                        <span>Riesgo Medio: ${mediumRisk} (${total > 0 ? ((mediumRisk/total)*100).toFixed(1) : 0}%)</span>
+                    </div>
+                    <div class="risk-item">
+                        <div class="risk-color" style="background-color: #dc3545;"></div>
+                        <span>Alto Riesgo: ${highRisk} (${total > 0 ? ((highRisk/total)*100).toFixed(1) : 0}%)</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        console.log('Risk distribution chart created');
     }
     
-    // Categorize by risk level
-    let lowRisk = 0, mediumRisk = 0, highRisk = 0;
-    
-    analyses.forEach(analysis => {
-        const score = analysis.aiLikelihoodScore || 0;
-        if (score < 40) lowRisk++;
-        else if (score < 70) mediumRisk++;
-        else highRisk++;
-    });
-    
-    riskDistributionChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Bajo Riesgo (0-39%)', 'Riesgo Medio (40-69%)', 'Alto Riesgo (70-100%)'],
-            datasets: [{
-                data: [lowRisk, mediumRisk, highRisk],
-                backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
-                borderWidth: 2,
-                borderColor: '#fff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            }
-        }
-    });
-}
-
-// Create course scores bar chart
-function createCourseScoresChart(analyses) {
-    const ctx = document.getElementById('courseScoresChart');
-    if (!ctx) return;
-    
-    // Destroy existing chart
+    // Course Scores Chart
+    const courseScoresChart = document.getElementById('courseScoresChart');
     if (courseScoresChart) {
-        courseScoresChart.destroy();
+        const parent = courseScoresChart.parentElement;
+        
+        const courseData = {};
+        
+        completedAnalyses.forEach(analysis => {
+            const course = analysis.course || 'Sin Curso';
+            if (!courseData[course]) {
+                courseData[course] = { total: 0, count: 0 };
+            }
+            courseData[course].total += analysis.aiLikelihoodScore || 0;
+            courseData[course].count++;
+        });
+        
+        const courseAverages = Object.entries(courseData)
+            .map(([course, data]) => ({
+                course,
+                average: data.total / data.count,
+                count: data.count
+            }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5); // Top 5 for fallback
+        
+        parent.innerHTML = `
+            <div class="fallback-chart">
+                <div class="chart-title mb-3">Top 5 Cursos por Promedio IA</div>
+                <div class="horizontal-bar-chart">
+                    ${courseAverages.length > 0 ? courseAverages.map(item => {
+                        const color = item.average >= 70 ? '#dc3545' : item.average >= 40 ? '#ffc107' : '#28a745';
+                        return `
+                            <div class="h-bar-item">
+                                <div class="h-bar-label">${item.course}</div>
+                                <div class="h-bar-container">
+                                    <div class="h-bar" style="width: ${item.average}%; background-color: ${color};"></div>
+                                    <span class="h-bar-value">${item.average.toFixed(1)}%</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('') : '<div class="text-center text-muted">No hay datos disponibles</div>'}
+                </div>
+            </div>
+        `;
+        
+        console.log('Course scores chart created');
     }
     
-    // Group by course and calculate averages
-    const courseData = {};
-    
-    analyses.forEach(analysis => {
-        const course = analysis.course || 'Sin Curso';
-        if (!courseData[course]) {
-            courseData[course] = { total: 0, count: 0 };
-        }
-        courseData[course].total += analysis.aiLikelihoodScore || 0;
-        courseData[course].count++;
-    });
-    
-    // Calculate averages and sort
-    const courseAverages = Object.entries(courseData)
-        .map(([course, data]) => ({
-            course,
-            average: data.total / data.count,
-            count: data.count
-        }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 10); // Top 10
-    
-    const labels = courseAverages.map(item => item.course);
-    const data = courseAverages.map(item => item.average);
-    const colors = data.map(score => {
-        if (score >= 70) return '#dc3545';
-        if (score >= 40) return '#ffc107';
-        return '#28a745';
-    });
-    
-    courseScoresChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Promedio IA Score',
-                data: data,
-                backgroundColor: colors,
-                borderColor: colors,
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: {
-                        callback: function(value) {
-                            return value + '%';
-                        }
-                    }
-                },
-                x: {
-                    ticks: {
-                        maxRotation: 45
-                    }
-                }
-            }
-        }
-    });
-}
-
-// Create confidence vs originality scatter chart
-function createConfidenceOriginalityChart(analyses) {
-    const ctx = document.getElementById('confidenceOriginalityChart');
-    if (!ctx) return;
-    
-    // Destroy existing chart
+    // Confidence vs Originality Chart
+    const confidenceOriginalityChart = document.getElementById('confidenceOriginalityChart');
     if (confidenceOriginalityChart) {
-        confidenceOriginalityChart.destroy();
+        const parent = confidenceOriginalityChart.parentElement;
+        
+        const avgConfidence = completedAnalyses.length > 0 ? 
+            completedAnalyses.reduce((sum, a) => sum + (a.confidence || 0), 0) / completedAnalyses.length : 0;
+        const avgOriginality = completedAnalyses.length > 0 ? 
+            completedAnalyses.reduce((sum, a) => sum + (a.originalityScore || 0), 0) / completedAnalyses.length : 0;
+        
+        parent.innerHTML = `
+            <div class="fallback-chart">
+                <div class="chart-title mb-3">Promedios Generales</div>
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-value">${avgConfidence.toFixed(1)}%</div>
+                        <div class="metric-label">Confianza Promedio</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value">${avgOriginality.toFixed(1)}%</div>
+                        <div class="metric-label">Originalidad Promedio</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        console.log('Confidence vs originality chart created');
     }
-    
-    // Prepare scatter data
-    const scatterData = analyses.map(analysis => ({
-        x: analysis.confidence || 0,
-        y: analysis.originalityScore || 0,
-        aiScore: analysis.aiLikelihoodScore || 0
-    }));
-    
-    // Color by AI score
-    const colors = scatterData.map(point => {
-        if (point.aiScore >= 70) return 'rgba(220, 53, 69, 0.6)';
-        if (point.aiScore >= 40) return 'rgba(255, 193, 7, 0.6)';
-        return 'rgba(40, 167, 69, 0.6)';
-    });
-    
-    confidenceOriginalityChart = new Chart(ctx, {
-        type: 'scatter',
-        data: {
-            datasets: [{
-                label: 'Análisis',
-                data: scatterData,
-                backgroundColor: colors,
-                borderColor: colors.map(color => color.replace('0.6', '1')),
-                borderWidth: 1,
-                pointRadius: 5
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const point = context.parsed;
-                            return `Confianza: ${point.x}%, Originalidad: ${point.y}%`;
-                        }
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Confianza (%)'
-                    },
-                    min: 0,
-                    max: 100
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Originalidad (%)'
-                    },
-                    min: 0,
-                    max: 100
-                }
-            }
-        }
-    });
 }
 
 // Update top courses table
 function updateTopCourses(analyses) {
+    console.log('Updating top courses with', analyses.length, 'analyses');
+    
     const tableBody = document.getElementById('topCoursesTable');
-    if (!tableBody) return;
+    if (!tableBody) {
+        console.log('Top courses table not found');
+        return;
+    }
     
     // Group by course
     const courseData = {};
@@ -488,12 +338,19 @@ function updateTopCourses(analyses) {
             </td>
         </tr>
     `).join('');
+    
+    console.log('Top courses table updated with', topCourses.length, 'courses');
 }
 
 // Update top students table
 function updateTopStudents(analyses) {
+    console.log('Updating top students with', analyses.length, 'analyses');
+    
     const tableBody = document.getElementById('topStudentsTable');
-    if (!tableBody) return;
+    if (!tableBody) {
+        console.log('Top students table not found');
+        return;
+    }
     
     // Sort by originality score and get top 10
     const topStudents = analyses
@@ -525,6 +382,8 @@ function updateTopStudents(analyses) {
             </td>
         </tr>
     `).join('');
+    
+    console.log('Top students table updated with', topStudents.length, 'students');
 }
 
 // Export dashboard to PDF
@@ -730,163 +589,6 @@ async function exportAnalyticsToExcel() {
         hideLoading();
         console.error('Error exporting analytics data:', error);
         showError('Error al exportar datos de analytics: ' + error.message);
-    }
-}
-
-// Create fallback charts using CSS and HTML when Chart.js is not available
-function createFallbackCharts(filteredAnalyses, completedAnalyses, period) {
-    // Analysis Time Chart (simple bar chart)
-    const analysisTimeChart = document.getElementById('analysisTimeChart');
-    if (analysisTimeChart) {
-        const parent = analysisTimeChart.parentElement;
-        
-        // Group analyses by date
-        const dateGroups = {};
-        const days = parseInt(period);
-        
-        for (let i = days - 1; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            const dateKey = date.toISOString().split('T')[0];
-            dateGroups[dateKey] = 0;
-        }
-        
-        filteredAnalyses.forEach(analysis => {
-            const date = new Date(analysis.createdAt).toISOString().split('T')[0];
-            if (dateGroups.hasOwnProperty(date)) {
-                dateGroups[date]++;
-            }
-        });
-        
-        const maxCount = Math.max(...Object.values(dateGroups), 1);
-        
-        parent.innerHTML = `
-            <div class="fallback-chart">
-                <div class="chart-title mb-3">Análisis por día (últimos ${period} días)</div>
-                <div class="bar-chart">
-                    ${Object.entries(dateGroups).map(([date, count]) => {
-                        const height = (count / maxCount) * 100;
-                        const dateLabel = new Date(date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
-                        return `
-                            <div class="bar-item">
-                                <div class="bar" style="height: ${height}%; background-color: #008FD0;" title="${count} análisis el ${dateLabel}"></div>
-                                <div class="bar-label">${dateLabel}</div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-        `;
-    }
-    
-    // Risk Distribution Chart (simple pie representation)
-    const riskDistributionChart = document.getElementById('riskDistributionChart');
-    if (riskDistributionChart) {
-        const parent = riskDistributionChart.parentElement;
-        
-        let lowRisk = 0, mediumRisk = 0, highRisk = 0;
-        
-        completedAnalyses.forEach(analysis => {
-            const score = analysis.aiLikelihoodScore || 0;
-            if (score < 40) lowRisk++;
-            else if (score < 70) mediumRisk++;
-            else highRisk++;
-        });
-        
-        const total = lowRisk + mediumRisk + highRisk;
-        
-        parent.innerHTML = `
-            <div class="fallback-chart">
-                <div class="chart-title mb-3">Distribución de Riesgo IA</div>
-                <div class="pie-chart-fallback">
-                    <div class="risk-item">
-                        <div class="risk-color" style="background-color: #28a745;"></div>
-                        <span>Bajo Riesgo: ${lowRisk} (${total > 0 ? ((lowRisk/total)*100).toFixed(1) : 0}%)</span>
-                    </div>
-                    <div class="risk-item">
-                        <div class="risk-color" style="background-color: #ffc107;"></div>
-                        <span>Riesgo Medio: ${mediumRisk} (${total > 0 ? ((mediumRisk/total)*100).toFixed(1) : 0}%)</span>
-                    </div>
-                    <div class="risk-item">
-                        <div class="risk-color" style="background-color: #dc3545;"></div>
-                        <span>Alto Riesgo: ${highRisk} (${total > 0 ? ((highRisk/total)*100).toFixed(1) : 0}%)</span>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // Course Scores Chart
-    const courseScoresChart = document.getElementById('courseScoresChart');
-    if (courseScoresChart) {
-        const parent = courseScoresChart.parentElement;
-        
-        const courseData = {};
-        
-        completedAnalyses.forEach(analysis => {
-            const course = analysis.course || 'Sin Curso';
-            if (!courseData[course]) {
-                courseData[course] = { total: 0, count: 0 };
-            }
-            courseData[course].total += analysis.aiLikelihoodScore || 0;
-            courseData[course].count++;
-        });
-        
-        const courseAverages = Object.entries(courseData)
-            .map(([course, data]) => ({
-                course,
-                average: data.total / data.count,
-                count: data.count
-            }))
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 5); // Top 5 for fallback
-        
-        parent.innerHTML = `
-            <div class="fallback-chart">
-                <div class="chart-title mb-3">Top 5 Cursos por Promedio IA</div>
-                <div class="horizontal-bar-chart">
-                    ${courseAverages.map(item => {
-                        const color = item.average >= 70 ? '#dc3545' : item.average >= 40 ? '#ffc107' : '#28a745';
-                        return `
-                            <div class="h-bar-item">
-                                <div class="h-bar-label">${item.course}</div>
-                                <div class="h-bar-container">
-                                    <div class="h-bar" style="width: ${item.average}%; background-color: ${color};"></div>
-                                    <span class="h-bar-value">${item.average.toFixed(1)}%</span>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-        `;
-    }
-    
-    // Confidence vs Originality Chart
-    const confidenceOriginalityChart = document.getElementById('confidenceOriginalityChart');
-    if (confidenceOriginalityChart) {
-        const parent = confidenceOriginalityChart.parentElement;
-        
-        const avgConfidence = completedAnalyses.length > 0 ? 
-            completedAnalyses.reduce((sum, a) => sum + (a.confidence || 0), 0) / completedAnalyses.length : 0;
-        const avgOriginality = completedAnalyses.length > 0 ? 
-            completedAnalyses.reduce((sum, a) => sum + (a.originalityScore || 0), 0) / completedAnalyses.length : 0;
-        
-        parent.innerHTML = `
-            <div class="fallback-chart">
-                <div class="chart-title mb-3">Promedios Generales</div>
-                <div class="metrics-grid">
-                    <div class="metric-item">
-                        <div class="metric-value">${avgConfidence.toFixed(1)}%</div>
-                        <div class="metric-label">Confianza Promedio</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-value">${avgOriginality.toFixed(1)}%</div>
-                        <div class="metric-label">Originalidad Promedio</div>
-                    </div>
-                </div>
-            </div>
-        `;
     }
 }
 
