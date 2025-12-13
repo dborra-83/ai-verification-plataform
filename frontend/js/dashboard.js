@@ -10,11 +10,15 @@ async function loadDashboardKPIs() {
     const response = await apiCall("/analysis?pageSize=100"); // Get more data for KPI calculation
     const analyses = response.items || [];
 
-    // Double-check: Filter out any exam generation records that might have leaked through
+    // Double-check: Filter out any exam/topic extraction records that might have leaked through
     const aiDetectionAnalyses = analyses.filter(
       (analysis) =>
         !analysis.analysisId?.startsWith("exam-") &&
-        analysis.hasOwnProperty("aiLikelihoodScore")
+        !analysis.analysisId?.startsWith("topic-extraction-") &&
+        analysis.type !== "TOPIC_EXTRACTION" &&
+        analysis.type !== "EXAM_GENERATION" &&
+        analysis.hasOwnProperty("aiLikelihoodScore") &&
+        analysis.hasOwnProperty("originalityScore")
     );
 
     // Calculate KPIs

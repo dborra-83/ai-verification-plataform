@@ -97,8 +97,15 @@ def handle_list_analyses(event):
             response = table.query(**query_params_ddb)
             items = response.get('Items', [])
             
-            # Filter out exam generation records (they should not be in RESULTS GSI1PK, but double-check)
-            items = [item for item in items if not item.get('analysisId', '').startswith('exam-')]
+            # Filter to only include AI detection analysis records
+            # These should have aiLikelihoodScore and not be exam/topic extraction records
+            items = [item for item in items if (
+                not item.get('analysisId', '').startswith('exam-') and
+                not item.get('analysisId', '').startswith('topic-extraction-') and
+                item.get('type') != 'TOPIC_EXTRACTION' and
+                item.get('type') != 'EXAM_GENERATION' and
+                'aiLikelihoodScore' in item  # Must have AI detection results
+            )]
             
             print(f"Found {len(items)} analyses in DynamoDB")
             
