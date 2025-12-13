@@ -97,15 +97,29 @@ def handle_list_analyses(event):
             response = table.query(**query_params_ddb)
             items = response.get('Items', [])
             
+            print(f"Raw items from GSI1 RESULTS query: {len(items)}")
+            if items:
+                print(f"Sample item: {items[0]}")
+            
             # Filter to only include AI detection analysis records
             # These should have aiLikelihoodScore and not be exam/topic extraction records
-            items = [item for item in items if (
-                not item.get('analysisId', '').startswith('exam-') and
-                not item.get('analysisId', '').startswith('topic-extraction-') and
-                item.get('type') != 'TOPIC_EXTRACTION' and
-                item.get('type') != 'EXAM_GENERATION' and
-                'aiLikelihoodScore' in item  # Must have AI detection results
-            )]
+            filtered_items = []
+            for item in items:
+                is_valid = (
+                    not item.get('analysisId', '').startswith('exam-') and
+                    not item.get('analysisId', '').startswith('topic-extraction-') and
+                    item.get('type') != 'TOPIC_EXTRACTION' and
+                    item.get('type') != 'EXAM_GENERATION' and
+                    'aiLikelihoodScore' in item  # Must have AI detection results
+                )
+                
+                if not is_valid:
+                    print(f"Filtering out item: analysisId={item.get('analysisId')}, type={item.get('type')}, hasAIScore={'aiLikelihoodScore' in item}")
+                else:
+                    filtered_items.append(item)
+            
+            items = filtered_items
+            print(f"Filtered items count: {len(items)}")
             
             print(f"Found {len(items)} analyses in DynamoDB")
             

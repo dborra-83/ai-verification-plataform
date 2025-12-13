@@ -10,16 +10,36 @@ async function loadDashboardKPIs() {
     const response = await apiCall("/analysis?pageSize=100"); // Get more data for KPI calculation
     const analyses = response.items || [];
 
+    console.log("Raw analyses received:", analyses.length);
+    console.log("Sample analyses:", analyses.slice(0, 3));
+
     // Double-check: Filter out any exam/topic extraction records that might have leaked through
-    const aiDetectionAnalyses = analyses.filter(
-      (analysis) =>
+    const aiDetectionAnalyses = analyses.filter((analysis) => {
+      const isValidAIDetection =
         !analysis.analysisId?.startsWith("exam-") &&
         !analysis.analysisId?.startsWith("topic-extraction-") &&
         analysis.type !== "TOPIC_EXTRACTION" &&
         analysis.type !== "EXAM_GENERATION" &&
         analysis.hasOwnProperty("aiLikelihoodScore") &&
-        analysis.hasOwnProperty("originalityScore")
-    );
+        analysis.hasOwnProperty("originalityScore");
+
+      if (!isValidAIDetection) {
+        console.log("Filtering out record:", {
+          analysisId: analysis.analysisId,
+          type: analysis.type,
+          hasAIScore: analysis.hasOwnProperty("aiLikelihoodScore"),
+          hasOriginalityScore: analysis.hasOwnProperty("originalityScore"),
+          studentName: analysis.studentName,
+          createdAt: analysis.createdAt,
+          status: analysis.status,
+          fullRecord: analysis,
+        });
+      }
+
+      return isValidAIDetection;
+    });
+
+    console.log("Filtered AI detection analyses:", aiDetectionAnalyses.length);
 
     // Calculate KPIs
     const now = new Date();
@@ -273,12 +293,36 @@ async function loadHistoryData(filters = {}) {
     const response = await apiCall(endpoint);
     let analyses = response.items || [];
 
+    console.log("History - Raw analyses received:", analyses.length);
+    if (analyses.length > 0) {
+      console.log("History - Sample analysis:", analyses[0]);
+    }
+
     // Filter out exam generation records (ensure only AI detection analyses)
-    analyses = analyses.filter(
-      (analysis) =>
+    analyses = analyses.filter((analysis) => {
+      const isValidAIDetection =
         !analysis.analysisId?.startsWith("exam-") &&
-        analysis.hasOwnProperty("aiLikelihoodScore")
-    );
+        !analysis.analysisId?.startsWith("topic-extraction-") &&
+        analysis.type !== "TOPIC_EXTRACTION" &&
+        analysis.type !== "EXAM_GENERATION" &&
+        analysis.hasOwnProperty("aiLikelihoodScore");
+
+      if (!isValidAIDetection) {
+        console.log("History - Filtering out record:", {
+          analysisId: analysis.analysisId,
+          type: analysis.type,
+          hasAIScore: analysis.hasOwnProperty("aiLikelihoodScore"),
+          studentName: analysis.studentName,
+          createdAt: analysis.createdAt,
+          status: analysis.status,
+          fullRecord: analysis,
+        });
+      }
+
+      return isValidAIDetection;
+    });
+
+    console.log("History - Filtered analyses:", analyses.length);
 
     // Apply client-side filters for tags and text search
     if (filters.tag && typeof filterAnalysesByTag === "function") {
