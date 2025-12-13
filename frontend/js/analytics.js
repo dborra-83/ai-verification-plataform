@@ -27,34 +27,110 @@ function showAnalyticsSection() {
         updateActiveNavItem('Analytics');
     }
     
-    // Load analytics data
+    // Load analytics data with Chart.js check
     setTimeout(() => {
-        console.log('Chart available:', typeof Chart !== 'undefined');
-        console.log('window.Chart available:', typeof window.Chart !== 'undefined');
-        loadAnalyticsData();
+        ensureChartJSLoaded().then(() => {
+            loadAnalyticsData();
+        }).catch(() => {
+            loadAnalyticsData(); // Load without charts
+        });
     }, 500);
+}
+
+// Ensure Chart.js is loaded
+async function ensureChartJSLoaded() {
+    return new Promise((resolve, reject) => {
+        // Check if already loaded
+        if (typeof Chart !== 'undefined' || typeof window.Chart !== 'undefined') {
+            resolve();
+            return;
+        }
+        
+        // Try to load Chart.js dynamically
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js';
+        script.onload = () => {
+            if (typeof Chart !== 'undefined' || typeof window.Chart !== 'undefined') {
+                resolve();
+            } else {
+                reject(new Error('Chart.js failed to load'));
+            }
+        };
+        script.onerror = () => {
+            reject(new Error('Failed to load Chart.js script'));
+        };
+        
+        document.head.appendChild(script);
+        
+        // Timeout after 10 seconds
+        setTimeout(() => {
+            reject(new Error('Chart.js loading timeout'));
+        }, 10000);
+    });
 }
 
 // Load analytics data and create charts
 async function loadAnalyticsData() {
     try {
-        // Wait for Chart.js to load if it's not available yet
-        if (typeof Chart === 'undefined') {
-            console.log('Chart.js not loaded yet, waiting...');
+        // Check if Chart.js is available
+        if (typeof Chart === 'undefined' || typeof window.Chart === 'undefined') {
+            console.error('Chart.js is not available');
             
-            // Try to wait for Chart.js to load
-            let attempts = 0;
-            while (typeof Chart === 'undefined' && attempts < 20) {
-                await new Promise(resolve => setTimeout(resolve, 300));
-                attempts++;
-                console.log(`Waiting for Chart.js... attempt ${attempts}`);
-            }
+            // Show fallback charts using CSS and basic HTML
+            console.log('Using fallback charts without Chart.js');
             
-            if (typeof Chart === 'undefined') {
-                console.error('Chart.js failed to load from CDN');
-                showError('Chart.js no está disponible. Por favor recarga la página.');
-                return;
-            }
+            // Get data first
+            const period = document.getElementById('analyticsPeriod')?.value || '30';
+            showLoading('Cargando datos de analytics...');
+            
+            const response = await apiCall(`/analysis?pageSize=1000`);
+            const analyses = response.items || [];
+            
+            const now = new Date();
+            const periodAgo = new Date(now.getTime() - (parseInt(period) * 24 * 60 * 60 * 1000));
+            
+            const filteredAnalyses = analyses.filter(analysis => {
+                const analysisDate = new Date(analysis.createdAt);
+                return analysisDate >= periodAgo;
+            });
+            
+            const completedAnalyses = filteredAnalyses.filter(analysis => analysis.status === 'COMPLETED');
+            
+            hideLoading();
+            
+            // Create fallback charts
+            createFallbackCharts(filteredAnalyses, completedAnalyses, period);
+            
+            // Update tables
+            updateTopCourses(completedAnalyses);
+            updateTopStudents(completedAnalyses);
+            
+            return;
+            
+            // Still load the data for tables
+            const period = document.getElementById('analyticsPeriod')?.value || '30';
+            showLoading('Cargando datos de analytics...');
+            
+            const response = await apiCall(`/analysis?pageSize=1000`);
+            const analyses = response.items || [];
+            
+            const now = new Date();
+            const periodAgo = new Date(now.getTime() - (parseInt(period) * 24 * 60 * 60 * 1000));
+            
+            const filteredAnalyses = analyses.filter(analysis => {
+                const analysisDate = new Date(analysis.createdAt);
+                return analysisDate >= periodAgo;
+            });
+            
+            const completedAnalyses = filteredAnalyses.filter(analysis => analysis.status === 'COMPLETED');
+            
+            hideLoading();
+            
+            // Update tables only
+            updateTopCourses(completedAnalyses);
+            updateTopStudents(completedAnalyses);
+            
+            return;
         }
         
         const period = document.getElementById('analyticsPeriod')?.value || '30';
@@ -654,6 +730,163 @@ async function exportAnalyticsToExcel() {
         hideLoading();
         console.error('Error exporting analytics data:', error);
         showError('Error al exportar datos de analytics: ' + error.message);
+    }
+}
+
+// Create fallback charts using CSS and HTML when Chart.js is not available
+function createFallbackCharts(filteredAnalyses, completedAnalyses, period) {
+    // Analysis Time Chart (simple bar chart)
+    const analysisTimeChart = document.getElementById('analysisTimeChart');
+    if (analysisTimeChart) {
+        const parent = analysisTimeChart.parentElement;
+        
+        // Group analyses by date
+        const dateGroups = {};
+        const days = parseInt(period);
+        
+        for (let i = days - 1; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateKey = date.toISOString().split('T')[0];
+            dateGroups[dateKey] = 0;
+        }
+        
+        filteredAnalyses.forEach(analysis => {
+            const date = new Date(analysis.createdAt).toISOString().split('T')[0];
+            if (dateGroups.hasOwnProperty(date)) {
+                dateGroups[date]++;
+            }
+        });
+        
+        const maxCount = Math.max(...Object.values(dateGroups), 1);
+        
+        parent.innerHTML = `
+            <div class="fallback-chart">
+                <div class="chart-title mb-3">Análisis por día (últimos ${period} días)</div>
+                <div class="bar-chart">
+                    ${Object.entries(dateGroups).map(([date, count]) => {
+                        const height = (count / maxCount) * 100;
+                        const dateLabel = new Date(date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
+                        return `
+                            <div class="bar-item">
+                                <div class="bar" style="height: ${height}%; background-color: #008FD0;" title="${count} análisis el ${dateLabel}"></div>
+                                <div class="bar-label">${dateLabel}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Risk Distribution Chart (simple pie representation)
+    const riskDistributionChart = document.getElementById('riskDistributionChart');
+    if (riskDistributionChart) {
+        const parent = riskDistributionChart.parentElement;
+        
+        let lowRisk = 0, mediumRisk = 0, highRisk = 0;
+        
+        completedAnalyses.forEach(analysis => {
+            const score = analysis.aiLikelihoodScore || 0;
+            if (score < 40) lowRisk++;
+            else if (score < 70) mediumRisk++;
+            else highRisk++;
+        });
+        
+        const total = lowRisk + mediumRisk + highRisk;
+        
+        parent.innerHTML = `
+            <div class="fallback-chart">
+                <div class="chart-title mb-3">Distribución de Riesgo IA</div>
+                <div class="pie-chart-fallback">
+                    <div class="risk-item">
+                        <div class="risk-color" style="background-color: #28a745;"></div>
+                        <span>Bajo Riesgo: ${lowRisk} (${total > 0 ? ((lowRisk/total)*100).toFixed(1) : 0}%)</span>
+                    </div>
+                    <div class="risk-item">
+                        <div class="risk-color" style="background-color: #ffc107;"></div>
+                        <span>Riesgo Medio: ${mediumRisk} (${total > 0 ? ((mediumRisk/total)*100).toFixed(1) : 0}%)</span>
+                    </div>
+                    <div class="risk-item">
+                        <div class="risk-color" style="background-color: #dc3545;"></div>
+                        <span>Alto Riesgo: ${highRisk} (${total > 0 ? ((highRisk/total)*100).toFixed(1) : 0}%)</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Course Scores Chart
+    const courseScoresChart = document.getElementById('courseScoresChart');
+    if (courseScoresChart) {
+        const parent = courseScoresChart.parentElement;
+        
+        const courseData = {};
+        
+        completedAnalyses.forEach(analysis => {
+            const course = analysis.course || 'Sin Curso';
+            if (!courseData[course]) {
+                courseData[course] = { total: 0, count: 0 };
+            }
+            courseData[course].total += analysis.aiLikelihoodScore || 0;
+            courseData[course].count++;
+        });
+        
+        const courseAverages = Object.entries(courseData)
+            .map(([course, data]) => ({
+                course,
+                average: data.total / data.count,
+                count: data.count
+            }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5); // Top 5 for fallback
+        
+        parent.innerHTML = `
+            <div class="fallback-chart">
+                <div class="chart-title mb-3">Top 5 Cursos por Promedio IA</div>
+                <div class="horizontal-bar-chart">
+                    ${courseAverages.map(item => {
+                        const color = item.average >= 70 ? '#dc3545' : item.average >= 40 ? '#ffc107' : '#28a745';
+                        return `
+                            <div class="h-bar-item">
+                                <div class="h-bar-label">${item.course}</div>
+                                <div class="h-bar-container">
+                                    <div class="h-bar" style="width: ${item.average}%; background-color: ${color};"></div>
+                                    <span class="h-bar-value">${item.average.toFixed(1)}%</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Confidence vs Originality Chart
+    const confidenceOriginalityChart = document.getElementById('confidenceOriginalityChart');
+    if (confidenceOriginalityChart) {
+        const parent = confidenceOriginalityChart.parentElement;
+        
+        const avgConfidence = completedAnalyses.length > 0 ? 
+            completedAnalyses.reduce((sum, a) => sum + (a.confidence || 0), 0) / completedAnalyses.length : 0;
+        const avgOriginality = completedAnalyses.length > 0 ? 
+            completedAnalyses.reduce((sum, a) => sum + (a.originalityScore || 0), 0) / completedAnalyses.length : 0;
+        
+        parent.innerHTML = `
+            <div class="fallback-chart">
+                <div class="chart-title mb-3">Promedios Generales</div>
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-value">${avgConfidence.toFixed(1)}%</div>
+                        <div class="metric-label">Confianza Promedio</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value">${avgOriginality.toFixed(1)}%</div>
+                        <div class="metric-label">Originalidad Promedio</div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 }
 
