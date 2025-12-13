@@ -1,4 +1,5 @@
-// Exam Dashboard JavaScript
+// Exam Generation Dashboard JavaScript - Updated 2025-12-13 with proper data filtering
+// This dashboard shows ONLY exam generation data, NOT AI detection analysis results
 // Handles the exam dashboard functionality
 
 // Initialize dashboard when page loads
@@ -23,7 +24,7 @@ async function loadExamDashboardData() {
     // Try to load real data from API
     try {
       const response = await apiCall("/exam-history?pageSize=100");
-      const exams = response.items || [];
+      const exams = response.items || response.exams || []; // Support both formats
 
       // Calculate KPIs
       const totalExams = exams.length;
@@ -88,7 +89,7 @@ async function loadRecentExams() {
 
   try {
     const response = await apiCall("/exam-history?pageSize=5");
-    const exams = response.items || [];
+    const exams = response.items || response.exams || []; // Support both formats
 
     if (exams.length === 0) {
       tableBody.innerHTML = `

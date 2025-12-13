@@ -58,9 +58,9 @@ def lambda_handler(event, context):
         return create_error_response(500, 'INTERNAL_ERROR', 'Internal server error')
 
 def handle_list_analyses(event):
-    """Handle GET /analysis - List analyses with filtering and pagination"""
+    """Handle GET /analysis - List AI detection analyses with filtering and pagination"""
     try:
-        print("Handling list analyses request")
+        print("Handling list AI detection analyses request")
         
         # Parse query parameters
         query_params = event.get('queryStringParameters') or {}
@@ -77,9 +77,11 @@ def handle_list_analyses(event):
         table = dynamodb.Table(os.environ['ANALYSIS_TABLE'])
         
         try:
-            # Use scan to get all analyses (for simplicity in demo)
-            # In production, you'd want to use GSI queries for better performance
-            scan_params = {
+            # Query GSI1 to get only AI detection results (not exam generations)
+            query_params_ddb = {
+                'IndexName': 'GSI1',
+                'KeyConditionExpression': Key('GSI1PK').eq('RESULTS'),
+                'ScanIndexForward': False,  # Most recent first
                 'Limit': page_size
             }
             
@@ -88,12 +90,15 @@ def handle_list_analyses(event):
                 try:
                     import base64
                     token_data = json.loads(base64.b64decode(next_token.encode()).decode())
-                    scan_params['ExclusiveStartKey'] = token_data
+                    query_params_ddb['ExclusiveStartKey'] = token_data
                 except Exception as e:
                     print(f"Invalid next token: {e}")
             
-            response = table.scan(**scan_params)
+            response = table.query(**query_params_ddb)
             items = response.get('Items', [])
+            
+            # Filter out exam generation records (they should not be in RESULTS GSI1PK, but double-check)
+            items = [item for item in items if not item.get('analysisId', '').startswith('exam-')]
             
             print(f"Found {len(items)} analyses in DynamoDB")
             

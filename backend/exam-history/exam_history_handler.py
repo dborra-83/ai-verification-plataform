@@ -116,7 +116,8 @@ def handle_list_exams(event, context):
             'statusCode': 200,
             'headers': get_cors_headers(),
             'body': json.dumps({
-                'exams': exams,
+                'items': exams,  # Changed from 'exams' to 'items' for consistency
+                'exams': exams,  # Keep both for backward compatibility
                 'summary': {
                     'totalExams': total_exams,
                     'completedExams': completed_exams,
