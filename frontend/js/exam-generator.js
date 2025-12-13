@@ -446,13 +446,33 @@ function displayExtractedTopics() {
   try {
     // Build hierarchical topic tree
     const topicTree = buildTopicTree(examGeneratorState.extractedTopics);
+    console.log("Topic tree built successfully:", topicTree);
+
     const renderedTree = renderTopicTree(topicTree);
+    console.log(
+      "Rendered tree length:",
+      renderedTree ? renderedTree.length : 0
+    );
+    console.log(
+      "Rendered tree preview:",
+      renderedTree ? renderedTree.substring(0, 200) : "null/undefined"
+    );
 
     if (!renderedTree || renderedTree.trim() === "") {
-      throw new Error("No se pudo renderizar el árbol de temas");
+      console.error("renderTopicTree returned empty result");
+      console.error("Topic tree keys:", Object.keys(topicTree));
+      
+      // Fallback: create a simple list from the original topics
+      const fallbackHtml = createFallbackTopicList(examGeneratorState.extractedTopics);
+      if (fallbackHtml && fallbackHtml.trim() !== "") {
+        console.log("Using fallback topic rendering");
+        topicsContainer.innerHTML = fallbackHtml;
+      } else {
+        throw new Error("No se pudo renderizar el árbol de temas");
+      }
+    } else {
+      topicsContainer.innerHTML = renderedTree;
     }
-
-    topicsContainer.innerHTML = renderedTree;
 
     // Update source documents list
     updateSourceDocumentsList();
@@ -566,7 +586,10 @@ function renderTopicTree(tree, level = 0) {
     return "";
   }
 
-  Object.values(tree).forEach((node) => {
+  const treeKeys = Object.keys(tree);
+  console.log(`Rendering tree at level ${level} with ${treeKeys.length} nodes:`, treeKeys);
+
+  Object.values(tree).forEach((node, index) => {
     // Ensure node and node.title exist with better validation
     if (
       !node ||
@@ -577,6 +600,8 @@ function renderTopicTree(tree, level = 0) {
       console.warn("Invalid node in topic tree:", node);
       return;
     }
+
+    console.log(`Processing node ${index + 1}/${treeKeys.length}: "${node.title}"`);}
 
     const hasChildren = node.children && Object.keys(node.children).length > 0;
     const indent = level * 20;
@@ -646,6 +671,11 @@ function renderTopicTree(tree, level = 0) {
         `;
   });
 
+  console.log(`Finished rendering tree at level ${level}, HTML length: ${html.length}`);
+  if (html.length === 0) {
+    console.warn("Generated HTML is empty at level", level);
+  }
+  
   return html;
 }
 
@@ -655,6 +685,80 @@ function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
+}
+
+// Fallback function to create a simple topic list
+function createFallbackTopicList(topics) {
+  if (!topics || !Array.isArray(topics)) {
+    return "";
+  }
+
+  let html = "";
+  
+  topics.forEach((topic, index) => {
+    let topicTitle = "";
+    let subtopics = [];
+
+    // Extract topic data
+    if (typeof topic === "string") {
+      topicTitle = topic;
+    } else if (topic && typeof topic === "object") {
+      topicTitle = topic.topic || topic.title || topic.name || `Tema ${index + 1}`;
+      subtopics = topic.subtopics || topic.children || topic.items || [];
+    }
+
+    if (!topicTitle) return;
+
+    const topicId = `fallback_topic_${index}`;
+    
+    html += `
+      <div class="topic-item mb-3">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" 
+                 id="${topicId}"
+                 data-topic-id="${encodeURIComponent(topicTitle)}"
+                 onchange="handleTopicSelection(this)">
+          <label class="form-check-label fw-medium" for="${topicId}">
+            <i class="bi bi-folder me-2 text-primary"></i>
+            ${escapeHtml(topicTitle)}
+          </label>
+        </div>
+    `;
+
+    // Add subtopics if they exist
+    if (subtopics && Array.isArray(subtopics) && subtopics.length > 0) {
+      html += '<div class="ms-4 mt-2">';
+      subtopics.forEach((subtopic, subIndex) => {
+        let subtopicTitle = "";
+        if (typeof subtopic === "string") {
+          subtopicTitle = subtopic;
+        } else if (subtopic && typeof subtopic === "object") {
+          subtopicTitle = subtopic.topic || subtopic.title || subtopic.name;
+        }
+
+        if (subtopicTitle) {
+          const subtopicId = `fallback_subtopic_${index}_${subIndex}`;
+          html += `
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" 
+                     id="${subtopicId}"
+                     data-topic-id="${encodeURIComponent(subtopicTitle)}"
+                     onchange="handleTopicSelection(this)">
+              <label class="form-check-label" for="${subtopicId}">
+                <i class="bi bi-file-text me-2 text-info"></i>
+                ${escapeHtml(subtopicTitle)}
+              </label>
+            </div>
+          `;
+        }
+      });
+      html += '</div>';
+    }
+
+    html += '</div>';
+  });
+
+  return html;
 }
 
 function toggleTopicGroup(button) {
