@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Verification Platform - Dashboard</title>
-    
+
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -15,9 +16,16 @@
     <link href="css/styles.css" rel="stylesheet">
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Chart.js for advanced analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- html2canvas for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Configuration -->
     <script src="config.js"></script>
 </head>
+
 <body>
     <div class="app-container">
         <!-- Sidebar -->
@@ -26,7 +34,7 @@
                 <h1><i class="bi bi-shield-check me-2"></i>AI Verification</h1>
                 <p>Plataforma de Verificación</p>
             </div>
-            
+
             <div class="sidebar-nav">
                 <a href="index.html" class="nav-item active">
                     <i class="bi bi-speedometer2"></i>
@@ -40,7 +48,7 @@
                     <i class="bi bi-clock-history"></i>
                     Historial
                 </a>
-                <a href="#" class="nav-item" onclick="showComingSoon('Analytics')">
+                <a href="#" class="nav-item" onclick="showAnalyticsSection()">
                     <i class="bi bi-graph-up"></i>
                     Analytics
                 </a>
@@ -55,7 +63,7 @@
                 </a>
             </div>
         </nav>
-        
+
         <!-- Main Content -->
         <main class="main-content">
             <!-- Topbar -->
@@ -71,7 +79,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Content Area -->
             <div class="content-area">
                 <!-- Dashboard Section -->
@@ -108,7 +116,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Additional KPIs -->
                     <div class="row mb-4">
                         <div class="col-md-3">
@@ -148,7 +156,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Quick Actions -->
                     <div class="row mb-4">
                         <div class="col-md-12">
@@ -162,7 +170,8 @@
                                 <div class="card-body">
                                     <div class="row align-items-center">
                                         <div class="col-md-8">
-                                            <p class="text-muted mb-3">Sube un documento PDF para analizar el uso de IA con tecnología Amazon Bedrock Claude 3.5 Sonnet</p>
+                                            <p class="text-muted mb-3">Sube un documento PDF para analizar el uso de IA
+                                                con tecnología Amazon Bedrock Claude 3.5 Sonnet</p>
                                             <button class="btn btn-primary" onclick="showUploadSection()">
                                                 <i class="bi bi-cloud-upload me-2"></i>
                                                 Subir Documento
@@ -171,7 +180,8 @@
                                         <div class="col-md-4 text-center">
                                             <div class="d-flex justify-content-center align-items-center">
                                                 <div class="me-3">
-                                                    <i class="bi bi-robot" style="font-size: 2rem; color: var(--ch-blue);"></i>
+                                                    <i class="bi bi-robot"
+                                                        style="font-size: 2rem; color: var(--ch-blue);"></i>
                                                 </div>
                                                 <div class="text-start">
                                                     <small class="text-muted">Powered by</small><br>
@@ -185,14 +195,60 @@
                             </div>
                         </div>
                     </div>
-                    
+
+                    <!-- New Features Info Banner -->
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="alert alert-primary">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <i class="bi bi-lightbulb me-2"></i>
+                                        <strong>💡 Nuevas Funcionalidades:</strong>
+                                        Usa el botón <span class="badge bg-info">Tags</span> para etiquetar análisis,
+                                        <span class="badge bg-success">Analytics</span> para gráficos avanzados, y
+                                        <kbd>F1</kbd> para ver todos los atajos de teclado.
+                                    </div>
+                                    <div class="col-md-4 text-end">
+                                        <button class="btn btn-outline-primary btn-sm me-2"
+                                            onclick="showAnalyticsSection()">
+                                            <i class="bi bi-graph-up me-1"></i>Analytics
+                                        </button>
+                                        <button class="btn btn-outline-info btn-sm" onclick="showHelpModal()">
+                                            <i class="bi bi-question-circle me-1"></i>Ayuda
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Recent Analyses -->
                     <div class="card">
                         <div class="card-header">
-                            <h5 class="mb-0">
-                                <i class="bi bi-clock-history me-2"></i>
-                                Análisis Recientes
-                            </h5>
+                            <div class="row align-items-center">
+                                <div class="col">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-clock-history me-2"></i>
+                                        Análisis Recientes
+                                    </h5>
+                                </div>
+                                <div class="col-auto">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="exportDashboardToPDF()"
+                                            title="Exportar Dashboard a PDF">
+                                            <i class="bi bi-file-earmark-pdf"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success" onclick="exportDashboardToExcel()"
+                                            title="Exportar Datos a Excel">
+                                            <i class="bi bi-file-earmark-excel"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="showAnalyticsSection()"
+                                            title="Ver Analytics Avanzados">
+                                            <i class="bi bi-graph-up"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
@@ -220,7 +276,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Upload Section -->
                 <div id="uploadSection" style="display: none;">
                     <div class="row">
@@ -247,19 +303,21 @@
                                             </div>
                                             <input type="file" id="fileInput" accept=".pdf" style="display: none;">
                                         </div>
-                                        
+
                                         <!-- File Info -->
                                         <div id="fileInfo" style="display: none;" class="alert alert-info mb-4">
                                             <i class="bi bi-file-earmark-pdf me-2"></i>
                                             <span id="fileName"></span>
-                                            <button type="button" class="btn-close float-end" onclick="clearFile()"></button>
+                                            <button type="button" class="btn-close float-end"
+                                                onclick="clearFile()"></button>
                                         </div>
-                                        
+
                                         <!-- Metadata Form -->
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <div class="mb-3">
-                                                    <label for="studentName" class="form-label">Nombre del Estudiante *</label>
+                                                    <label for="studentName" class="form-label">Nombre del Estudiante
+                                                        *</label>
                                                     <input type="text" class="form-control" id="studentName" required>
                                                 </div>
                                             </div>
@@ -270,7 +328,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        
+
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <div class="mb-3">
@@ -285,12 +343,12 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        
+
                                         <div class="mb-4">
                                             <label for="assignmentName" class="form-label">Nombre de la Tarea *</label>
                                             <input type="text" class="form-control" id="assignmentName" required>
                                         </div>
-                                        
+
                                         <div class="d-flex gap-2">
                                             <button type="submit" class="btn btn-primary" id="analyzeBtn" disabled>
                                                 <i class="bi bi-play-circle me-2"></i>
@@ -305,7 +363,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="col-md-4">
                             <div class="card">
                                 <div class="card-header">
@@ -318,9 +376,10 @@
                                     <h6>Formatos Soportados</h6>
                                     <ul class="list-unstyled">
                                         <li><i class="bi bi-check-circle text-success me-2"></i>PDF con texto</li>
-                                        <li><i class="bi bi-exclamation-circle text-warning me-2"></i>PDF escaneado (limitado)</li>
+                                        <li><i class="bi bi-exclamation-circle text-warning me-2"></i>PDF escaneado
+                                            (limitado)</li>
                                     </ul>
-                                    
+
                                     <h6 class="mt-3">Proceso de Análisis</h6>
                                     <ol class="small">
                                         <li>Extracción de texto del PDF</li>
@@ -328,7 +387,7 @@
                                         <li>Generación de informe</li>
                                         <li>Almacenamiento de resultados</li>
                                     </ol>
-                                    
+
                                     <div class="alert alert-warning mt-3">
                                         <small>
                                             <i class="bi bi-exclamation-triangle me-1"></i>
@@ -340,7 +399,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- History Section -->
                 <div id="historySection" style="display: none;">
                     <div class="card">
@@ -363,28 +422,66 @@
                         <div class="card-body">
                             <!-- Filters -->
                             <div class="row mb-3">
-                                <div class="col-md-3">
-                                    <label for="filterCourse" class="form-label">Filtrar por Curso</label>
+                                <div class="col-md-2">
+                                    <label for="filterCourse" class="form-label">Curso</label>
                                     <select class="form-select" id="filterCourse">
                                         <option value="">Todos los cursos</option>
                                     </select>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
+                                    <label for="filterTag" class="form-label">Etiqueta</label>
+                                    <select class="form-select" id="filterTag">
+                                        <option value="">Todas las etiquetas</option>
+                                        <option value="sospechoso">🚨 Sospechoso</option>
+                                        <option value="revisado">✅ Revisado</option>
+                                        <option value="aprobado">👍 Aprobado</option>
+                                        <option value="rechazado">❌ Rechazado</option>
+                                        <option value="pendiente">⏳ Pendiente</option>
+                                        <option value="favorito">⭐ Favorito</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
                                     <label for="filterFrom" class="form-label">Desde</label>
                                     <input type="date" class="form-control" id="filterFrom">
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <label for="filterTo" class="form-label">Hasta</label>
                                     <input type="date" class="form-control" id="filterTo">
                                 </div>
-                                <div class="col-md-3 d-flex align-items-end">
-                                    <button class="btn btn-primary" onclick="applyFilters()">
+                                <div class="col-md-2">
+                                    <label for="searchText" class="form-label">Buscar</label>
+                                    <input type="text" class="form-control" id="searchText"
+                                        placeholder="Nombre, curso...">
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button class="btn btn-primary w-100" onclick="applyFilters()">
                                         <i class="bi bi-funnel me-2"></i>
                                         Filtrar
                                     </button>
                                 </div>
                             </div>
-                            
+
+                            <!-- Tag Management Info -->
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <div class="alert alert-info">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <i class="bi bi-tags me-2"></i>
+                                                <strong>💡 Gestión de Etiquetas:</strong> Haz clic en el botón <span
+                                                    class="badge bg-info">Tags</span> de cualquier análisis para agregar
+                                                etiquetas personalizadas
+                                            </div>
+                                            <button class="btn btn-outline-primary btn-sm"
+                                                onclick="showTagStatistics()">
+                                                <i class="bi bi-bar-chart me-1"></i>
+                                                Ver Estadísticas
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- History Table -->
                             <div class="table-responsive">
                                 <table class="table table-hover">
@@ -397,12 +494,13 @@
                                             <th>IA Score</th>
                                             <th>Originalidad</th>
                                             <th>Estado</th>
+                                            <th>Etiquetas</th>
                                             <th>Acciones</th>
                                         </tr>
                                     </thead>
                                     <tbody id="historyTable">
                                         <tr>
-                                            <td colspan="8" class="text-center text-muted">
+                                            <td colspan="9" class="text-center text-muted">
                                                 <i class="bi bi-hourglass-split me-2"></i>
                                                 Cargando historial...
                                             </td>
@@ -410,7 +508,7 @@
                                     </tbody>
                                 </table>
                             </div>
-                            
+
                             <!-- Pagination -->
                             <nav aria-label="Paginación del historial">
                                 <ul class="pagination justify-content-center" id="historyPagination">
@@ -419,7 +517,192 @@
                         </div>
                     </div>
                 </div>
-                
+
+                <!-- Analytics Section -->
+                <div id="analyticsSection" style="display: none;">
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="row align-items-center">
+                                        <div class="col">
+                                            <h5 class="mb-0">
+                                                <i class="bi bi-graph-up me-2"></i>
+                                                Analytics Avanzados
+                                            </h5>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" onclick="exportAnalyticsToPDF()"
+                                                    title="Exportar Analytics a PDF">
+                                                    <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+                                                </button>
+                                                <button class="btn btn-outline-success"
+                                                    onclick="exportAnalyticsToExcel()" title="Exportar Datos a Excel">
+                                                    <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                                                </button>
+                                                <button class="btn btn-secondary" onclick="showDashboard()">
+                                                    <i class="bi bi-arrow-left me-2"></i>
+                                                    Volver al Dashboard
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Time Period Selector -->
+                                    <div class="row mb-4">
+                                        <div class="col-md-4">
+                                            <label for="analyticsPeriod" class="form-label">Período de Análisis</label>
+                                            <select class="form-select" id="analyticsPeriod"
+                                                onchange="loadAnalyticsData()">
+                                                <option value="7">Últimos 7 días</option>
+                                                <option value="30" selected>Últimos 30 días</option>
+                                                <option value="90">Últimos 90 días</option>
+                                                <option value="180">Últimos 6 meses</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-8 d-flex align-items-end">
+                                            <button class="btn btn-primary" onclick="loadAnalyticsData()">
+                                                <i class="bi bi-arrow-clockwise me-2"></i>
+                                                Actualizar Datos
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row 1 -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-bar-chart me-2"></i>
+                                        Tendencia de Análisis
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="analysisTimeChart" height="300"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-pie-chart me-2"></i>
+                                        Distribución de Riesgo IA
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="riskDistributionChart" height="300"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row 2 -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-graph-up me-2"></i>
+                                        Promedio de Scores por Curso
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="courseScoresChart" height="300"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-speedometer2 me-2"></i>
+                                        Confianza vs Originalidad
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="confidenceOriginalityChart" height="300"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Rankings -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-trophy me-2"></i>
+                                        Top 10 Cursos por Actividad
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Curso</th>
+                                                    <th>Análisis</th>
+                                                    <th>Promedio IA</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="topCoursesTable">
+                                                <tr>
+                                                    <td colspan="4" class="text-center text-muted">
+                                                        <i class="bi bi-hourglass-split me-2"></i>
+                                                        Cargando datos...
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-person-check me-2"></i>
+                                        Top 10 Estudiantes por Originalidad
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Estudiante</th>
+                                                    <th>Curso</th>
+                                                    <th>Originalidad</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="topStudentsTable">
+                                                <tr>
+                                                    <td colspan="4" class="text-center text-muted">
+                                                        <i class="bi bi-hourglass-split me-2"></i>
+                                                        Cargando datos...
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Settings Section -->
                 <div id="settingsSection" style="display: none;">
                     <div class="row">
@@ -449,68 +732,76 @@
                                                 <i class="bi bi-speedometer2 me-2"></i>
                                                 Configuración del Dashboard
                                             </h6>
-                                            
+
                                             <div class="row">
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
-                                                        <label for="kpiPeriod" class="form-label">Período de KPIs</label>
+                                                        <label for="kpiPeriod" class="form-label">Período de
+                                                            KPIs</label>
                                                         <select class="form-select" id="kpiPeriod">
                                                             <option value="7">Últimos 7 días</option>
                                                             <option value="15">Últimos 15 días</option>
                                                             <option value="30" selected>Últimos 30 días</option>
                                                             <option value="90">Últimos 90 días</option>
                                                         </select>
-                                                        <small class="text-muted">Período para calcular las métricas del dashboard</small>
+                                                        <small class="text-muted">Período para calcular las métricas del
+                                                            dashboard</small>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
-                                                        <label for="itemsPerPage" class="form-label">Elementos por Página</label>
+                                                        <label for="itemsPerPage" class="form-label">Elementos por
+                                                            Página</label>
                                                         <select class="form-select" id="itemsPerPage">
                                                             <option value="5" selected>5 elementos</option>
                                                             <option value="10">10 elementos</option>
                                                             <option value="20">20 elementos</option>
                                                             <option value="50">50 elementos</option>
                                                         </select>
-                                                        <small class="text-muted">Número de análisis mostrados en las tablas</small>
+                                                        <small class="text-muted">Número de análisis mostrados en las
+                                                            tablas</small>
                                                     </div>
                                                 </div>
                                             </div>
-                                            
+
                                             <div class="row">
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
-                                                        <label for="highRiskThreshold" class="form-label">Umbral Alto Riesgo IA</label>
+                                                        <label for="highRiskThreshold" class="form-label">Umbral Alto
+                                                            Riesgo IA</label>
                                                         <select class="form-select" id="highRiskThreshold">
                                                             <option value="60">60% o más</option>
                                                             <option value="70" selected>70% o más</option>
                                                             <option value="80">80% o más</option>
                                                         </select>
-                                                        <small class="text-muted">Score mínimo para considerar "Alto Riesgo"</small>
+                                                        <small class="text-muted">Score mínimo para considerar "Alto
+                                                            Riesgo"</small>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
                                                         <label class="form-label">Actualización Automática</label>
                                                         <div class="form-check form-switch">
-                                                            <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
+                                                            <input class="form-check-input" type="checkbox"
+                                                                id="autoRefresh" checked>
                                                             <label class="form-check-label" for="autoRefresh">
                                                                 Actualizar dashboard automáticamente
                                                             </label>
                                                         </div>
-                                                        <small class="text-muted">Actualiza los KPIs cada 2 minutos</small>
+                                                        <small class="text-muted">Actualiza los KPIs cada 2
+                                                            minutos</small>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                        
+
                                         <!-- Interface Settings -->
                                         <div class="mb-4">
                                             <h6 class="text-primary mb-3">
                                                 <i class="bi bi-palette me-2"></i>
                                                 Configuración de Interfaz
                                             </h6>
-                                            
+
                                             <div class="row">
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
@@ -525,27 +816,31 @@
                                                 </div>
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
-                                                        <label for="fontSize" class="form-label">Tamaño de Fuente</label>
+                                                        <label for="fontSize" class="form-label">Tamaño de
+                                                            Fuente</label>
                                                         <select class="form-select" id="fontSize">
                                                             <option value="normal" selected>Normal</option>
                                                             <option value="large">Grande</option>
                                                         </select>
-                                                        <small class="text-muted">Tamaño del texto en la interfaz</small>
+                                                        <small class="text-muted">Tamaño del texto en la
+                                                            interfaz</small>
                                                     </div>
                                                 </div>
                                             </div>
-                                            
+
                                             <div class="row">
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
                                                         <label class="form-label">Animaciones</label>
                                                         <div class="form-check form-switch">
-                                                            <input class="form-check-input" type="checkbox" id="animations" checked>
+                                                            <input class="form-check-input" type="checkbox"
+                                                                id="animations" checked>
                                                             <label class="form-check-label" for="animations">
                                                                 Activar animaciones y transiciones
                                                             </label>
                                                         </div>
-                                                        <small class="text-muted">Efectos visuales en la interfaz</small>
+                                                        <small class="text-muted">Efectos visuales en la
+                                                            interfaz</small>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-6">
@@ -557,19 +852,21 @@
                                                                 Activar sonidos de notificación
                                                             </label>
                                                         </div>
-                                                        <small class="text-muted">Sonidos para alertas y confirmaciones</small>
+                                                        <small class="text-muted">Sonidos para alertas y
+                                                            confirmaciones</small>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                        
+
                                         <!-- Action Buttons -->
                                         <div class="d-flex gap-2">
                                             <button type="submit" class="btn btn-primary">
                                                 <i class="bi bi-check-circle me-2"></i>
                                                 Guardar Configuración
                                             </button>
-                                            <button type="button" class="btn btn-outline-secondary" onclick="resetSettings()">
+                                            <button type="button" class="btn btn-outline-secondary"
+                                                onclick="resetSettings()">
                                                 <i class="bi bi-arrow-clockwise me-2"></i>
                                                 Restaurar Predeterminados
                                             </button>
@@ -578,7 +875,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="col-md-4">
                             <div class="card">
                                 <div class="card-header">
@@ -592,17 +889,17 @@
                                         <small class="text-muted">Versión de la Plataforma</small>
                                         <div class="fw-medium">v1.0.0</div>
                                     </div>
-                                    
+
                                     <div class="mb-3">
                                         <small class="text-muted">Modelo de IA</small>
                                         <div class="fw-medium">Claude 3.5 Sonnet</div>
                                     </div>
-                                    
+
                                     <div class="mb-3">
                                         <small class="text-muted">Región AWS</small>
                                         <div class="fw-medium">us-east-1</div>
                                     </div>
-                                    
+
                                     <div class="mb-3">
                                         <small class="text-muted">Estado del Sistema</small>
                                         <div class="fw-medium text-success">
@@ -610,9 +907,9 @@
                                             Operativo
                                         </div>
                                     </div>
-                                    
+
                                     <hr>
-                                    
+
                                     <div class="mb-3">
                                         <small class="text-muted">Configuración Guardada</small>
                                         <div class="fw-medium" id="lastSaved">
@@ -620,7 +917,7 @@
                                             Nunca
                                         </div>
                                     </div>
-                                    
+
                                     <div class="alert alert-info">
                                         <small>
                                             <i class="bi bi-info-circle me-1"></i>
@@ -642,5 +939,9 @@
     <script src="js/app.js"></script>
     <script src="js/upload.js"></script>
     <script src="js/dashboard.js"></script>
+    <script src="js/analytics.js"></script>
+    <script src="js/tags.js"></script>
+    <script src="js/ux-enhancements.js"></script>
 </body>
+
 </html>

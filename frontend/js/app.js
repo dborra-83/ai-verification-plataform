@@ -166,7 +166,7 @@ function showHistorySection() {
 }
 
 function hideAllSections() {
-    const sections = ['dashboardSection', 'uploadSection', 'historySection', 'settingsSection'];
+    const sections = ['dashboardSection', 'uploadSection', 'historySection', 'analyticsSection', 'settingsSection'];
     sections.forEach(sectionId => {
         const section = document.getElementById(sectionId);
         if (section) {

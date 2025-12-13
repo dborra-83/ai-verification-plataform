@@ -177,6 +177,9 @@ function loadRecentAnalysesTable(analyses) {
                                 <i class="bi bi-download"></i>
                             </button>
                         ` : ''}
+                        <button class="btn btn-outline-info" onclick="showTagModal('${analysis.analysisId}', '${(analysis.studentName || 'Sin nombre').replace(/'/g, '\\\'')}')" title="Gestionar etiquetas">
+                            <i class="bi bi-tags me-1"></i>Tags
+                        </button>
                         <button class="btn btn-outline-danger" onclick="deleteAnalysis('${analysis.analysisId}', '${(analysis.studentName || 'Sin nombre').replace(/'/g, '\\\'')}')" title="Eliminar análisis">
                             <i class="bi bi-trash"></i>
                         </button>
@@ -215,12 +218,21 @@ async function loadHistoryData(filters = {}) {
         const endpoint = `/analysis${queryString ? '?' + queryString : ''}`;
         
         const response = await apiCall(endpoint);
-        const analyses = response.items || [];
+        let analyses = response.items || [];
+        
+        // Apply client-side filters for tags and text search
+        if (filters.tag && typeof filterAnalysesByTag === 'function') {
+            analyses = filterAnalysesByTag(analyses, filters.tag);
+        }
+        
+        if (filters.searchText && typeof filterAnalysesByText === 'function') {
+            analyses = filterAnalysesByText(analyses, filters.searchText);
+        }
         
         if (analyses.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="text-center text-muted py-4">
+                    <td colspan="9" class="text-center text-muted py-4">
                         <i class="bi bi-inbox me-2"></i>
                         No se encontraron análisis
                         <br>
@@ -264,6 +276,7 @@ async function loadHistoryData(filters = {}) {
                         </span>
                     </td>
                     <td>${getStatusBadge(analysis.status)}</td>
+                    <td>${renderAnalysisTags ? renderAnalysisTags(analysis.analysisId) : '<span class="text-muted small">-</span>'}</td>
                     <td>
                         <div class="btn-group btn-group-sm">
                             <button class="btn btn-outline-primary" onclick="viewAnalysis('${analysis.analysisId}')" title="Ver detalle">
@@ -274,6 +287,9 @@ async function loadHistoryData(filters = {}) {
                                     <i class="bi bi-download"></i>
                                 </button>
                             ` : ''}
+                            <button class="btn btn-outline-info" onclick="showTagModal('${analysis.analysisId}', '${(analysis.studentName || 'Sin nombre').replace(/'/g, '\\\'')}')" title="Gestionar etiquetas">
+                                <i class="bi bi-tags"></i>
+                            </button>
                             <button class="btn btn-outline-danger" onclick="deleteAnalysis('${analysis.analysisId}', '${(analysis.studentName || 'Sin nombre').replace(/'/g, '\\\'')}')" title="Eliminar análisis">
                                 <i class="bi bi-trash"></i>
                             </button>
@@ -293,7 +309,7 @@ async function loadHistoryData(filters = {}) {
         console.error('Error loading history data:', error);
         tableBody.innerHTML = `
             <tr>
-                <td colspan="8" class="text-center text-muted py-4">
+                <td colspan="9" class="text-center text-muted py-4">
                     <i class="bi bi-exclamation-triangle me-2"></i>
                     Error al cargar el historial
                     <br>
@@ -348,6 +364,8 @@ function applyFilters() {
         from: document.getElementById('filterFrom')?.value,
         to: document.getElementById('filterTo')?.value,
         course: document.getElementById('filterCourse')?.value,
+        tag: document.getElementById('filterTag')?.value,
+        searchText: document.getElementById('searchText')?.value,
         pageSize: 20
     };
     
@@ -359,6 +377,8 @@ function loadMoreHistory(nextToken) {
         from: document.getElementById('filterFrom')?.value,
         to: document.getElementById('filterTo')?.value,
         course: document.getElementById('filterCourse')?.value,
+        tag: document.getElementById('filterTag')?.value,
+        searchText: document.getElementById('searchText')?.value,
         pageSize: 20,
         nextToken: nextToken
     };
