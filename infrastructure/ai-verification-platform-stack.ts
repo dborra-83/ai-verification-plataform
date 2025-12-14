@@ -4,6 +4,8 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as iam from "aws-cdk-lib/aws-iam";
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
+import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
 import { Construct } from "constructs";
 
 export class AiVerificationPlatformStack extends cdk.Stack {
@@ -343,6 +345,51 @@ export class AiVerificationPlatformStack extends cdk.Stack {
       new apigateway.LambdaIntegration(examHistoryLambda)
     );
 
+    // CloudFront Distribution for Frontend
+    const distribution = new cloudfront.Distribution(
+      this,
+      "FrontendDistribution",
+      {
+        defaultBehavior: {
+          origin: new origins.S3Origin(frontendBucket),
+          viewerProtocolPolicy:
+            cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+          cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
+          compress: true,
+          cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        },
+        additionalBehaviors: {
+          "/prod/*": {
+            origin: new origins.RestApiOrigin(api),
+            viewerProtocolPolicy:
+              cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+            allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+            cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD,
+            cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+            originRequestPolicy: cloudfront.OriginRequestPolicy.CORS_S3_ORIGIN,
+          },
+        },
+        defaultRootObject: "index.html",
+        errorResponses: [
+          {
+            httpStatus: 404,
+            responseHttpStatus: 200,
+            responsePagePath: "/index.html",
+            ttl: cdk.Duration.minutes(30),
+          },
+          {
+            httpStatus: 403,
+            responseHttpStatus: 200,
+            responsePagePath: "/index.html",
+            ttl: cdk.Duration.minutes(30),
+          },
+        ],
+        priceClass: cloudfront.PriceClass.PRICE_CLASS_100, // Solo US, Canada y Europa
+        comment: "AI Verification Platform - Frontend Distribution",
+      }
+    );
+
     // Outputs
     new cdk.CfnOutput(this, "FrontendBucketName", {
       value: frontendBucket.bucketName,
@@ -350,8 +397,18 @@ export class AiVerificationPlatformStack extends cdk.Stack {
     });
 
     new cdk.CfnOutput(this, "FrontendUrl", {
+      value: `https://${distribution.distributionDomainName}`,
+      description: "Frontend website URL (CloudFront)",
+    });
+
+    new cdk.CfnOutput(this, "FrontendS3Url", {
       value: `http://${frontendBucket.bucketWebsiteDomainName}`,
-      description: "Frontend website URL",
+      description: "Frontend S3 website URL (direct)",
+    });
+
+    new cdk.CfnOutput(this, "CloudFrontDistributionId", {
+      value: distribution.distributionId,
+      description: "CloudFront Distribution ID",
     });
 
     new cdk.CfnOutput(this, "ApiUrl", {

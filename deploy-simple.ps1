@@ -61,6 +61,15 @@ Start-Sleep -Seconds 10
 Write-Host "🌐 Deploying frontend..." -ForegroundColor Yellow
 npm run deploy:frontend
 
+Write-Host "☁️ Invalidating CloudFront cache..." -ForegroundColor Yellow
+$distributionId = aws cloudformation describe-stacks --stack-name AiVerificationPlatformStack --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" --output text
+if ($distributionId -and $distributionId -ne "None") {
+    aws cloudfront create-invalidation --distribution-id $distributionId --paths "/*"
+    Write-Host "✅ CloudFront cache invalidated" -ForegroundColor Green
+} else {
+    Write-Host "⚠️  CloudFront distribution not found, skipping cache invalidation" -ForegroundColor Yellow
+}
+
 # Get deployment URLs
 Write-Host "📋 Getting deployment information..." -ForegroundColor Yellow
 $FRONTEND_URL = aws cloudformation describe-stacks --stack-name AiVerificationPlatformStack --query 'Stacks[0].Outputs[?OutputKey==`FrontendUrl`].OutputValue' --output text

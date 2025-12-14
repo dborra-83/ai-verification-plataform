@@ -33,7 +33,8 @@
     "copy:frontend": "if not exist dist\\frontend mkdir dist\\frontend && xcopy frontend dist\\frontend /E /I /Y",
     "update:config": "node scripts/update-frontend-config.js",
     "deploy:frontend": "npm run update:config && npm run copy:frontend && aws s3 sync dist/frontend s3://$(aws cloudformation describe-stacks --stack-name AiVerificationPlatformStack --query 'Stacks[0].Outputs[?OutputKey==`FrontendBucketName`].OutputValue' --output text) --delete",
-    "deploy:all": "npm run deploy && npm run deploy:frontend"
+    "invalidate:cloudfront": "pwsh scripts/invalidate-cloudfront.ps1",
+    "deploy:all": "npm run deploy && npm run deploy:frontend && npm run invalidate:cloudfront"
   },
   "devDependencies": {
     "@types/jest": "^29.5.5",
