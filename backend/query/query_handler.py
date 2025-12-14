@@ -102,55 +102,56 @@ def handle_list_analyses(event):
                 print(f"Sample item: {items[0]}")
             
             # Enhanced filtering to only include AI detection analysis records
-            # These should have aiLikelihoodScore and not be exam/topic extraction records
+            # More permissive approach - include records that are likely AI detection analyses
             filtered_items = []
             for item in items:
                 analysis_id = item.get('analysisId', '')
                 item_type = item.get('type', '')
                 
-                # Check for exam-related prefixes
+                # Primary exclusion: Skip obvious exam/topic records first
                 has_exam_prefix = analysis_id.startswith('exam-')
                 has_topic_prefix = analysis_id.startswith('topic-extraction-')
-                
-                # Check for exam-related types
                 is_exam_type = item_type in ['TOPIC_EXTRACTION', 'EXAM_GENERATION']
                 
-                # Check for AI detection scores
-                has_ai_score = 'aiLikelihoodScore' in item
-                has_originality_score = 'originalityScore' in item
+                # Skip if it has obvious exam/topic identifiers
+                if has_exam_prefix or has_topic_prefix or is_exam_type:
+                    print(f"❌ EXCLUDED - Exam/Topic record: analysisId={analysis_id}, type={item_type}")
+                    continue
                 
-                # Check for exam-specific fields that shouldn't be in AI detection records
+                # Secondary exclusion: Skip records with exam-specific fields
                 has_exam_config = 'examConfig' in item
                 has_topic_outline = 'topicOutline' in item
                 has_selected_topics = 'selectedTopics' in item
                 has_generated_files = 'generatedFiles' in item
                 
-                # A valid AI detection record should:
-                # 1. NOT have exam/topic prefixes
-                # 2. NOT be exam/topic type
-                # 3. HAVE AI detection scores
-                # 4. NOT have exam-specific fields
-                is_valid = (
-                    not has_exam_prefix and
-                    not has_topic_prefix and
-                    not is_exam_type and
-                    has_ai_score and
-                    has_originality_score and
-                    not has_exam_config and
-                    not has_topic_outline and
-                    not has_selected_topics and
-                    not has_generated_files
-                )
+                # Skip if it has exam-specific fields
+                if has_exam_config or has_topic_outline or has_selected_topics or has_generated_files:
+                    print(f"❌ EXCLUDED - Has exam fields: analysisId={analysis_id}")
+                    continue
                 
-                if not is_valid:
-                    print(f"🔍 BACKEND FILTERING OUT: analysisId={analysis_id}, type={item_type}, "
-                          f"hasExamPrefix={has_exam_prefix}, hasTopicPrefix={has_topic_prefix}, "
-                          f"isExamType={is_exam_type}, hasAIScore={has_ai_score}, "
-                          f"hasOriginalityScore={has_originality_score}, hasExamConfig={has_exam_config}, "
-                          f"hasTopicOutline={has_topic_outline}, hasSelectedTopics={has_selected_topics}, "
-                          f"hasGeneratedFiles={has_generated_files}")
-                else:
+                # More permissive inclusion: Include if it looks like an AI detection record
+                # Check for AI detection indicators (but don't require all)
+                has_ai_score = 'aiLikelihoodScore' in item
+                has_originality_score = 'originalityScore' in item
+                has_student_metadata = bool(item.get('metadata', {}).get('studentName') or item.get('studentName'))
+                has_analysis_fields = any([
+                    'summary' in item,
+                    'signals' in item,
+                    'recommendations' in item,
+                    'confidence' in item
+                ])
+                
+                # Include if it has AI detection characteristics
+                if has_ai_score or has_originality_score or (has_student_metadata and has_analysis_fields):
+                    print(f"✅ INCLUDED AI DETECTION: analysisId={analysis_id}, "
+                          f"aiScore={item.get('aiLikelihoodScore')}, "
+                          f"originalityScore={item.get('originalityScore')}, "
+                          f"status={item.get('status')}, "
+                          f"studentName={item.get('metadata', {}).get('studentName') or item.get('studentName')}")
                     filtered_items.append(item)
+                else:
+                    print(f"❌ EXCLUDED - No AI detection indicators: analysisId={analysis_id}")
+                    continue
             
             items = filtered_items
             print(f"Filtered items count: {len(items)}")

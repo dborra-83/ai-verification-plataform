@@ -13,72 +13,79 @@ async function loadDashboardKPIs() {
     console.log("Raw analyses received:", analyses.length);
     console.log("Sample analyses:", analyses.slice(0, 3));
 
-    // Enhanced filtering: Filter out any exam/topic extraction records that might have leaked through
+    // Enhanced filtering: More permissive approach - exclude obvious exam records but include AI detection analyses
     const aiDetectionAnalyses = analyses.filter((analysis) => {
-      // Check multiple criteria to ensure this is an AI detection analysis
+      // Primary exclusion: Skip obvious exam/topic records first
       const hasExamPrefix = analysis.analysisId?.startsWith("exam-");
       const hasTopicPrefix =
         analysis.analysisId?.startsWith("topic-extraction-");
       const isExamType =
         analysis.type === "TOPIC_EXTRACTION" ||
         analysis.type === "EXAM_GENERATION";
-      const hasAIScore = analysis.hasOwnProperty("aiLikelihoodScore");
-      const hasOriginalityScore = analysis.hasOwnProperty("originalityScore");
 
-      // Additional checks for exam-related data
+      // Exclude if it has exam/topic identifiers
+      if (hasExamPrefix || hasTopicPrefix || isExamType) {
+        console.log("❌ EXCLUDED - Exam/Topic record:", analysis.analysisId);
+        return false;
+      }
+
+      // Secondary exclusion: Skip records with exam-specific fields
       const hasExamConfig = analysis.hasOwnProperty("examConfig");
       const hasTopicOutline = analysis.hasOwnProperty("topicOutline");
       const hasSelectedTopics = analysis.hasOwnProperty("selectedTopics");
       const hasGeneratedFiles = analysis.hasOwnProperty("generatedFiles");
 
-      // Check GSI1PK to ensure it's from the correct partition
-      const isFromResultsPartition = analysis.GSI1PK === "RESULTS";
-
-      // A valid AI detection analysis should:
-      // 1. NOT have exam/topic prefixes
-      // 2. NOT be exam/topic type
-      // 3. HAVE AI detection scores
-      // 4. NOT have exam-specific fields
-      // 5. BE from the RESULTS partition
-      const isValidAIDetection =
-        !hasExamPrefix &&
-        !hasTopicPrefix &&
-        !isExamType &&
-        hasAIScore &&
-        hasOriginalityScore &&
-        !hasExamConfig &&
-        !hasTopicOutline &&
-        !hasSelectedTopics &&
-        !hasGeneratedFiles &&
-        isFromResultsPartition;
-
-      if (!isValidAIDetection) {
-        console.log("🔍 FILTERING OUT RECORD:", {
-          analysisId: analysis.analysisId,
-          type: analysis.type,
-          GSI1PK: analysis.GSI1PK,
-          hasExamPrefix,
-          hasTopicPrefix,
-          isExamType,
-          hasAIScore,
-          hasOriginalityScore,
-          hasExamConfig,
-          hasTopicOutline,
-          hasSelectedTopics,
-          hasGeneratedFiles,
-          isFromResultsPartition,
-          studentName: analysis.studentName,
-          createdAt: analysis.createdAt,
-          status: analysis.status,
-          // Show first few keys to identify the record type
-          recordKeys: Object.keys(analysis).slice(0, 10),
-        });
+      // Exclude if it has exam-specific fields
+      if (
+        hasExamConfig ||
+        hasTopicOutline ||
+        hasSelectedTopics ||
+        hasGeneratedFiles
+      ) {
+        console.log("❌ EXCLUDED - Has exam fields:", analysis.analysisId);
+        return false;
       }
 
-      return isValidAIDetection;
+      // More permissive inclusion: Include if it looks like an AI detection record
+      const hasAIScore = analysis.hasOwnProperty("aiLikelihoodScore");
+      const hasOriginalityScore = analysis.hasOwnProperty("originalityScore");
+      const hasStudentName =
+        analysis.studentName || analysis.metadata?.studentName;
+      const hasAnalysisFields =
+        analysis.summary || analysis.signals || analysis.recommendations;
+
+      // Include if it has AI detection characteristics
+      if (
+        hasAIScore ||
+        hasOriginalityScore ||
+        (hasStudentName && hasAnalysisFields)
+      ) {
+        console.log("✅ INCLUDED AI DETECTION RECORD:", {
+          analysisId: analysis.analysisId,
+          studentName: hasStudentName,
+          aiScore: analysis.aiLikelihoodScore,
+          originalityScore: analysis.originalityScore,
+          status: analysis.status,
+          createdAt: analysis.createdAt,
+        });
+        return true;
+      }
+
+      console.log(
+        "❌ EXCLUDED - No AI detection indicators:",
+        analysis.analysisId
+      );
+      return false;
     });
 
     console.log("Filtered AI detection analyses:", aiDetectionAnalyses.length);
+
+    // Monitor for data contamination
+    const contaminationReport = monitorDataContamination(
+      analyses,
+      "AI_DETECTION"
+    );
+    console.log("Contamination monitoring report:", contaminationReport);
 
     // Calculate KPIs
     const now = new Date();
@@ -156,7 +163,14 @@ async function loadDashboardKPIs() {
   } catch (error) {
     console.error("Error loading dashboard KPIs:", error);
 
-    // Show empty state instead of error for better UX
+    // Show appropriate error message based on error type
+    const isNetworkError =
+      error.message.includes("fetch") || error.message.includes("network");
+    const errorMessage = isNetworkError
+      ? "Error de conexión. Verifica tu conexión a internet."
+      : "Error al cargar los datos. Intenta refrescar la página.";
+
+    // Show empty state with error context
     updateKPICard("totalAnalyses", "0");
     updateKPICard("avgAiScore", "0.0%");
     updateKPICard("highRiskCount", "0");
@@ -169,13 +183,26 @@ async function loadDashboardKPIs() {
       tableBody.innerHTML = `
                 <tr>
                     <td colspan="6" class="text-center text-muted py-4">
-                        <i class="bi bi-inbox me-2"></i>
-                        No hay análisis recientes
+                        <i class="bi bi-exclamation-triangle me-2 text-warning"></i>
+                        ${errorMessage}
                         <br>
-                        <small class="text-muted">Sube tu primer documento para comenzar</small>
+                        <small class="text-muted">
+                          <button class="btn btn-sm btn-outline-primary mt-2" onclick="loadDashboardKPIs()">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Reintentar
+                          </button>
+                        </small>
                     </td>
                 </tr>
             `;
+    }
+
+    // Add retry mechanism for network errors
+    if (isNetworkError) {
+      console.log("Network error detected, will retry in 5 seconds...");
+      setTimeout(() => {
+        console.log("Retrying dashboard load...");
+        loadDashboardKPIs();
+      }, 5000);
     }
   }
 }
@@ -337,69 +364,74 @@ async function loadHistoryData(filters = {}) {
       console.log("History - Sample analysis:", analyses[0]);
     }
 
-    // Enhanced filtering for history: Filter out exam generation records (ensure only AI detection analyses)
+    // Enhanced filtering for history: More permissive approach - exclude obvious exam records but include AI detection analyses
     analyses = analyses.filter((analysis) => {
-      // Check multiple criteria to ensure this is an AI detection analysis
+      // Primary exclusion: Skip obvious exam/topic records first
       const hasExamPrefix = analysis.analysisId?.startsWith("exam-");
       const hasTopicPrefix =
         analysis.analysisId?.startsWith("topic-extraction-");
       const isExamType =
         analysis.type === "TOPIC_EXTRACTION" ||
         analysis.type === "EXAM_GENERATION";
-      const hasAIScore = analysis.hasOwnProperty("aiLikelihoodScore");
-      const hasOriginalityScore = analysis.hasOwnProperty("originalityScore");
 
-      // Additional checks for exam-related data
+      // Exclude if it has exam/topic identifiers
+      if (hasExamPrefix || hasTopicPrefix || isExamType) {
+        console.log(
+          "❌ HISTORY EXCLUDED - Exam/Topic record:",
+          analysis.analysisId
+        );
+        return false;
+      }
+
+      // Secondary exclusion: Skip records with exam-specific fields
       const hasExamConfig = analysis.hasOwnProperty("examConfig");
       const hasTopicOutline = analysis.hasOwnProperty("topicOutline");
       const hasSelectedTopics = analysis.hasOwnProperty("selectedTopics");
       const hasGeneratedFiles = analysis.hasOwnProperty("generatedFiles");
 
-      // Check GSI1PK to ensure it's from the correct partition
-      const isFromResultsPartition = analysis.GSI1PK === "RESULTS";
-
-      // A valid AI detection analysis should:
-      // 1. NOT have exam/topic prefixes
-      // 2. NOT be exam/topic type
-      // 3. HAVE AI detection scores
-      // 4. NOT have exam-specific fields
-      // 5. BE from the RESULTS partition
-      const isValidAIDetection =
-        !hasExamPrefix &&
-        !hasTopicPrefix &&
-        !isExamType &&
-        hasAIScore &&
-        hasOriginalityScore &&
-        !hasExamConfig &&
-        !hasTopicOutline &&
-        !hasSelectedTopics &&
-        !hasGeneratedFiles &&
-        isFromResultsPartition;
-
-      if (!isValidAIDetection) {
-        console.log("🔍 HISTORY - FILTERING OUT RECORD:", {
-          analysisId: analysis.analysisId,
-          type: analysis.type,
-          GSI1PK: analysis.GSI1PK,
-          hasExamPrefix,
-          hasTopicPrefix,
-          isExamType,
-          hasAIScore,
-          hasOriginalityScore,
-          hasExamConfig,
-          hasTopicOutline,
-          hasSelectedTopics,
-          hasGeneratedFiles,
-          isFromResultsPartition,
-          studentName: analysis.studentName,
-          createdAt: analysis.createdAt,
-          status: analysis.status,
-          // Show first few keys to identify the record type
-          recordKeys: Object.keys(analysis).slice(0, 10),
-        });
+      // Exclude if it has exam-specific fields
+      if (
+        hasExamConfig ||
+        hasTopicOutline ||
+        hasSelectedTopics ||
+        hasGeneratedFiles
+      ) {
+        console.log(
+          "❌ HISTORY EXCLUDED - Has exam fields:",
+          analysis.analysisId
+        );
+        return false;
       }
 
-      return isValidAIDetection;
+      // More permissive inclusion: Include if it looks like an AI detection record
+      const hasAIScore = analysis.hasOwnProperty("aiLikelihoodScore");
+      const hasOriginalityScore = analysis.hasOwnProperty("originalityScore");
+      const hasStudentName =
+        analysis.studentName || analysis.metadata?.studentName;
+      const hasAnalysisFields =
+        analysis.summary || analysis.signals || analysis.recommendations;
+
+      // Include if it has AI detection characteristics
+      if (
+        hasAIScore ||
+        hasOriginalityScore ||
+        (hasStudentName && hasAnalysisFields)
+      ) {
+        console.log("✅ HISTORY INCLUDED AI DETECTION RECORD:", {
+          analysisId: analysis.analysisId,
+          studentName: hasStudentName,
+          aiScore: analysis.aiLikelihoodScore,
+          originalityScore: analysis.originalityScore,
+          status: analysis.status,
+        });
+        return true;
+      }
+
+      console.log(
+        "❌ HISTORY EXCLUDED - No AI detection indicators:",
+        analysis.analysisId
+      );
+      return false;
     });
 
     console.log("History - Filtered analyses:", analyses.length);
@@ -719,9 +751,97 @@ async function deleteAnalysis(analysisId, studentName) {
   }
 }
 
+// Data validation utilities for cross-contamination prevention
+function validateAIDetectionRecord(record) {
+  // Check for AI detection indicators
+  const hasAIScore = record.hasOwnProperty("aiLikelihoodScore");
+  const hasOriginalityScore = record.hasOwnProperty("originalityScore");
+  const hasStudentName = record.studentName || record.metadata?.studentName;
+  const hasAnalysisFields =
+    record.summary || record.signals || record.recommendations;
+
+  // Check for exam-specific fields (should not be present)
+  const hasExamConfig = record.hasOwnProperty("examConfig");
+  const hasTopicOutline = record.hasOwnProperty("topicOutline");
+  const hasSelectedTopics = record.hasOwnProperty("selectedTopics");
+  const hasGeneratedFiles = record.hasOwnProperty("generatedFiles");
+  const hasExamPrefix = record.analysisId?.startsWith("exam-");
+  const hasTopicPrefix = record.analysisId?.startsWith("topic-extraction-");
+  const isExamType =
+    record.type === "TOPIC_EXTRACTION" || record.type === "EXAM_GENERATION";
+
+  // Validation result
+  const isValidAIRecord =
+    (hasAIScore ||
+      hasOriginalityScore ||
+      (hasStudentName && hasAnalysisFields)) &&
+    !(
+      hasExamConfig ||
+      hasTopicOutline ||
+      hasSelectedTopics ||
+      hasGeneratedFiles ||
+      hasExamPrefix ||
+      hasTopicPrefix ||
+      isExamType
+    );
+
+  if (!isValidAIRecord) {
+    console.warn("❌ CROSS-CONTAMINATION DETECTED - Invalid AI record:", {
+      recordId: record.analysisId,
+      hasAIIndicators: hasAIScore || hasOriginalityScore,
+      hasExamFields:
+        hasExamConfig ||
+        hasTopicOutline ||
+        hasSelectedTopics ||
+        hasGeneratedFiles,
+      hasExamIdentifiers: hasExamPrefix || hasTopicPrefix || isExamType,
+    });
+  }
+
+  return isValidAIRecord;
+}
+
+function monitorDataContamination(records, expectedType) {
+  const contaminationReport = {
+    totalRecords: records.length,
+    validRecords: 0,
+    contaminatedRecords: 0,
+    contaminationDetails: [],
+  };
+
+  records.forEach((record) => {
+    if (expectedType === "AI_DETECTION") {
+      if (validateAIDetectionRecord(record)) {
+        contaminationReport.validRecords++;
+      } else {
+        contaminationReport.contaminatedRecords++;
+        contaminationReport.contaminationDetails.push({
+          recordId: record.analysisId,
+          reason: "Contains exam-specific fields or identifiers",
+        });
+      }
+    }
+  });
+
+  if (contaminationReport.contaminatedRecords > 0) {
+    console.error("🚨 DATA CONTAMINATION DETECTED:", contaminationReport);
+
+    // Send contamination alert (in production, this could be sent to monitoring service)
+    if (window.appSettings?.enableContaminationAlerts) {
+      alert(
+        `Advertencia: Se detectaron ${contaminationReport.contaminatedRecords} registros contaminados en el Dashboard de Análisis de IA.`
+      );
+    }
+  }
+
+  return contaminationReport;
+}
+
 // Export functions for global access
 window.loadHistoryData = loadHistoryData;
 window.applyFilters = applyFilters;
 window.loadMoreHistory = loadMoreHistory;
 window.downloadPDF = downloadPDF;
 window.deleteAnalysis = deleteAnalysis;
+window.validateAIDetectionRecord = validateAIDetectionRecord;
+window.monitorDataContamination = monitorDataContamination;

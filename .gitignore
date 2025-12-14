@@ -67,3 +67,13 @@ backend/analysis/pypdf2-*
 
 # Kiro specs (development only)
 .kiro/
+
+# Test files and cache
+.hypothesis/
+.pytest_cache/
+**/test_*.py
+**/__pycache__/
+
+# Temporary and development files
+test-small.txt
+CONFLUENCE_COMMERCIAL_DOCUMENT.md

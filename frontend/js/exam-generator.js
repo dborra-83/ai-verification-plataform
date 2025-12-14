@@ -418,12 +418,19 @@ async function uploadFileForProcessing(file) {
 }
 
 function displayExtractedTopics() {
-  const topicsContainer = document.getElementById("topicsContainer");
-
+  console.log("Displaying extracted topics...");
   console.log(
-    "=== TOPIC DISPLAY START ===",
-    examGeneratorState.extractedTopics
+    "Extracted topics count:",
+    examGeneratorState.extractedTopics?.length || 0
   );
+
+  const topicsContainer = document.getElementById("topicsContainer");
+  console.log("🎯 Topics container element:", topicsContainer);
+
+  if (!topicsContainer) {
+    console.error("❌ CRITICAL: topicsContainer element not found in DOM!");
+    return;
+  }
 
   if (
     !examGeneratorState.extractedTopics ||
@@ -444,32 +451,32 @@ function displayExtractedTopics() {
   }
 
   try {
-    console.log("=== DEBUGGING TOPIC RENDERING ===");
-    console.log("Raw extracted topics:", examGeneratorState.extractedTopics);
-    console.log("Topics type:", typeof examGeneratorState.extractedTopics);
-    console.log(
-      "Topics is array:",
-      Array.isArray(examGeneratorState.extractedTopics)
-    );
+    console.log("Processing topics for display...");
 
     // Validate topic structure before processing
-    const validTopics = examGeneratorState.extractedTopics.filter((topic) => {
-      const isValid =
-        topic &&
-        (typeof topic === "string" ||
-          (typeof topic === "object" &&
-            (topic.topic || topic.title || topic.name)));
+    console.log("🔍 Starting comprehensive topic validation");
+    const validation = validateTopicData(examGeneratorState.extractedTopics);
 
-      if (!isValid) {
-        console.warn("Invalid topic structure:", topic);
-      }
-      return isValid;
-    });
+    console.log("📊 Validation results:", validation);
 
-    console.log("Valid topics after filtering:", validTopics);
+    if (!validation.isValid) {
+      console.error("❌ Topic validation failed:", validation.errors);
+      throw new Error(
+        `Validación de temas falló: ${validation.errors.join(", ")}`
+      );
+    }
+
+    if (validation.warnings.length > 0) {
+      console.warn("⚠️ Topic validation warnings:", validation.warnings);
+    }
+
+    const validTopics = validation.validTopics;
+    console.log(`✅ Using ${validTopics.length} validated topics`);
 
     if (validTopics.length === 0) {
-      throw new Error("No hay temas válidos para mostrar");
+      throw new Error(
+        "No hay temas válidos para mostrar después de la validación"
+      );
     }
 
     // Build hierarchical topic tree
@@ -498,22 +505,94 @@ function displayExtractedTopics() {
 
     // Skip complex rendering and use simple approach
     console.log("🔄 Using simplified topic rendering approach");
-    const simpleHtml = createSimpleTopicDisplay(validTopics);
+    console.log(
+      "📊 Topic data for simple rendering:",
+      JSON.stringify(validTopics, null, 2)
+    );
+
+    let simpleHtml = null;
+    try {
+      const startTime = performance.now();
+      simpleHtml = createSimpleTopicDisplay(validTopics);
+      const endTime = performance.now();
+      console.log(
+        `⏱️ Simple rendering took ${endTime - startTime} milliseconds`
+      );
+
+      console.log(
+        "📝 Generated HTML length:",
+        simpleHtml ? simpleHtml.length : 0
+      );
+      console.log(
+        "📝 HTML preview:",
+        simpleHtml ? simpleHtml.substring(0, 300) + "..." : "null/undefined"
+      );
+    } catch (simpleError) {
+      console.error("❌ Error in createSimpleTopicDisplay:", simpleError);
+      console.error("❌ Error stack:", simpleError.stack);
+      simpleHtml = null;
+    }
 
     if (simpleHtml && simpleHtml.trim() !== "") {
       console.log("✅ Simple topic display created successfully");
-      topicsContainer.innerHTML = simpleHtml;
+      try {
+        topicsContainer.innerHTML = simpleHtml;
+        console.log("✅ HTML successfully inserted into DOM");
 
-      // Update source documents list
-      updateSourceDocumentsList();
+        // Update source documents list
+        updateSourceDocumentsList();
+        console.log("✅ Source documents list updated");
 
-      // Set up topic selection handlers
-      setupTopicSelectionHandlers();
+        // Set up topic selection handlers
+        setupTopicSelectionHandlers();
+        console.log("✅ Topic selection handlers set up");
 
-      console.log("=== TOPIC DISPLAY SUCCESS ===");
-      return;
+        console.log("=== TOPIC DISPLAY SUCCESS ===");
+        return;
+      } catch (domError) {
+        console.error("❌ Error inserting HTML into DOM:", domError);
+        console.error("❌ DOM Error stack:", domError.stack);
+        // Continue to emergency fallback
+      }
     } else {
-      console.error("❌ Simple topic display failed");
+      console.error("❌ Simple topic display failed - empty or null HTML");
+      console.error("❌ simpleHtml value:", simpleHtml);
+      console.error("❌ simpleHtml type:", typeof simpleHtml);
+    }
+
+    // Emergency fallback - try the ultra-robust emergency renderer
+    console.log("🚨 Attempting emergency fallback rendering");
+    let emergencyHtml = null;
+    try {
+      emergencyHtml = createEmergencyTopicDisplay(validTopics);
+      console.log("✅ Emergency rendering successful");
+    } catch (emergencyError) {
+      console.error("❌ Emergency rendering failed:", emergencyError);
+      console.error("❌ Emergency error stack:", emergencyError.stack);
+    }
+
+    if (emergencyHtml && emergencyHtml.trim() !== "") {
+      try {
+        topicsContainer.innerHTML = emergencyHtml;
+        console.log("✅ Emergency HTML successfully inserted into DOM");
+
+        // Update source documents list
+        updateSourceDocumentsList();
+        console.log("✅ Source documents list updated (emergency mode)");
+
+        // Set up topic selection handlers
+        setupTopicSelectionHandlers();
+        console.log("✅ Topic selection handlers set up (emergency mode)");
+
+        console.log("=== TOPIC DISPLAY SUCCESS (EMERGENCY MODE) ===");
+        return;
+      } catch (emergencyDomError) {
+        console.error(
+          "❌ Error inserting emergency HTML into DOM:",
+          emergencyDomError
+        );
+        console.error("❌ Emergency DOM Error stack:", emergencyDomError.stack);
+      }
     }
 
     if (!renderedTree || renderedTree.trim() === "") {
@@ -579,7 +658,38 @@ function displayExtractedTopics() {
             ${emergencyHtml}
           `;
         } else {
-          throw new Error("No se pudo renderizar el árbol de temas");
+          console.error(
+            "❌ All rendering methods failed - showing final error message"
+          );
+          topicsContainer.innerHTML = `
+            <div class="alert alert-danger">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>
+              <strong>Error crítico en el renderizado de temas</strong>
+              <p>No se pudieron mostrar los temas extraídos a pesar de múltiples intentos.</p>
+              <div class="mt-3">
+                <button class="btn btn-outline-danger me-2" onclick="extractTopicsFromDocuments()">
+                  <i class="bi bi-arrow-clockwise me-1"></i>Reintentar Extracción
+                </button>
+                <button class="btn btn-outline-secondary" onclick="location.reload()">
+                  <i class="bi bi-bootstrap-reboot me-1"></i>Recargar Página
+                </button>
+              </div>
+              <details class="mt-3">
+                <summary class="text-muted small">Información técnica</summary>
+                <pre class="small mt-2">${JSON.stringify(
+                  {
+                    topicsCount: validTopics?.length || 0,
+                    topicsType: typeof validTopics,
+                    sampleTopic: validTopics?.[0] || null,
+                    timestamp: new Date().toISOString(),
+                  },
+                  null,
+                  2
+                )}</pre>
+              </details>
+            </div>
+          `;
+          return; // Don't throw error, just show the error message
         }
       }
     } else {
@@ -598,39 +708,94 @@ function displayExtractedTopics() {
     console.error("=== TOPIC DISPLAY ERROR ===", error);
     console.error("Error stack:", error.stack);
 
-    // Enhanced error display with debugging info
-    topicsContainer.innerHTML = `
-            <div class="alert alert-danger">
-                <i class="bi bi-exclamation-triangle me-2"></i>
-                <strong>Error al mostrar los temas extraídos:</strong> ${
-                  error.message
-                }
-                <div class="mt-2">
-                    <button class="btn btn-sm btn-outline-danger" onclick="extractTopicsFromDocuments()">
-                        <i class="bi bi-arrow-clockwise me-1"></i>Reintentar Extracción
-                    </button>
+    // Simplified error display - try to show topics anyway
+    try {
+      // Last resort: show raw topics if available
+      if (
+        examGeneratorState.extractedTopics &&
+        examGeneratorState.extractedTopics.length > 0
+      ) {
+        console.log("🚨 Attempting last resort topic display");
+
+        const emergencyTopics = examGeneratorState.extractedTopics
+          .map((topic, index) => {
+            const topicName =
+              topic?.topic ||
+              topic?.title ||
+              topic?.name ||
+              `Tema ${index + 1}`;
+            const subtopics = topic?.subtopics || [];
+
+            return `
+            <div class="card mb-2">
+              <div class="card-body">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" 
+                         id="emergency_topic_${index}"
+                         data-topic-name="${topicName}"
+                         onchange="handleTopicSelection(this)">
+                  <label class="form-check-label fw-bold" for="emergency_topic_${index}">
+                    ${topicName}
+                  </label>
                 </div>
-                <details class="mt-2">
-                    <summary class="text-muted small">Información de depuración</summary>
-                    <pre class="small text-muted mt-1">${JSON.stringify(
-                      {
-                        topicsCount:
-                          examGeneratorState.extractedTopics?.length || 0,
-                        topicsType: typeof examGeneratorState.extractedTopics,
-                        sampleTopic:
-                          examGeneratorState.extractedTopics?.[0] || null,
-                        errorMessage: error.message,
-                        errorStack: error.stack
-                          ?.split("\n")
-                          .slice(0, 3)
-                          .join("\n"),
-                      },
-                      null,
-                      2
-                    )}</pre>
-                </details>
+                ${
+                  subtopics.length > 0
+                    ? `
+                  <div class="ms-4 mt-2">
+                    ${subtopics
+                      .map(
+                        (sub, subIndex) => `
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" 
+                               id="emergency_subtopic_${index}_${subIndex}"
+                               data-parent-topic="${topicName}"
+                               data-subtopic-name="${sub}"
+                               onchange="handleSubtopicSelection(this)">
+                        <label class="form-check-label" for="emergency_subtopic_${index}_${subIndex}">
+                          ${sub}
+                        </label>
+                      </div>
+                    `
+                      )
+                      .join("")}
+                  </div>
+                `
+                    : ""
+                }
+              </div>
             </div>
+          `;
+          })
+          .join("");
+
+        topicsContainer.innerHTML = `
+          <div class="alert alert-warning mb-3">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Mostrando temas en modo de recuperación. Algunos elementos visuales pueden no funcionar correctamente.
+          </div>
+          ${emergencyTopics}
         `;
+
+        // Set up basic handlers
+        setupTopicSelectionHandlers();
+        return;
+      }
+    } catch (emergencyError) {
+      console.error("Emergency display also failed:", emergencyError);
+    }
+
+    // Final fallback - simple error message
+    topicsContainer.innerHTML = `
+      <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <strong>Error al mostrar los temas extraídos:</strong> No se pudo renderizar el árbol de temas
+        <div class="mt-2">
+          <button class="btn btn-sm btn-outline-danger" onclick="extractTopicsFromDocuments()">
+            <i class="bi bi-arrow-clockwise me-1"></i>Reintentar Extracción
+          </button>
+        </div>
+      </div>
+    `;
   }
 }
 
@@ -934,12 +1099,75 @@ function renderTopicTree(tree, level = 0) {
   return html;
 }
 
-// Helper function to escape HTML
+// Enhanced HTML sanitization function
 function escapeHtml(text) {
-  if (typeof text !== "string") return "";
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
+  if (!text) return "";
+
+  // Convert to string if not already
+  const str = typeof text === "string" ? text : String(text);
+
+  // Basic HTML escape using DOM method (most reliable)
+  try {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  } catch (error) {
+    console.warn(
+      "⚠️ DOM-based HTML escape failed, using manual method:",
+      error
+    );
+
+    // Fallback manual escape
+    return str.replace(/[<>&"']/g, function (match) {
+      const escapeMap = {
+        "<": "&lt;",
+        ">": "&gt;",
+        "&": "&amp;",
+        '"': "&quot;",
+        "'": "&#x27;",
+      };
+      return escapeMap[match] || match;
+    });
+  }
+}
+
+// Additional sanitization for topic titles
+function sanitizeTopicTitle(title) {
+  if (!title) return "";
+
+  let sanitized = String(title).trim();
+
+  // Remove or replace potentially problematic characters
+  sanitized = sanitized
+    .replace(/[\x00-\x1F\x7F]/g, "") // Remove control characters
+    .replace(/\s+/g, " ") // Normalize whitespace
+    .substring(0, 200); // Limit length
+
+  return escapeHtml(sanitized);
+}
+
+// Safe ID generation for HTML elements
+function generateSafeId(prefix, index, title) {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substr(2, 5);
+
+  // Create base ID
+  let baseId = `${prefix}_${index}_${timestamp}_${random}`;
+
+  // Add title-based component if available
+  if (title && typeof title === "string") {
+    const titlePart = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "_")
+      .replace(/_+/g, "_")
+      .substring(0, 20);
+
+    if (titlePart) {
+      baseId = `${prefix}_${titlePart}_${index}_${random}`;
+    }
+  }
+
+  return baseId;
 }
 
 // Fallback function to create a simple topic list
@@ -1108,50 +1336,127 @@ function setupTopicSelectionHandlers() {
 }
 
 function handleTopicSelection(checkbox) {
-  updateSelectedTopicsCount();
+  console.log(
+    "🎯 Topic selection changed:",
+    checkbox.id,
+    "checked:",
+    checkbox.checked
+  );
+  try {
+    updateSelectedTopicsCount();
+  } catch (error) {
+    console.error("❌ Error in handleTopicSelection:", error);
+  }
 }
 
 function updateSelectedTopicsCount() {
-  const selectedCheckboxes = document.querySelectorAll(
-    "input[data-topic-id]:checked"
-  );
-  const count = selectedCheckboxes.length;
+  try {
+    console.log("📊 Updating selected topics count");
 
-  // Update selected topics array
-  examGeneratorState.selectedTopics = Array.from(selectedCheckboxes).map(
-    (cb) => ({
-      id: cb.dataset.topicId,
-      title: cb.nextElementSibling.textContent.trim(),
-    })
-  );
+    const selectedCheckboxes = document.querySelectorAll(
+      "input[data-topic-id]:checked"
+    );
+    const count = selectedCheckboxes.length;
 
-  // Update UI
-  document.getElementById("selectedTopicsCount").textContent = count;
+    console.log(`📊 Found ${count} selected topics`);
 
-  const summaryContainer = document.getElementById("selectedTopicsSummary");
-  const nextBtn = document.getElementById("nextToConfigBtn");
+    // Update selected topics array with better error handling
+    examGeneratorState.selectedTopics = Array.from(selectedCheckboxes).map(
+      (cb) => {
+        try {
+          const topicId = cb.dataset.topicId || cb.id;
+          let title = topicId; // fallback to ID
 
-  if (count > 0) {
-    summaryContainer.style.display = "block";
-    nextBtn.disabled = false;
-  } else {
-    summaryContainer.style.display = "none";
-    nextBtn.disabled = true;
+          // Try to get title from label
+          const label = cb.nextElementSibling;
+          if (label && label.textContent) {
+            title = label.textContent.trim();
+            // Remove icon text if present
+            title = title.replace(/^[^\w\s]*\s*/, "").trim();
+          }
+
+          return {
+            id: topicId,
+            title: title || `Tema ${topicId}`,
+          };
+        } catch (topicError) {
+          console.error("❌ Error processing selected topic:", topicError, cb);
+          return {
+            id: cb.id || "unknown",
+            title: "Tema desconocido",
+          };
+        }
+      }
+    );
+
+    console.log("📊 Selected topics:", examGeneratorState.selectedTopics);
+
+    // Update UI elements with error handling
+    const countElement = document.getElementById("selectedTopicsCount");
+    if (countElement) {
+      countElement.textContent = count;
+    } else {
+      console.warn("⚠️ selectedTopicsCount element not found");
+    }
+
+    const summaryContainer = document.getElementById("selectedTopicsSummary");
+    const nextBtn = document.getElementById("nextToConfigBtn");
+
+    if (count > 0) {
+      if (summaryContainer) summaryContainer.style.display = "block";
+      if (nextBtn) nextBtn.disabled = false;
+      console.log("✅ Next button enabled");
+    } else {
+      if (summaryContainer) summaryContainer.style.display = "none";
+      if (nextBtn) nextBtn.disabled = true;
+      console.log("⚠️ Next button disabled - no topics selected");
+    }
+  } catch (error) {
+    console.error("❌ Error in updateSelectedTopicsCount:", error);
+    console.error("❌ Error stack:", error.stack);
   }
 }
 
 function selectAllTopics() {
-  document.querySelectorAll("input[data-topic-id]").forEach((checkbox) => {
-    checkbox.checked = true;
-  });
-  updateSelectedTopicsCount();
+  console.log("✅ Selecting all topics");
+  try {
+    const checkboxes = document.querySelectorAll("input[data-topic-id]");
+    console.log(`✅ Found ${checkboxes.length} topic checkboxes to select`);
+
+    checkboxes.forEach((checkbox, index) => {
+      try {
+        checkbox.checked = true;
+      } catch (checkboxError) {
+        console.error(`❌ Error selecting checkbox ${index}:`, checkboxError);
+      }
+    });
+
+    updateSelectedTopicsCount();
+    console.log("✅ All topics selected successfully");
+  } catch (error) {
+    console.error("❌ Error in selectAllTopics:", error);
+  }
 }
 
 function clearAllTopics() {
-  document.querySelectorAll("input[data-topic-id]").forEach((checkbox) => {
-    checkbox.checked = false;
-  });
-  updateSelectedTopicsCount();
+  console.log("🧹 Clearing all topic selections");
+  try {
+    const checkboxes = document.querySelectorAll("input[data-topic-id]");
+    console.log(`🧹 Found ${checkboxes.length} topic checkboxes to clear`);
+
+    checkboxes.forEach((checkbox, index) => {
+      try {
+        checkbox.checked = false;
+      } catch (checkboxError) {
+        console.error(`❌ Error clearing checkbox ${index}:`, checkboxError);
+      }
+    });
+
+    updateSelectedTopicsCount();
+    console.log("✅ All topics cleared successfully");
+  } catch (error) {
+    console.error("❌ Error in clearAllTopics:", error);
+  }
 }
 
 function showSelectedTopics() {
@@ -1384,9 +1689,11 @@ async function startGeneration() {
   backBtn.disabled = true;
 
   try {
+    console.log("🚀 Starting exam generation with async pattern");
+
     // Start generation
     updateGenerationProgress(
-      10,
+      5,
       "Iniciando generación...",
       "Preparando documentos y configuración..."
     );
@@ -1398,10 +1705,12 @@ async function startGeneration() {
       examConfig: examGeneratorState.examConfig,
     };
 
+    console.log("📤 Sending generation request:", generationRequest);
+
     updateGenerationProgress(
-      30,
+      10,
       "Enviando solicitud...",
-      "Procesando con Claude 3.5 Sonnet..."
+      "Iniciando procesamiento asíncrono..."
     );
 
     const response = await apiCall("/exam/generate/start", {
@@ -1409,45 +1718,82 @@ async function startGeneration() {
       body: JSON.stringify(generationRequest),
     });
 
+    console.log("✅ Generation started successfully:", response);
+
+    // Store generation ID and start polling
     examGeneratorState.generationId = response.examId;
 
-    // Poll for completion
+    // Update progress with initial response data
+    if (response.progress) {
+      updateGenerationProgressFromBackend(response.progress, response.status);
+    } else {
+      updateGenerationProgress(
+        15,
+        "Generación iniciada",
+        "Comenzando procesamiento en segundo plano..."
+      );
+    }
+
+    // Start polling for status updates
     await pollGenerationStatus();
   } catch (error) {
-    console.error("Generation error:", error);
+    console.error("❌ Generation error:", error);
     showGenerationError(error.message);
   }
 }
 
 async function pollGenerationStatus() {
-  const maxAttempts = 60; // 5 minutes max
+  const maxAttempts = 120; // 10 minutes max (increased for longer processing)
   let attempts = 0;
+  let lastProgress = 0;
+
+  console.log(
+    "🔄 Starting status polling for exam:",
+    examGeneratorState.generationId
+  );
 
   const poll = async () => {
     attempts++;
 
     try {
+      console.log(`📊 Polling attempt ${attempts}/${maxAttempts}`);
+
       const status = await apiCall(
         `/exam/generate/${examGeneratorState.generationId}`
       );
 
+      console.log("📈 Status update received:", status);
+
       switch (status.status) {
         case "PROCESSING":
-          const progress = Math.min(50 + attempts * 2, 90);
-          updateGenerationProgress(
-            progress,
-            "Generando examen...",
-            "Este proceso puede tomar varios minutos..."
-          );
+          // Use backend progress information if available
+          if (status.progress) {
+            updateGenerationProgressFromBackend(status.progress, status.status);
+            lastProgress = status.progress.percentage || lastProgress;
+          } else {
+            // Fallback to time-based progress estimation
+            const timeProgress = Math.min(20 + attempts * 1, 85);
+            updateGenerationProgress(
+              timeProgress,
+              "Generando examen...",
+              "Este proceso puede tomar varios minutos..."
+            );
+            lastProgress = timeProgress;
+          }
 
           if (attempts < maxAttempts) {
-            setTimeout(poll, 5000); // Poll every 5 seconds
+            // Dynamic polling interval based on progress
+            const pollInterval = lastProgress > 50 ? 3000 : 5000; // Poll faster when closer to completion
+            setTimeout(poll, pollInterval);
           } else {
-            throw new Error("Tiempo de espera agotado");
+            throw new Error(
+              "Tiempo de espera agotado. La generación puede continuar en segundo plano."
+            );
           }
           break;
 
         case "COMPLETED":
+          console.log("✅ Generation completed successfully");
           updateGenerationProgress(
             100,
             "Generación completada",
@@ -1457,12 +1803,15 @@ async function pollGenerationStatus() {
           break;
 
         case "FAILED":
+          console.error("❌ Generation failed:", status.errorMessage);
           throw new Error(status.errorMessage || "Error en la generación");
 
         default:
+          console.warn("⚠️ Unknown status:", status.status);
           throw new Error("Estado desconocido: " + status.status);
       }
     } catch (error) {
+      console.error("❌ Polling error:", error);
       throw error;
     }
   };
@@ -1477,6 +1826,74 @@ function updateGenerationProgress(percentage, statusText, subtext) {
     percentage + "%";
   document.getElementById("generationStatusText").textContent = statusText;
   document.getElementById("generationSubtext").textContent = subtext;
+}
+
+function updateGenerationProgressFromBackend(progressInfo, status) {
+  console.log("📊 Updating progress from backend:", progressInfo);
+
+  try {
+    const percentage = Math.min(progressInfo.percentage || 0, 100);
+    const currentStep = progressInfo.currentStep || "processing";
+    const completedVersions = progressInfo.completedVersions || 0;
+    const totalVersions = progressInfo.totalVersions || 1;
+    const message = progressInfo.message || "Procesando...";
+
+    // Update progress bar
+    document.getElementById("generationProgressBar").style.width =
+      percentage + "%";
+    document.getElementById("generationPercentage").textContent =
+      percentage + "%";
+
+    // Create detailed status text
+    let statusText = "Generando examen...";
+    if (currentStep.includes("version")) {
+      statusText = `Generando versión ${
+        completedVersions + 1
+      } de ${totalVersions}`;
+    } else if (currentStep === "generating_self_assessment") {
+      statusText = "Generando autoevaluación...";
+    } else if (currentStep === "completed") {
+      statusText = "Generación completada";
+    } else if (currentStep === "failed") {
+      statusText = "Error en la generación";
+    }
+
+    document.getElementById("generationStatusText").textContent = statusText;
+
+    // Create detailed subtext with progress info
+    let subtext = message;
+    if (totalVersions > 1 && status === "PROCESSING") {
+      subtext += ` (${completedVersions}/${totalVersions} versiones completadas)`;
+    }
+
+    // Add estimated completion time if available
+    if (progressInfo.estimatedCompletion && status === "PROCESSING") {
+      const estimatedTime = new Date(progressInfo.estimatedCompletion);
+      const now = new Date();
+      const remainingMinutes = Math.max(
+        0,
+        Math.ceil((estimatedTime - now) / (1000 * 60))
+      );
+
+      if (remainingMinutes > 0) {
+        subtext += ` - Tiempo estimado restante: ${remainingMinutes} minuto${
+          remainingMinutes !== 1 ? "s" : ""
+        }`;
+      }
+    }
+
+    document.getElementById("generationSubtext").textContent = subtext;
+
+    console.log(`✅ Progress updated: ${percentage}% - ${statusText}`);
+  } catch (error) {
+    console.error("❌ Error updating progress from backend:", error);
+    // Fallback to basic progress update
+    updateGenerationProgress(
+      progressInfo.percentage || 0,
+      "Generando examen...",
+      progressInfo.message || "Procesando..."
+    );
+  }
 }
 
 function showGenerationResults(statusData) {
@@ -1567,30 +1984,102 @@ function showGenerationResults(statusData) {
 }
 
 function showGenerationError(errorMessage) {
+  console.error("🚨 Showing generation error:", errorMessage);
+
   const progressContainer = document.getElementById("generationProgress");
   const resultsContainer = document.getElementById("generationResults");
 
   progressContainer.style.display = "none";
   resultsContainer.style.display = "block";
+
+  // Enhanced error display with more context and options
   resultsContainer.innerHTML = `
         <div class="alert alert-danger">
             <div class="d-flex align-items-center">
                 <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 1.5rem;"></i>
-                <div>
+                <div class="flex-grow-1">
                     <h6 class="mb-1">Error en la Generación</h6>
-                    <p class="mb-0">${errorMessage}</p>
+                    <p class="mb-2">${errorMessage}</p>
+                    <small class="text-muted">
+                        Si el problema persiste, intente con menos versiones o contacte al soporte técnico.
+                    </small>
                 </div>
             </div>
-            <button class="btn btn-outline-danger mt-3" onclick="startGeneration()">
-                <i class="bi bi-arrow-clockwise me-2"></i>
-                Reintentar Generación
-            </button>
+            <div class="mt-3 d-flex gap-2 flex-wrap">
+                <button class="btn btn-outline-danger" onclick="startGeneration()">
+                    <i class="bi bi-arrow-clockwise me-2"></i>
+                    Reintentar Generación
+                </button>
+                <button class="btn btn-outline-secondary" onclick="checkGenerationStatus()">
+                    <i class="bi bi-search me-2"></i>
+                    Verificar Estado
+                </button>
+                <button class="btn btn-outline-info" onclick="showStep(3)">
+                    <i class="bi bi-arrow-left me-2"></i>
+                    Modificar Configuración
+                </button>
+            </div>
         </div>
     `;
 
   // Re-enable back button
   document.getElementById("backToConfigBtn").disabled = false;
   document.getElementById("startGenerationBtn").style.display = "inline-block";
+}
+
+async function checkGenerationStatus() {
+  if (!examGeneratorState.generationId) {
+    showError(
+      "No hay una generación en curso para verificar",
+      "Sin Generación Activa"
+    );
+    return;
+  }
+
+  try {
+    console.log(
+      "🔍 Checking generation status for:",
+      examGeneratorState.generationId
+    );
+    showLoading("Verificando estado de generación...");
+
+    const status = await apiCall(
+      `/exam/generate/${examGeneratorState.generationId}`
+    );
+
+    hideLoading();
+
+    if (status.status === "COMPLETED") {
+      showSuccess(
+        "¡La generación se completó exitosamente!",
+        "Generación Completada"
+      );
+      showGenerationResults(status);
+    } else if (status.status === "PROCESSING") {
+      showSuccess(
+        "La generación aún está en proceso. Continuando con el seguimiento...",
+        "Generación en Proceso"
+      );
+      // Restart polling
+      document.getElementById("generationProgress").style.display = "block";
+      document.getElementById("generationResults").style.display = "none";
+      await pollGenerationStatus();
+    } else if (status.status === "FAILED") {
+      showError(
+        `La generación falló: ${status.errorMessage || "Error desconocido"}`,
+        "Generación Fallida"
+      );
+    } else {
+      showError(`Estado desconocido: ${status.status}`, "Estado Desconocido");
+    }
+  } catch (error) {
+    hideLoading();
+    console.error("❌ Error checking generation status:", error);
+    showError(
+      `Error al verificar el estado: ${error.message}`,
+      "Error de Verificación"
+    );
+  }
 }
 
 // File Download with enhanced format support
@@ -1788,7 +2277,34 @@ window.downloadFileWithOptions = downloadFileWithOptions;
 
 // Simple topic display function - alternative to complex tree rendering
 function createSimpleTopicDisplay(topics) {
-  console.log("Creating simple topic display for", topics.length, "topics");
+  console.log("🎨 === SIMPLE TOPIC DISPLAY START ===");
+  console.log("📊 Input topics:", topics);
+  console.log("📊 Topics type:", typeof topics);
+  console.log("📊 Topics is array:", Array.isArray(topics));
+  console.log("📊 Topics length:", topics ? topics.length : 0);
+
+  // Validate input
+  if (!topics) {
+    console.error("❌ Topics is null or undefined");
+    return null;
+  }
+
+  if (!Array.isArray(topics)) {
+    console.error("❌ Topics is not an array:", typeof topics);
+    return null;
+  }
+
+  if (topics.length === 0) {
+    console.warn("⚠️ Topics array is empty");
+    return `
+      <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        No se encontraron temas para mostrar.
+      </div>
+    `;
+  }
+
+  console.log(`🎨 Creating simple topic display for ${topics.length} topics`);
 
   try {
     let html = `
@@ -1800,12 +2316,18 @@ function createSimpleTopicDisplay(topics) {
 
     topics.forEach((topic, topicIndex) => {
       try {
+        console.log(
+          `🔄 Processing topic ${topicIndex + 1}/${topics.length}:`,
+          topic
+        );
+
         // Extract topic title and subtopics
         let topicTitle = "";
         let subtopics = [];
 
         if (typeof topic === "string") {
           topicTitle = topic;
+          console.log(`📝 Topic ${topicIndex} is string: "${topicTitle}"`);
         } else if (topic && typeof topic === "object") {
           topicTitle =
             topic.topic ||
@@ -1813,12 +2335,28 @@ function createSimpleTopicDisplay(topics) {
             topic.name ||
             `Tema ${topicIndex + 1}`;
           subtopics = topic.subtopics || topic.children || topic.items || [];
+          console.log(
+            `📝 Topic ${topicIndex} is object - title: "${topicTitle}", subtopics: ${subtopics.length}`
+          );
+        } else {
+          console.warn(
+            `⚠️ Topic ${topicIndex} has invalid type:`,
+            typeof topic,
+            topic
+          );
         }
 
-        if (!topicTitle) return;
+        if (!topicTitle) {
+          console.warn(`⚠️ Topic ${topicIndex} has no valid title, skipping`);
+          return;
+        }
 
-        const mainTopicId = `main_topic_${topicIndex}`;
-        const safeTitle = escapeHtml(topicTitle);
+        const mainTopicId = generateSafeId(
+          "main_topic",
+          topicIndex,
+          topicTitle
+        );
+        const safeTitle = sanitizeTopicTitle(topicTitle);
 
         // Create main topic card
         html += `
@@ -1853,8 +2391,12 @@ function createSimpleTopicDisplay(topics) {
             }
 
             if (subtopicTitle) {
-              const subtopicId = `subtopic_${topicIndex}_${subIndex}`;
-              const safeSub = escapeHtml(subtopicTitle);
+              const subtopicId = generateSafeId(
+                "subtopic",
+                `${topicIndex}_${subIndex}`,
+                subtopicTitle
+              );
+              const safeSub = sanitizeTopicTitle(subtopicTitle);
 
               html += `
                 <div class="col-md-6 mb-2">
@@ -1906,64 +2448,453 @@ function createSimpleTopicDisplay(topics) {
       </div>
     `;
 
+    console.log("✅ Simple topic display HTML generated successfully");
+    console.log("📏 Final HTML length:", html.length);
+    console.log("📝 Final HTML preview:", html.substring(0, 500) + "...");
+
     return html;
   } catch (error) {
-    console.error("Error in createSimpleTopicDisplay:", error);
+    console.error("❌ Error in createSimpleTopicDisplay:", error);
+    console.error("❌ Error stack:", error.stack);
+
+    console.log("🚨 Using ultra-simple fallback rendering");
 
     // Ultra-simple fallback
     let fallbackHtml = `
       <div class="alert alert-warning mb-3">
         <i class="bi bi-exclamation-triangle me-2"></i>
-        Vista básica de temas
+        Vista básica de temas (modo de emergencia)
       </div>
     `;
 
-    topics.forEach((topic, index) => {
-      const title =
-        typeof topic === "string"
-          ? topic
-          : topic.topic || topic.title || topic.name || `Tema ${index + 1}`;
-      const topicId = `basic_topic_${index}`;
+    try {
+      topics.forEach((topic, index) => {
+        try {
+          const title =
+            typeof topic === "string"
+              ? topic
+              : topic.topic || topic.title || topic.name || `Tema ${index + 1}`;
+          const topicId = `basic_topic_${index}_${Date.now()}`;
+          const safeTitle = title
+            ? escapeHtml(title.toString())
+            : `Tema ${index + 1}`;
+
+          console.log(`🔧 Fallback processing topic ${index}: "${safeTitle}"`);
+
+          fallbackHtml += `
+            <div class="form-check mb-3 p-3 border rounded">
+              <input class="form-check-input" type="checkbox" 
+                     id="${topicId}"
+                     data-topic-id="${encodeURIComponent(safeTitle)}"
+                     onchange="handleTopicSelection(this)">
+              <label class="form-check-label fw-medium" for="${topicId}">
+                <i class="bi bi-bookmark me-2 text-primary"></i>
+                ${safeTitle}
+              </label>
+            </div>
+          `;
+        } catch (topicError) {
+          console.error(
+            `❌ Error processing topic ${index} in fallback:`,
+            topicError
+          );
+          // Continue with next topic
+        }
+      });
 
       fallbackHtml += `
-        <div class="form-check mb-3 p-3 border rounded">
-          <input class="form-check-input" type="checkbox" 
-                 id="${topicId}"
-                 data-topic-id="${encodeURIComponent(title)}"
-                 onchange="handleTopicSelection(this)">
-          <label class="form-check-label fw-medium" for="${topicId}">
-            <i class="bi bi-bookmark me-2 text-primary"></i>
-            ${escapeHtml(title)}
-          </label>
+        <div class="mt-3 p-2 bg-light rounded text-center">
+          <small class="text-muted">Seleccionados: <span id="selectedTopicsCount">0</span></small>
+          <div class="mt-2">
+            <button class="btn btn-sm btn-outline-primary me-2" onclick="selectAllTopics()">
+              Seleccionar Todos
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="clearAllTopics()">
+              Limpiar Selección
+            </button>
+          </div>
         </div>
       `;
-    });
 
-    fallbackHtml += `
-      <div class="mt-3 p-2 bg-light rounded text-center">
-        <small class="text-muted">Seleccionados: <span id="selectedTopicsCount">0</span></small>
-      </div>
-    `;
+      console.log("✅ Fallback HTML generated successfully");
+      return fallbackHtml;
+    } catch (fallbackError) {
+      console.error("❌ Critical error in fallback rendering:", fallbackError);
 
-    return fallbackHtml;
+      // Absolute emergency fallback
+      return `
+        <div class="alert alert-danger">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <strong>Error crítico en el renderizado de temas</strong>
+          <p>No se pudieron mostrar los temas extraídos. Por favor, intenta recargar la página.</p>
+          <button class="btn btn-sm btn-outline-danger" onclick="location.reload()">
+            <i class="bi bi-arrow-clockwise me-1"></i>Recargar Página
+          </button>
+        </div>
+      `;
+    }
   }
 }
 
 // Handler for main topic selection (selects/deselects all subtopics)
 function handleMainTopicSelection(checkbox, topicIndex) {
-  const isChecked = checkbox.checked;
-  const subtopicCheckboxes = document.querySelectorAll(
-    `input[data-parent-topic="${topicIndex}"]`
+  console.log(
+    `🔗 Main topic selection changed: ${checkbox.id}, index: ${topicIndex}, checked: ${checkbox.checked}`
   );
 
-  subtopicCheckboxes.forEach((subtopicCheckbox) => {
-    subtopicCheckbox.checked = isChecked;
+  try {
+    const isChecked = checkbox.checked;
+    const subtopicCheckboxes = document.querySelectorAll(
+      `input[data-parent-topic="${topicIndex}"]`
+    );
+
+    console.log(
+      `🔗 Found ${subtopicCheckboxes.length} subtopics for topic ${topicIndex}`
+    );
+
+    subtopicCheckboxes.forEach((subtopicCheckbox, subIndex) => {
+      try {
+        console.log(`🔗 Setting subtopic ${subIndex} to ${isChecked}`);
+        subtopicCheckbox.checked = isChecked;
+      } catch (subError) {
+        console.error(`❌ Error setting subtopic ${subIndex}:`, subError);
+      }
+    });
+
+    // Update the count
+    updateSelectedTopicsCount();
+
+    console.log("✅ Hierarchical selection completed");
+  } catch (error) {
+    console.error("❌ Error in handleMainTopicSelection:", error);
+    console.error("❌ Error stack:", error.stack);
+
+    // Still try to update count even if there was an error
+    try {
+      updateSelectedTopicsCount();
+    } catch (countError) {
+      console.error(
+        "❌ Error updating count after hierarchical selection error:",
+        countError
+      );
+    }
+  }
+}
+
+// Emergency fallback rendering function - ultra-simple and robust
+function createEmergencyTopicDisplay(topics) {
+  console.log("🚨 === EMERGENCY TOPIC DISPLAY ===");
+  console.log("📊 Emergency rendering for topics:", topics);
+
+  if (!topics || !Array.isArray(topics) || topics.length === 0) {
+    console.log("⚠️ No valid topics for emergency rendering");
+    return `
+      <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <strong>No se encontraron temas</strong>
+        <p>No se pudieron extraer temas de los documentos. Verifica que los PDFs contengan texto legible.</p>
+        <button class="btn btn-sm btn-outline-primary" onclick="extractTopicsFromDocuments()">
+          <i class="bi bi-arrow-clockwise me-1"></i>Reintentar Extracción
+        </button>
+      </div>
+    `;
+  }
+
+  let html = `
+    <div class="alert alert-info mb-3">
+      <i class="bi bi-info-circle me-2"></i>
+      <strong>Modo de emergencia activado</strong> - Se encontraron ${topics.length} temas para seleccionar.
+    </div>
+  `;
+
+  // Process each topic with maximum safety
+  topics.forEach((topic, index) => {
+    try {
+      let title = "Tema sin título";
+
+      // Extract title safely
+      if (typeof topic === "string" && topic.trim()) {
+        title = topic.trim();
+      } else if (topic && typeof topic === "object") {
+        title = (
+          topic.topic ||
+          topic.title ||
+          topic.name ||
+          `Tema ${index + 1}`
+        )
+          .toString()
+          .trim();
+      }
+
+      // Ensure we have a valid title
+      if (!title || title === "") {
+        title = `Tema ${index + 1}`;
+      }
+
+      // Create safe ID
+      const safeId = `emergency_topic_${index}_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
+
+      // Escape HTML safely
+      const safeTitle = title.replace(/[<>&"']/g, function (match) {
+        const escapeMap = {
+          "<": "&lt;",
+          ">": "&gt;",
+          "&": "&amp;",
+          '"': "&quot;",
+          "'": "&#x27;",
+        };
+        return escapeMap[match];
+      });
+
+      console.log(`🔧 Emergency processing topic ${index}: "${safeTitle}"`);
+
+      html += `
+        <div class="card mb-2">
+          <div class="card-body py-2">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" 
+                     id="${safeId}"
+                     data-topic-id="${encodeURIComponent(title)}"
+                     onchange="handleTopicSelection(this)">
+              <label class="form-check-label" for="${safeId}">
+                <i class="bi bi-file-text me-2 text-primary"></i>
+                <strong>${safeTitle}</strong>
+              </label>
+            </div>
+          </div>
+        </div>
+      `;
+    } catch (topicError) {
+      console.error(
+        `❌ Error in emergency rendering for topic ${index}:`,
+        topicError
+      );
+      // Continue with a generic topic
+      const fallbackId = `emergency_fallback_${index}_${Date.now()}`;
+      html += `
+        <div class="card mb-2">
+          <div class="card-body py-2">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" 
+                     id="${fallbackId}"
+                     data-topic-id="Tema ${index + 1}"
+                     onchange="handleTopicSelection(this)">
+              <label class="form-check-label" for="${fallbackId}">
+                <i class="bi bi-file-text me-2 text-muted"></i>
+                Tema ${index + 1} (error en procesamiento)
+              </label>
+            </div>
+          </div>
+        </div>
+      `;
+    }
   });
 
-  // Update the count
-  updateSelectedTopicsCount();
+  // Add controls
+  html += `
+    <div class="mt-3 p-3 bg-light rounded">
+      <div class="row align-items-center">
+        <div class="col-md-6">
+          <button class="btn btn-sm btn-outline-primary me-2" onclick="selectAllTopics()">
+            <i class="bi bi-check-all me-1"></i>Seleccionar Todos
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="clearAllTopics()">
+            <i class="bi bi-x-square me-1"></i>Limpiar
+          </button>
+        </div>
+        <div class="col-md-6 text-end">
+          <small class="text-muted">
+            Seleccionados: <strong id="selectedTopicsCount">0</strong>
+          </small>
+        </div>
+      </div>
+    </div>
+  `;
+
+  console.log("✅ Emergency topic display created successfully");
+  return html;
+}
+
+// Topic data validation function
+function validateTopicData(topics) {
+  console.log("🔍 Validating topic data");
+
+  const validation = {
+    isValid: false,
+    errors: [],
+    warnings: [],
+    validTopics: [],
+    stats: {
+      total: 0,
+      valid: 0,
+      invalid: 0,
+      withSubtopics: 0,
+    },
+  };
+
+  try {
+    // Check if topics exists and is array
+    if (!topics) {
+      validation.errors.push("Topics data is null or undefined");
+      return validation;
+    }
+
+    if (!Array.isArray(topics)) {
+      validation.errors.push(`Topics is not an array (type: ${typeof topics})`);
+      return validation;
+    }
+
+    validation.stats.total = topics.length;
+
+    if (topics.length === 0) {
+      validation.warnings.push("Topics array is empty");
+      validation.isValid = true; // Empty is valid, just not useful
+      return validation;
+    }
+
+    // Validate each topic
+    topics.forEach((topic, index) => {
+      try {
+        const topicValidation = validateSingleTopic(topic, index);
+
+        if (topicValidation.isValid) {
+          validation.validTopics.push(topicValidation.topic);
+          validation.stats.valid++;
+
+          if (
+            topicValidation.topic.subtopics &&
+            topicValidation.topic.subtopics.length > 0
+          ) {
+            validation.stats.withSubtopics++;
+          }
+        } else {
+          validation.stats.invalid++;
+          validation.warnings.push(
+            `Topic ${index}: ${topicValidation.errors.join(", ")}`
+          );
+        }
+      } catch (topicError) {
+        validation.stats.invalid++;
+        validation.errors.push(
+          `Error validating topic ${index}: ${topicError.message}`
+        );
+      }
+    });
+
+    // Determine overall validity
+    validation.isValid = validation.validTopics.length > 0;
+
+    if (validation.stats.invalid > 0) {
+      validation.warnings.push(
+        `${validation.stats.invalid} topics were invalid and will be skipped`
+      );
+    }
+
+    console.log("✅ Topic validation completed:", validation.stats);
+    return validation;
+  } catch (error) {
+    validation.errors.push(`Critical validation error: ${error.message}`);
+    console.error("❌ Error in validateTopicData:", error);
+    return validation;
+  }
+}
+
+function validateSingleTopic(topic, index) {
+  const result = {
+    isValid: false,
+    errors: [],
+    topic: null,
+  };
+
+  try {
+    let processedTopic = {
+      title: "",
+      subtopics: [],
+      originalIndex: index,
+      originalData: topic,
+    };
+
+    // Handle string topics
+    if (typeof topic === "string") {
+      const trimmed = topic.trim();
+      if (trimmed.length === 0) {
+        result.errors.push("String topic is empty");
+        return result;
+      }
+      if (trimmed.length > 200) {
+        result.errors.push("String topic is too long (>200 chars)");
+        return result;
+      }
+      processedTopic.title = trimmed;
+      processedTopic.subtopics = [];
+      result.isValid = true;
+      result.topic = processedTopic;
+      return result;
+    }
+
+    // Handle object topics
+    if (topic && typeof topic === "object") {
+      // Extract title
+      const title = topic.topic || topic.title || topic.name;
+      if (!title || typeof title !== "string") {
+        result.errors.push("Object topic missing valid title");
+        return result;
+      }
+
+      const trimmedTitle = title.trim();
+      if (trimmedTitle.length === 0) {
+        result.errors.push("Object topic title is empty");
+        return result;
+      }
+      if (trimmedTitle.length > 200) {
+        result.errors.push("Object topic title is too long (>200 chars)");
+        return result;
+      }
+
+      processedTopic.title = trimmedTitle;
+
+      // Extract subtopics
+      const subtopics = topic.subtopics || topic.children || topic.items || [];
+      if (Array.isArray(subtopics)) {
+        processedTopic.subtopics = subtopics
+          .filter((sub) => {
+            if (typeof sub === "string") return sub.trim().length > 0;
+            if (sub && typeof sub === "object") {
+              const subTitle = sub.topic || sub.title || sub.name;
+              return (
+                subTitle &&
+                typeof subTitle === "string" &&
+                subTitle.trim().length > 0
+              );
+            }
+            return false;
+          })
+          .map((sub) => {
+            if (typeof sub === "string") return sub.trim();
+            const subTitle = sub.topic || sub.title || sub.name;
+            return subTitle.trim();
+          })
+          .slice(0, 20); // Limit subtopics to prevent UI issues
+      }
+
+      result.isValid = true;
+      result.topic = processedTopic;
+      return result;
+    }
+
+    // Invalid type
+    result.errors.push(`Invalid topic type: ${typeof topic}`);
+    return result;
+  } catch (error) {
+    result.errors.push(`Validation error: ${error.message}`);
+    return result;
+  }
 }
 
 // Export the new functions
 window.createSimpleTopicDisplay = createSimpleTopicDisplay;
+window.createEmergencyTopicDisplay = createEmergencyTopicDisplay;
 window.handleMainTopicSelection = handleMainTopicSelection;
+window.validateTopicData = validateTopicData;

@@ -24,7 +24,80 @@ async function loadExamDashboardData() {
     // Try to load real data from API
     try {
       const response = await apiCall("/exam/history?pageSize=100");
-      const exams = response.items || response.exams || []; // Support both formats
+      let exams = response.items || response.exams || []; // Support both formats
+
+      console.log("Raw exams received:", exams.length);
+      if (exams.length > 0) {
+        console.log("Sample exam:", exams[0]);
+      }
+
+      // Enhanced filtering: More permissive - include exam records, exclude AI detection
+      exams = exams.filter((exam) => {
+        // First exclude obvious AI detection records
+        const hasAIScore = exam.hasOwnProperty("aiLikelihoodScore");
+        const hasOriginalityScore = exam.hasOwnProperty("originalityScore");
+        const hasStudentName = exam.studentName || exam.metadata?.studentName;
+        const hasAnalysisFields =
+          exam.summary || exam.signals || exam.recommendations;
+
+        // If it has AI detection characteristics, exclude it
+        if (
+          hasAIScore ||
+          hasOriginalityScore ||
+          (hasStudentName && hasAnalysisFields)
+        ) {
+          console.log(
+            "❌ EXAM DASHBOARD EXCLUDED - AI Detection record:",
+            exam.examId || exam.analysisId
+          );
+          return false;
+        }
+
+        // More permissive inclusion for exam records
+        const hasExamId = exam.examId || exam.analysisId?.startsWith("exam-");
+        const hasExamConfig =
+          exam.examConfig || exam.hasOwnProperty("examConfig");
+        const hasQuestionCount = exam.questionCount !== undefined;
+        const hasSelectedTopics =
+          exam.selectedTopics && Array.isArray(exam.selectedTopics);
+        const hasGeneratedFiles =
+          exam.generatedFiles && Array.isArray(exam.generatedFiles);
+        const hasTeacherId = exam.teacherId;
+        const hasStatus = exam.status;
+
+        // Include if it has any exam characteristics or comes from exam endpoint
+        if (
+          hasExamId ||
+          hasExamConfig ||
+          hasQuestionCount ||
+          hasSelectedTopics ||
+          hasGeneratedFiles ||
+          hasTeacherId ||
+          hasStatus
+        ) {
+          console.log("✅ EXAM DASHBOARD INCLUDED:", {
+            examId: exam.examId || exam.analysisId,
+            status: exam.status,
+            questionCount: exam.questionCount,
+            hasConfig: !!exam.examConfig,
+            hasTeacherId: !!exam.teacherId,
+          });
+          return true;
+        }
+
+        console.log(
+          "❌ EXAM DASHBOARD EXCLUDED - No exam indicators:",
+          exam.examId || exam.analysisId
+        );
+        return false;
+      });
+
+      console.log("Filtered exams count:", exams.length);
+
+      // Monitor for data contamination
+      const originalExams = response.items || response.exams || [];
+      const contaminationReport = monitorExamDataContamination(originalExams);
+      console.log("Exam contamination monitoring report:", contaminationReport);
 
       // Calculate KPIs
       const totalExams = exams.length;
@@ -33,9 +106,6 @@ async function loadExamDashboardData() {
       ).length;
       const processingExams = exams.filter(
         (exam) => exam.status === "PROCESSING"
-      ).length;
-      const failedExams = exams.filter(
-        (exam) => exam.status === "FAILED"
       ).length;
 
       // Calculate today's exams
@@ -77,9 +147,44 @@ async function loadExamDashboardData() {
       document.getElementById("successRate").textContent = successRate + "%";
     } catch (apiError) {
       console.log("API not available yet, showing placeholder data");
+
+      // Add visual indicator that data is not available
+      const statusElements = [
+        "totalExams",
+        "completedExams",
+        "processingExams",
+        "avgQuestions",
+        "todayExams",
+        "successRate",
+      ];
+      statusElements.forEach((elementId) => {
+        const element = document.getElementById(elementId);
+        if (element) {
+          element.style.opacity = "0.5";
+          element.title = "Datos no disponibles - API en desarrollo";
+        }
+      });
     }
   } catch (error) {
     console.error("Error loading exam dashboard data:", error);
+
+    // Show error state for KPIs
+    const statusElements = [
+      "totalExams",
+      "completedExams",
+      "processingExams",
+      "avgQuestions",
+      "todayExams",
+      "successRate",
+    ];
+    statusElements.forEach((elementId) => {
+      const element = document.getElementById(elementId);
+      if (element) {
+        element.textContent = "Error";
+        element.style.color = "#dc3545";
+        element.title = "Error al cargar datos";
+      }
+    });
   }
 }
 
@@ -89,7 +194,65 @@ async function loadRecentExams() {
 
   try {
     const response = await apiCall("/exam/history?pageSize=5");
-    const exams = response.items || response.exams || []; // Support both formats
+    let exams = response.items || response.exams || []; // Support both formats
+
+    console.log("Recent exams - Raw data received:", exams.length);
+
+    // Enhanced filtering: More permissive - include exam records, exclude AI detection
+    exams = exams.filter((exam) => {
+      // First exclude obvious AI detection records
+      const hasAIScore = exam.hasOwnProperty("aiLikelihoodScore");
+      const hasOriginalityScore = exam.hasOwnProperty("originalityScore");
+      const hasStudentName = exam.studentName || exam.metadata?.studentName;
+      const hasAnalysisFields =
+        exam.summary || exam.signals || exam.recommendations;
+
+      // If it has AI detection characteristics, exclude it
+      if (
+        hasAIScore ||
+        hasOriginalityScore ||
+        (hasStudentName && hasAnalysisFields)
+      ) {
+        console.log(
+          "❌ RECENT EXAMS EXCLUDED - AI Detection record:",
+          exam.examId || exam.analysisId
+        );
+        return false;
+      }
+
+      // More permissive inclusion for exam records
+      const hasExamId = exam.examId || exam.analysisId?.startsWith("exam-");
+      const hasExamConfig =
+        exam.examConfig || exam.hasOwnProperty("examConfig");
+      const hasQuestionCount = exam.questionCount !== undefined;
+      const hasSelectedTopics =
+        exam.selectedTopics && Array.isArray(exam.selectedTopics);
+      const hasGeneratedFiles =
+        exam.generatedFiles && Array.isArray(exam.generatedFiles);
+      const hasTeacherId = exam.teacherId;
+      const hasStatus = exam.status;
+
+      // Include if it has any exam characteristics
+      if (
+        hasExamId ||
+        hasExamConfig ||
+        hasQuestionCount ||
+        hasSelectedTopics ||
+        hasGeneratedFiles ||
+        hasTeacherId ||
+        hasStatus
+      ) {
+        console.log(
+          "✅ RECENT EXAMS INCLUDED:",
+          exam.examId || exam.analysisId
+        );
+        return true;
+      }
+
+      return false;
+    });
+
+    console.log("Recent exams - Filtered count:", exams.length);
 
     if (exams.length === 0) {
       tableBody.innerHTML = `
@@ -139,6 +302,12 @@ async function loadRecentExams() {
                         `
                             : ""
                         }
+                        <button class="btn btn-outline-danger" onclick="deleteExamFromDashboard('${
+                          exam.examId
+                        }', '${exam.teacherId || "Admin"}')" 
+                                title="Eliminar examen">
+                            <i class="bi bi-trash"></i>
+                        </button>
                     </div>
                 </td>
             </tr>
@@ -147,12 +316,25 @@ async function loadRecentExams() {
       .join("");
   } catch (error) {
     console.error("Error loading recent exams:", error);
-    // Show empty state instead of error for better UX
+
+    // Show appropriate error message based on error type
+    const isNetworkError =
+      error.message.includes("fetch") || error.message.includes("network");
+    const errorMessage = isNetworkError
+      ? "Error de conexión al cargar exámenes"
+      : "Error al cargar exámenes recientes";
+
     tableBody.innerHTML = `
             <tr>
-                <td colspan="7" class="text-center text-muted">
-                    <i class="bi bi-inbox me-2"></i>
-                    No hay exámenes recientes
+                <td colspan="7" class="text-center text-muted py-4">
+                    <i class="bi bi-exclamation-triangle me-2 text-warning"></i>
+                    ${errorMessage}
+                    <br>
+                    <small class="text-muted">
+                      <button class="btn btn-sm btn-outline-primary mt-2" onclick="loadRecentExams()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Reintentar
+                      </button>
+                    </small>
                 </td>
             </tr>
         `;
@@ -286,3 +468,156 @@ setInterval(function () {
     loadRecentExams();
   }
 }, 120000); // 2 minutes
+
+// Delete exam function for dashboard
+async function deleteExamFromDashboard(examId, teacherId) {
+  try {
+    // Show confirmation dialog
+    const result = await Swal.fire({
+      title: "¿Eliminar examen?",
+      html: `
+        <p>¿Estás seguro de que deseas eliminar este examen?</p>
+        <div class="alert alert-warning mt-3">
+          <strong>ID del Examen:</strong> ${examId}<br>
+          <strong>Profesor:</strong> ${teacherId}
+        </div>
+        <p class="text-muted small">Esta acción no se puede deshacer. Se eliminará el examen y todos los archivos asociados.</p>
+      `,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc3545",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: '<i class="bi bi-trash me-2"></i>Eliminar',
+      cancelButtonText: "Cancelar",
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    // Show loading
+    showLoading("Eliminando examen...");
+
+    // Call delete API
+    const response = await apiCall(`/exam/history/${examId}`, {
+      method: "DELETE",
+    });
+
+    hideLoading();
+
+    // Show success message
+    let successMessage = "¡Examen eliminado correctamente!";
+    if (response.partialFailure) {
+      successMessage = "Examen eliminado con algunas advertencias en archivos.";
+    }
+
+    Swal.fire({
+      icon: "success",
+      title: "¡Eliminado!",
+      text: successMessage,
+      confirmButtonColor: "#008FD0",
+      timer: 2000,
+      showConfirmButton: false,
+    });
+
+    // Refresh the dashboard data
+    loadExamDashboardData();
+    loadRecentExams();
+  } catch (error) {
+    hideLoading();
+    console.error("Error deleting exam:", error);
+
+    Swal.fire({
+      icon: "error",
+      title: "Error al eliminar",
+      text: "No se pudo eliminar el examen: " + error.message,
+      confirmButtonColor: "#008FD0",
+    });
+  }
+}
+
+// Data validation utilities for cross-contamination prevention
+function validateExamRecord(record) {
+  // Check for exam-specific indicators
+  const hasExamId = record.examId || record.analysisId?.startsWith("exam-");
+  const hasExamConfig =
+    record.examConfig || record.hasOwnProperty("examConfig");
+  const hasQuestionCount = record.questionCount !== undefined;
+  const hasSelectedTopics =
+    record.selectedTopics && Array.isArray(record.selectedTopics);
+  const hasGeneratedFiles =
+    record.generatedFiles && Array.isArray(record.generatedFiles);
+
+  // Check for AI detection fields (should not be present)
+  const hasAIScore = record.hasOwnProperty("aiLikelihoodScore");
+  const hasOriginalityScore = record.hasOwnProperty("originalityScore");
+  const hasStudentName = record.studentName || record.metadata?.studentName;
+  const hasAnalysisFields =
+    record.summary || record.signals || record.recommendations;
+
+  // Validation result
+  const isValidExamRecord =
+    (hasExamId ||
+      hasExamConfig ||
+      hasQuestionCount ||
+      hasSelectedTopics ||
+      hasGeneratedFiles) &&
+    !(
+      hasAIScore ||
+      hasOriginalityScore ||
+      (hasStudentName && hasAnalysisFields)
+    );
+
+  if (!isValidExamRecord) {
+    console.warn(
+      "❌ EXAM CROSS-CONTAMINATION DETECTED - Invalid exam record:",
+      {
+        recordId: record.examId || record.analysisId,
+        hasExamIndicators: hasExamId || hasExamConfig || hasQuestionCount,
+        hasAIFields: hasAIScore || hasOriginalityScore || hasStudentName,
+      }
+    );
+  }
+
+  return isValidExamRecord;
+}
+
+function monitorExamDataContamination(records) {
+  const contaminationReport = {
+    totalRecords: records.length,
+    validRecords: 0,
+    contaminatedRecords: 0,
+    contaminationDetails: [],
+  };
+
+  records.forEach((record) => {
+    if (validateExamRecord(record)) {
+      contaminationReport.validRecords++;
+    } else {
+      contaminationReport.contaminatedRecords++;
+      contaminationReport.contaminationDetails.push({
+        recordId: record.examId || record.analysisId,
+        reason: "Contains AI detection fields or missing exam identifiers",
+      });
+    }
+  });
+
+  if (contaminationReport.contaminatedRecords > 0) {
+    console.error("🚨 EXAM DATA CONTAMINATION DETECTED:", contaminationReport);
+
+    // Send contamination alert (in production, this could be sent to monitoring service)
+    if (window.appSettings?.enableContaminationAlerts) {
+      alert(
+        `Advertencia: Se detectaron ${contaminationReport.contaminatedRecords} registros contaminados en el Dashboard de Exámenes.`
+      );
+    }
+  }
+
+  return contaminationReport;
+}
+
+// Export delete function for global access
+window.deleteExamFromDashboard = deleteExamFromDashboard;
+window.validateExamRecord = validateExamRecord;
+window.monitorExamDataContamination = monitorExamDataContamination;

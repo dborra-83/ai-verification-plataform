@@ -306,6 +306,10 @@ export class AiVerificationPlatformStack extends cdk.Stack {
       "GET",
       new apigateway.LambdaIntegration(examHistoryLambda)
     );
+    historyExamIdResource.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(examHistoryLambda)
+    );
 
     const exportResource = historyResource.addResource("export", {
       defaultCorsPreflightOptions: {

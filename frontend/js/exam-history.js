@@ -301,6 +301,12 @@ function updateExamTable() {
                     `
                         : ""
                     }
+                    <button class="btn btn-outline-danger" onclick="deleteExam('${
+                      exam.examId
+                    }', '${exam.teacherId}')" 
+                            title="Eliminar examen">
+                        <i class="bi bi-trash"></i>
+                    </button>
                 </div>
             </td>
         </tr>
@@ -1266,3 +1272,73 @@ window.showExamHistory = showExamHistory;
 window.loadExamAnalyticsData = loadExamAnalyticsData;
 window.exportExamAnalyticsToPDF = exportExamAnalyticsToPDF;
 window.exportExamAnalyticsToExcel = exportExamAnalyticsToExcel;
+
+// Delete exam function
+async function deleteExam(examId, teacherId) {
+  try {
+    // Show confirmation dialog
+    const result = await Swal.fire({
+      title: "¿Eliminar examen?",
+      html: `
+        <p>¿Estás seguro de que deseas eliminar este examen?</p>
+        <div class="alert alert-warning mt-3">
+          <strong>ID del Examen:</strong> ${examId}<br>
+          <strong>Profesor:</strong> ${teacherId}
+        </div>
+        <p class="text-muted small">Esta acción no se puede deshacer. Se eliminará el examen y todos los archivos asociados.</p>
+      `,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc3545",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: '<i class="bi bi-trash me-2"></i>Eliminar',
+      cancelButtonText: "Cancelar",
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    // Show loading
+    showLoading("Eliminando examen...");
+
+    // Call delete API
+    const response = await apiCall(`/exam/history/${examId}`, {
+      method: "DELETE",
+    });
+
+    hideLoading();
+
+    // Show success message
+    let successMessage = "¡Examen eliminado correctamente!";
+    if (response.partialFailure) {
+      successMessage = "Examen eliminado con algunas advertencias en archivos.";
+    }
+
+    Swal.fire({
+      icon: "success",
+      title: "¡Eliminado!",
+      text: successMessage,
+      confirmButtonColor: "#008FD0",
+      timer: 2000,
+      showConfirmButton: false,
+    });
+
+    // Refresh the exam history
+    loadExamHistory();
+  } catch (error) {
+    hideLoading();
+    console.error("Error deleting exam:", error);
+
+    Swal.fire({
+      icon: "error",
+      title: "Error al eliminar",
+      text: "No se pudo eliminar el examen: " + error.message,
+      confirmButtonColor: "#008FD0",
+    });
+  }
+}
+
+// Export delete function for global access
+window.deleteExam = deleteExam;

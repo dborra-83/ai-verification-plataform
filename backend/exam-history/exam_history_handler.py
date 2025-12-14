@@ -36,6 +36,8 @@ def lambda_handler(event, context):
             return handle_file_download(event, context)
         elif '/history/' in path and http_method == 'GET':
             return handle_get_exam_details(event, context)
+        elif '/history/' in path and http_method == 'DELETE':
+            return handle_delete_exam(event, context)
         elif '/history' in path and http_method == 'GET':
             return handle_list_exams(event, context)
         else:
@@ -203,6 +205,86 @@ def handle_get_exam_details(event, context):
     except Exception as e:
         print(f"Error retrieving exam details: {e}")
         return create_error_response(500, 'INTERNAL_ERROR', 'Failed to retrieve exam details')
+
+def handle_delete_exam(event, context):
+    """Handle DELETE request to remove an exam and its associated files"""
+    try:
+        # Get exam ID from path parameters
+        exam_id = event.get('pathParameters', {}).get('examId')
+        
+        if not exam_id:
+            return create_error_response(400, 'MISSING_EXAM_ID', 'examId is required')
+        
+        print(f"Deleting exam: {exam_id}")
+        
+        # Get table reference
+        table = dynamodb.Table(os.environ['ANALYSIS_TABLE'])
+        
+        # First, get the exam to find associated files
+        response = table.get_item(
+            Key={'analysisId': f"exam-{exam_id}"}
+        )
+        
+        if 'Item' not in response:
+            return create_error_response(404, 'EXAM_NOT_FOUND', 'Exam not found')
+        
+        item = response['Item']
+        generated_files = item.get('generatedFiles', [])
+        
+        # Delete associated files from S3
+        bucket_name = os.environ['UPLOAD_BUCKET']
+        deleted_files = []
+        failed_files = []
+        
+        for file_info in generated_files:
+            s3_key = file_info.get('s3Key')
+            if s3_key:
+                try:
+                    print(f"Deleting S3 file: {s3_key}")
+                    s3_client.delete_object(Bucket=bucket_name, Key=s3_key)
+                    deleted_files.append(s3_key)
+                    print(f"Successfully deleted S3 file: {s3_key}")
+                except ClientError as s3_error:
+                    error_code = s3_error.response['Error']['Code']
+                    if error_code == 'NoSuchKey':
+                        print(f"S3 file already deleted or not found: {s3_key}")
+                        deleted_files.append(s3_key)  # Consider it deleted
+                    else:
+                        print(f"Failed to delete S3 file {s3_key}: {s3_error}")
+                        failed_files.append({'s3Key': s3_key, 'error': str(s3_error)})
+        
+        # Delete the exam record from DynamoDB
+        try:
+            print(f"Deleting DynamoDB record: exam-{exam_id}")
+            table.delete_item(Key={'analysisId': f"exam-{exam_id}"})
+            print(f"Successfully deleted DynamoDB record: exam-{exam_id}")
+        except ClientError as db_error:
+            print(f"Failed to delete DynamoDB record: {db_error}")
+            return create_error_response(500, 'DATABASE_ERROR', f'Failed to delete exam record: {str(db_error)}')
+        
+        # Prepare response
+        response_data = {
+            'message': 'Exam deleted successfully',
+            'examId': exam_id,
+            'deletedFiles': deleted_files,
+            'deletedAt': datetime.utcnow().isoformat()
+        }
+        
+        # Include failed files info if any
+        if failed_files:
+            response_data['partialFailure'] = True
+            response_data['failedFiles'] = failed_files
+            response_data['message'] = 'Exam deleted with some file deletion failures'
+        
+        return {
+            'statusCode': 200,
+            'headers': get_cors_headers(),
+            'body': json.dumps(response_data, default=decimal_default)
+        }
+        
+    except Exception as e:
+        print(f"Error deleting exam: {e}")
+        return create_error_response(500, 'INTERNAL_ERROR', f'Failed to delete exam: {str(e)}')
 
 def handle_export_history(event, context):
     """Handle POST request to export exam history"""
@@ -547,6 +629,6 @@ def get_cors_headers():
     return {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     }
