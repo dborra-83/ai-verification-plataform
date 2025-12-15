@@ -578,6 +578,12 @@ function showSettingsSection() {
 function loadSettings() {
   const settings = getSettings();
 
+  // Load platform settings
+  const platformNameInput = document.getElementById("platformNameInput");
+  if (platformNameInput) {
+    platformNameInput.value = settings.platformName;
+  }
+
   // Load dashboard settings
   document.getElementById("kpiPeriod").value = settings.kpiPeriod;
   document.getElementById("itemsPerPage").value = settings.itemsPerPage;
@@ -606,6 +612,7 @@ function loadSettings() {
 
 function getSettings() {
   const defaultSettings = {
+    platformName: "EduTech AI",
     kpiPeriod: "30",
     itemsPerPage: "5",
     highRiskThreshold: "70",
@@ -626,7 +633,9 @@ function getSettings() {
 }
 
 function saveSettings() {
+  const platformNameInput = document.getElementById("platformNameInput");
   const settings = {
+    platformName: platformNameInput ? platformNameInput.value : "EduTech AI",
     kpiPeriod: document.getElementById("kpiPeriod").value,
     itemsPerPage: document.getElementById("itemsPerPage").value,
     highRiskThreshold: document.getElementById("highRiskThreshold").value,
@@ -696,6 +705,9 @@ function resetSettings() {
 }
 
 function applySettings(settings) {
+  // Apply platform name
+  updatePlatformName(settings.platformName);
+
   // Apply theme
   document.body.setAttribute("data-theme", settings.theme);
 
@@ -711,6 +723,23 @@ function applySettings(settings) {
 
   // Store settings globally for other functions to use
   window.appSettings = settings;
+}
+
+function updatePlatformName(platformName) {
+  // Update platform name in sidebar
+  const platformNameElement = document.getElementById("platformName");
+  if (platformNameElement) {
+    platformNameElement.textContent = platformName;
+  }
+
+  // Update page title
+  const currentTitle = document.title;
+  const titleParts = currentTitle.split(" - ");
+  if (titleParts.length > 1) {
+    document.title = `${platformName} - ${titleParts.slice(1).join(" - ")}`;
+  } else {
+    document.title = platformName;
+  }
 }
 
 // Initialize settings on page load
