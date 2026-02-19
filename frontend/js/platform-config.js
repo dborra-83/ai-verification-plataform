@@ -1,8 +1,18 @@
 // Platform Configuration Manager
 // Handles dynamic platform name updates across all pages
+// Also provides Cognito authentication configuration
 
 (function () {
   "use strict";
+
+  // Cognito Configuration
+  // These values are populated automatically by the deployment script
+  // from CDK CloudFormation outputs
+  window.COGNITO_CONFIG = {
+    USER_POOL_ID: "us-east-1_VKapStaTX",
+    APP_CLIENT_ID: "4e7s433tn59uaigp7lh0imhrjp",
+    REGION: "us-east-1",
+  };
 
   // Initialize platform configuration on page load
   document.addEventListener("DOMContentLoaded", function () {

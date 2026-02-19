@@ -6,11 +6,47 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
+import * as cognito from "aws-cdk-lib/aws-cognito";
 import { Construct } from "constructs";
 
 export class AiVerificationPlatformStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    // Cognito User Pool for authentication
+    const userPool = new cognito.UserPool(this, "AIVerificationUserPool", {
+      userPoolName: "ai-verification-platform-users",
+      selfSignUpEnabled: true,
+      signInAliases: {
+        email: true,
+      },
+      autoVerify: {
+        email: true,
+      },
+      passwordPolicy: {
+        minLength: 8,
+        requireLowercase: true,
+        requireUppercase: true,
+        requireDigits: true,
+        requireSymbols: false,
+      },
+      accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
+      removalPolicy: cdk.RemovalPolicy.RETAIN, // Protect user data
+    });
+
+    // Configure token expiration
+    const userPoolClient = userPool.addClient("WebAppClient", {
+      userPoolClientName: "web-app-client",
+      authFlows: {
+        userPassword: true,
+        userSrp: true,
+      },
+      generateSecret: false,
+      preventUserExistenceErrors: true,
+      accessTokenValidity: cdk.Duration.hours(1),
+      refreshTokenValidity: cdk.Duration.days(30),
+      idTokenValidity: cdk.Duration.hours(1),
+    });
 
     // S3 Bucket for frontend hosting
     const frontendBucket = new s3.Bucket(this, "FrontendBucket", {
@@ -62,7 +98,7 @@ export class AiVerificationPlatformStack extends cdk.Stack {
       assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
       managedPolicies: [
         iam.ManagedPolicy.fromAwsManagedPolicyName(
-          "service-role/AWSLambdaBasicExecutionRole"
+          "service-role/AWSLambdaBasicExecutionRole",
         ),
       ],
     });
@@ -78,7 +114,7 @@ export class AiVerificationPlatformStack extends cdk.Stack {
           "s3:GetObjectVersion",
         ],
         resources: [uploadBucket.bucketArn + "/*"],
-      })
+      }),
     );
 
     lambdaRole.addToPolicy(
@@ -96,7 +132,7 @@ export class AiVerificationPlatformStack extends cdk.Stack {
           analysisTable.tableArn,
           analysisTable.tableArn + "/index/*",
         ],
-      })
+      }),
     );
 
     lambdaRole.addToPolicy(
@@ -106,7 +142,7 @@ export class AiVerificationPlatformStack extends cdk.Stack {
         resources: [
           "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-5-sonnet-20240620-v1:0",
         ],
-      })
+      }),
     );
 
     // Upload presign Lambda function
@@ -163,7 +199,7 @@ export class AiVerificationPlatformStack extends cdk.Stack {
         },
         timeout: cdk.Duration.minutes(10),
         memorySize: 2048,
-      }
+      },
     );
 
     // Exam Generation Lambda function
@@ -181,7 +217,7 @@ export class AiVerificationPlatformStack extends cdk.Stack {
         },
         timeout: cdk.Duration.minutes(10),
         memorySize: 2048,
-      }
+      },
     );
 
     // Exam History Lambda function
@@ -196,6 +232,26 @@ export class AiVerificationPlatformStack extends cdk.Stack {
       },
       timeout: cdk.Duration.seconds(30),
     });
+
+    // Lambda Authorizer for API Gateway
+    const authorizerFunction = new lambda.Function(this, "CognitoAuthorizer", {
+      runtime: lambda.Runtime.PYTHON_3_11,
+      handler: "authorizer.lambda_handler",
+      code: lambda.Code.fromAsset("backend/authorizer"),
+      environment: {
+        USER_POOL_ID: userPool.userPoolId,
+      },
+      timeout: cdk.Duration.seconds(10),
+    });
+
+    // Grant authorizer permission to describe User Pool (for JWKS validation)
+    authorizerFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ["cognito-idp:DescribeUserPool"],
+        resources: [userPool.userPoolArn],
+      }),
+    );
 
     // API Gateway REST API
     const api = new apigateway.RestApi(this, "AiVerificationApi", {
@@ -216,41 +272,71 @@ export class AiVerificationPlatformStack extends cdk.Stack {
       },
     });
 
+    // Create Token Authorizer with 5-minute cache TTL
+    const authorizer = new apigateway.TokenAuthorizer(this, "APIAuthorizer", {
+      handler: authorizerFunction,
+      resultsCacheTtl: cdk.Duration.minutes(5),
+    });
+
     // API Resources and Methods
     const uploadsResource = api.root.addResource("uploads");
     const presignResource = uploadsResource.addResource("presign");
     presignResource.addMethod(
       "POST",
-      new apigateway.LambdaIntegration(uploadLambda)
+      new apigateway.LambdaIntegration(uploadLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
     );
 
     const analysisResource = api.root.addResource("analysis");
     const startResource = analysisResource.addResource("start");
     startResource.addMethod(
       "POST",
-      new apigateway.LambdaIntegration(analysisLambda)
+      new apigateway.LambdaIntegration(analysisLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
     );
 
     analysisResource.addMethod(
       "GET",
-      new apigateway.LambdaIntegration(queryLambda)
+      new apigateway.LambdaIntegration(queryLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
     );
 
     const analysisIdResource = analysisResource.addResource("{analysisId}");
     analysisIdResource.addMethod(
       "GET",
-      new apigateway.LambdaIntegration(queryLambda)
+      new apigateway.LambdaIntegration(queryLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
     );
     analysisIdResource.addMethod(
       "DELETE",
-      new apigateway.LambdaIntegration(queryLambda)
+      new apigateway.LambdaIntegration(queryLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
     );
 
     const downloadsResource = api.root.addResource("downloads");
     const downloadPresignResource = downloadsResource.addResource("presign");
     downloadPresignResource.addMethod(
       "GET",
-      new apigateway.LambdaIntegration(queryLambda)
+      new apigateway.LambdaIntegration(queryLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
     );
 
     // Exam API Resources and Methods
@@ -261,13 +347,21 @@ export class AiVerificationPlatformStack extends cdk.Stack {
     const extractResource = topicsResource.addResource("extract");
     extractResource.addMethod(
       "POST",
-      new apigateway.LambdaIntegration(examTopicExtractionLambda)
+      new apigateway.LambdaIntegration(examTopicExtractionLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
     );
 
     const extractionIdResource = topicsResource.addResource("{extractionId}");
     extractionIdResource.addMethod(
       "GET",
-      new apigateway.LambdaIntegration(examTopicExtractionLambda)
+      new apigateway.LambdaIntegration(examTopicExtractionLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
     );
 
     // Exam generation endpoints
@@ -275,13 +369,21 @@ export class AiVerificationPlatformStack extends cdk.Stack {
     const startGenerationResource = generateResource.addResource("start");
     startGenerationResource.addMethod(
       "POST",
-      new apigateway.LambdaIntegration(examGenerationLambda)
+      new apigateway.LambdaIntegration(examGenerationLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
     );
 
     const examIdResource = generateResource.addResource("{examId}");
     examIdResource.addMethod(
       "GET",
-      new apigateway.LambdaIntegration(examGenerationLambda)
+      new apigateway.LambdaIntegration(examGenerationLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
     );
 
     // Exam history endpoints
@@ -294,7 +396,11 @@ export class AiVerificationPlatformStack extends cdk.Stack {
     });
     historyResource.addMethod(
       "GET",
-      new apigateway.LambdaIntegration(examHistoryLambda)
+      new apigateway.LambdaIntegration(examHistoryLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
     );
 
     const historyExamIdResource = historyResource.addResource("{examId}", {
@@ -306,11 +412,19 @@ export class AiVerificationPlatformStack extends cdk.Stack {
     });
     historyExamIdResource.addMethod(
       "GET",
-      new apigateway.LambdaIntegration(examHistoryLambda)
+      new apigateway.LambdaIntegration(examHistoryLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
     );
     historyExamIdResource.addMethod(
       "DELETE",
-      new apigateway.LambdaIntegration(examHistoryLambda)
+      new apigateway.LambdaIntegration(examHistoryLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
     );
 
     const exportResource = historyResource.addResource("export", {
@@ -322,7 +436,11 @@ export class AiVerificationPlatformStack extends cdk.Stack {
     });
     exportResource.addMethod(
       "POST",
-      new apigateway.LambdaIntegration(examHistoryLambda)
+      new apigateway.LambdaIntegration(examHistoryLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
     );
 
     // Exam download endpoints
@@ -342,7 +460,11 @@ export class AiVerificationPlatformStack extends cdk.Stack {
     });
     fileIdResource.addMethod(
       "GET",
-      new apigateway.LambdaIntegration(examHistoryLambda)
+      new apigateway.LambdaIntegration(examHistoryLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
     );
 
     // CloudFront Distribution for Frontend
@@ -387,7 +509,7 @@ export class AiVerificationPlatformStack extends cdk.Stack {
         ],
         priceClass: cloudfront.PriceClass.PRICE_CLASS_100, // Solo US, Canada y Europa
         comment: "AI Verification Platform - Frontend Distribution",
-      }
+      },
     );
 
     // Outputs
@@ -419,6 +541,21 @@ export class AiVerificationPlatformStack extends cdk.Stack {
     new cdk.CfnOutput(this, "UploadBucketName", {
       value: uploadBucket.bucketName,
       description: "S3 bucket name for PDF uploads",
+    });
+
+    new cdk.CfnOutput(this, "UserPoolId", {
+      value: userPool.userPoolId,
+      description: "Cognito User Pool ID",
+    });
+
+    new cdk.CfnOutput(this, "UserPoolClientId", {
+      value: userPoolClient.userPoolClientId,
+      description: "Cognito User Pool App Client ID",
+    });
+
+    new cdk.CfnOutput(this, "Region", {
+      value: this.region,
+      description: "AWS Region",
     });
   }
 }
