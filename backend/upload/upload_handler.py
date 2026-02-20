@@ -7,11 +7,45 @@ from botocore.exceptions import ClientError
 
 s3_client = boto3.client('s3')
 
+
+def get_user_context(event):
+    """
+    Extract user context from API Gateway authorizer
+    
+    Args:
+        event: API Gateway event
+        
+    Returns:
+        dict with userId and email, or None if not authenticated
+    """
+    try:
+        request_context = event.get('requestContext', {})
+        authorizer = request_context.get('authorizer', {})
+        
+        user_id = authorizer.get('userId')
+        email = authorizer.get('email', '')
+        
+        if user_id:
+            return {
+                'userId': user_id,
+                'email': email
+            }
+        return None
+    except Exception as e:
+        print(f"Error extracting user context: {e}")
+        return None
+
+
 def lambda_handler(event, context):
     """
     Generate pre-signed URLs for PDF uploads to S3
     """
     try:
+        # Extract user context from authorizer
+        user_context = get_user_context(event)
+        if user_context:
+            print(f"Request from user: {user_context.get('email', user_context.get('userId'))}")
+        
         # Parse request body
         if isinstance(event.get('body'), str):
             body = json.loads(event['body'])

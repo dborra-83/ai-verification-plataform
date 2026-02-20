@@ -10,9 +10,26 @@ let confidenceOriginalityChart = null;
 // API utility function (fallback if not available from app.js)
 if (typeof apiCall === "undefined") {
   window.apiCall = async function (endpoint, options = {}) {
+    // Get auth token if available
+    let authHeaders = {};
+    if (
+      window.authModule &&
+      typeof window.authModule.getAuthHeader === "function"
+    ) {
+      try {
+        const authHeader = await window.authModule.getAuthHeader();
+        if (authHeader) {
+          authHeaders = authHeader;
+        }
+      } catch (error) {
+        console.warn("Could not get auth header:", error);
+      }
+    }
+
     const defaultOptions = {
       headers: {
         "Content-Type": "application/json",
+        ...authHeaders,
         ...options.headers,
       },
     };
@@ -25,9 +42,26 @@ if (typeof apiCall === "undefined") {
 
     try {
       console.log(`Making API call to: ${url}`);
-      console.log(`Options:`, finalOptions);
 
       const response = await fetch(url, finalOptions);
+
+      // Handle 401 Unauthorized - redirect to login
+      if (response.status === 401) {
+        console.warn("Received 401 Unauthorized - redirecting to login");
+        if (
+          window.authModule &&
+          typeof window.authModule.signOut === "function"
+        ) {
+          window.authModule.signOut();
+        }
+        localStorage.removeItem("ai_verification_auth");
+        sessionStorage.setItem(
+          "redirectAfterLogin",
+          window.location.pathname + window.location.search,
+        );
+        window.location.href = "login.html";
+        throw new Error("Unauthorized - redirecting to login");
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -79,7 +113,7 @@ function showAnalyticsSection() {
     } else {
       console.error("Analytics section element not found");
       showError(
-        "No se pudo encontrar la sección de Analytics. Verifique que esté en la página correcta."
+        "No se pudo encontrar la sección de Analytics. Verifique que esté en la página correcta.",
       );
       return;
     }
@@ -135,7 +169,7 @@ async function loadAnalyticsData() {
     // Filter by period
     const now = new Date();
     const periodAgo = new Date(
-      now.getTime() - parseInt(period) * 24 * 60 * 60 * 1000
+      now.getTime() - parseInt(period) * 24 * 60 * 60 * 1000,
     );
 
     const filteredAnalyses = analyses.filter((analysis) => {
@@ -144,14 +178,14 @@ async function loadAnalyticsData() {
     });
 
     const completedAnalyses = filteredAnalyses.filter(
-      (analysis) => analysis.status === "COMPLETED"
+      (analysis) => analysis.status === "COMPLETED",
     );
 
     console.log(
       "Filtered analyses (last",
       period,
       "days):",
-      filteredAnalyses.length
+      filteredAnalyses.length,
     );
     console.log("Completed analyses:", completedAnalyses.length);
 
@@ -280,13 +314,13 @@ function createFallbackCharts(filteredAnalyses, completedAnalyses, period) {
                                         title="${
                                           point.count
                                         } análisis el ${new Date(
-                                  point.date
-                                ).toLocaleDateString("es-ES", {
-                                  month: "short",
-                                  day: "numeric",
-                                })}">
+                                          point.date,
+                                        ).toLocaleDateString("es-ES", {
+                                          month: "short",
+                                          day: "numeric",
+                                        })}">
                                 </circle>
-                            `
+                            `,
                               )
                               .join("")}
                         </svg>
@@ -296,7 +330,7 @@ function createFallbackCharts(filteredAnalyses, completedAnalyses, period) {
                           .map(([date, count]) => {
                             const dateLabel = new Date(date).toLocaleDateString(
                               "es-ES",
-                              { month: "short", day: "numeric" }
+                              { month: "short", day: "numeric" },
                             );
                             return `<div class="line-chart-label">${dateLabel}</div>`;
                           })
@@ -311,7 +345,7 @@ function createFallbackCharts(filteredAnalyses, completedAnalyses, period) {
 
   // Risk Distribution Chart (simple pie representation)
   const riskDistributionChart = document.getElementById(
-    "riskDistributionChart"
+    "riskDistributionChart",
   );
   if (riskDistributionChart) {
     const parent = riskDistributionChart.parentElement;
@@ -336,20 +370,22 @@ function createFallbackCharts(filteredAnalyses, completedAnalyses, period) {
                     <div class="risk-item">
                         <div class="risk-color" style="background-color: #28a745;"></div>
                         <span>Bajo Riesgo: ${lowRisk} (${
-      total > 0 ? ((lowRisk / total) * 100).toFixed(1) : 0
-    }%)</span>
+                          total > 0 ? ((lowRisk / total) * 100).toFixed(1) : 0
+                        }%)</span>
                     </div>
                     <div class="risk-item">
                         <div class="risk-color" style="background-color: #ffc107;"></div>
                         <span>Riesgo Medio: ${mediumRisk} (${
-      total > 0 ? ((mediumRisk / total) * 100).toFixed(1) : 0
-    }%)</span>
+                          total > 0
+                            ? ((mediumRisk / total) * 100).toFixed(1)
+                            : 0
+                        }%)</span>
                     </div>
                     <div class="risk-item">
                         <div class="risk-color" style="background-color: #dc3545;"></div>
                         <span>Alto Riesgo: ${highRisk} (${
-      total > 0 ? ((highRisk / total) * 100).toFixed(1) : 0
-    }%)</span>
+                          total > 0 ? ((highRisk / total) * 100).toFixed(1) : 0
+                        }%)</span>
                     </div>
                 </div>
             </div>
@@ -395,8 +431,8 @@ function createFallbackCharts(filteredAnalyses, completedAnalyses, period) {
                                 item.average >= 70
                                   ? "#dc3545"
                                   : item.average >= 40
-                                  ? "#ffc107"
-                                  : "#28a745";
+                                    ? "#ffc107"
+                                    : "#28a745";
                               return `
                             <div class="h-bar-item">
                                 <div class="h-bar-label">${item.course}</div>
@@ -405,7 +441,7 @@ function createFallbackCharts(filteredAnalyses, completedAnalyses, period) {
                                       item.average
                                     }%; background-color: ${color};"></div>
                                     <span class="h-bar-value">${item.average.toFixed(
-                                      1
+                                      1,
                                     )}%</span>
                                 </div>
                             </div>
@@ -423,7 +459,7 @@ function createFallbackCharts(filteredAnalyses, completedAnalyses, period) {
 
   // Confidence vs Originality Chart
   const confidenceOriginalityChart = document.getElementById(
-    "confidenceOriginalityChart"
+    "confidenceOriginalityChart",
   );
   if (confidenceOriginalityChart) {
     const parent = confidenceOriginalityChart.parentElement;
@@ -437,7 +473,7 @@ function createFallbackCharts(filteredAnalyses, completedAnalyses, period) {
       completedAnalyses.length > 0
         ? completedAnalyses.reduce(
             (sum, a) => sum + (a.originalityScore || 0),
-            0
+            0,
           ) / completedAnalyses.length
         : 0;
 
@@ -447,13 +483,13 @@ function createFallbackCharts(filteredAnalyses, completedAnalyses, period) {
                 <div class="metrics-grid">
                     <div class="metric-item">
                         <div class="metric-value">${avgConfidence.toFixed(
-                          1
+                          1,
                         )}%</div>
                         <div class="metric-label">Confianza Promedio</div>
                     </div>
                     <div class="metric-item">
                         <div class="metric-value">${avgOriginality.toFixed(
-                          1
+                          1,
                         )}%</div>
                         <div class="metric-label">Originalidad Promedio</div>
                     </div>
@@ -518,13 +554,13 @@ function updateTopCourses(analyses) {
             <td>${item.count}</td>
             <td>
                 <span class="badge badge-${getScoreColor(
-                  parseFloat(item.average)
+                  parseFloat(item.average),
                 )}">
                     ${item.average}%
                 </span>
             </td>
         </tr>
-    `
+    `,
     )
     .join("");
 
@@ -568,20 +604,20 @@ function updateTopStudents(analyses) {
             <td>${analysis.course || "Sin curso"}</td>
             <td>
                 <span class="badge badge-${getScoreColor(
-                  100 - (analysis.originalityScore || 0)
+                  100 - (analysis.originalityScore || 0),
                 )}">
                     ${analysis.originalityScore || 0}%
                 </span>
             </td>
         </tr>
-    `
+    `,
     )
     .join("");
 
   console.log(
     "Top students table updated with",
     topStudents.length,
-    "students"
+    "students",
   );
 }
 
@@ -682,7 +718,7 @@ async function exportAnalyticsToPDF() {
     pdf.text(
       "Nota: Para ver los gráficos interactivos, accede a la sección Analytics en la plataforma web.",
       20,
-      110
+      110,
     );
 
     // Add footer
@@ -738,7 +774,7 @@ async function exportDashboardToExcel() {
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `dashboard-data-${new Date().toISOString().split("T")[0]}.csv`
+      `dashboard-data-${new Date().toISOString().split("T")[0]}.csv`,
     );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
@@ -793,7 +829,7 @@ async function exportAnalyticsToExcel() {
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `analytics-data-${new Date().toISOString().split("T")[0]}.csv`
+      `analytics-data-${new Date().toISOString().split("T")[0]}.csv`,
     );
     link.style.visibility = "hidden";
     document.body.appendChild(link);

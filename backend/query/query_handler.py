@@ -9,6 +9,35 @@ from decimal import Decimal
 dynamodb = boto3.resource('dynamodb')
 s3_client = boto3.client('s3')
 
+
+def get_user_context(event):
+    """
+    Extract user context from API Gateway authorizer
+    
+    Args:
+        event: API Gateway event
+        
+    Returns:
+        dict with userId and email, or None if not authenticated
+    """
+    try:
+        request_context = event.get('requestContext', {})
+        authorizer = request_context.get('authorizer', {})
+        
+        user_id = authorizer.get('userId')
+        email = authorizer.get('email', '')
+        
+        if user_id:
+            return {
+                'userId': user_id,
+                'email': email
+            }
+        return None
+    except Exception as e:
+        print(f"Error extracting user context: {e}")
+        return None
+
+
 def decimal_default(obj):
     """JSON serializer for objects not serializable by default json code"""
     if isinstance(obj, Decimal):
@@ -33,6 +62,11 @@ def lambda_handler(event, context):
     """
     try:
         print(f"Query Lambda - Received event: {json.dumps(event)}")
+        
+        # Extract user context from authorizer
+        user_context = get_user_context(event)
+        if user_context:
+            print(f"Request from user: {user_context.get('email', user_context.get('userId'))}")
         
         # Determine the operation based on path and method
         # For REST API, use different path extraction

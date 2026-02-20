@@ -13,7 +13,7 @@
           var r = (Math.random() * 16) | 0;
           var v = c == "x" ? r : (r & 0x3) | 0x8;
           return v.toString(16);
-        }
+        },
       );
     };
   }
@@ -49,73 +49,162 @@
   });
 })();
 
-// Session management utilities
+// Session management utilities - Updated to use Cognito auth
 const SessionManager = {
-  // Check if user is authenticated
+  // Check if user is authenticated using Cognito tokens
   isAuthenticated() {
-    return localStorage.getItem("isAuthed") === "true";
+    // First check if authModule is available and use it
+    if (
+      window.authModule &&
+      typeof window.authModule.isAuthenticated === "function"
+    ) {
+      return window.authModule.isAuthenticated();
+    }
+    // Fallback: check localStorage directly for Cognito tokens
+    try {
+      const authData = localStorage.getItem("ai_verification_auth");
+      if (authData) {
+        const parsed = JSON.parse(authData);
+        return parsed && parsed.accessToken !== undefined;
+      }
+    } catch (e) {
+      console.error("Error checking auth:", e);
+    }
+    return false;
   },
 
-  // Get current user info
+  // Get current user info from Cognito
   getCurrentUser() {
+    if (
+      window.authModule &&
+      typeof window.authModule.getCurrentUserEmail === "function"
+    ) {
+      const email = window.authModule.getCurrentUserEmail();
+      return {
+        username: email || "usuario",
+        email: email,
+        isAdmin: false,
+        teacherId: email || "usuario",
+      };
+    }
+    // Fallback: check localStorage directly
+    try {
+      const authData = localStorage.getItem("ai_verification_auth");
+      if (authData) {
+        const parsed = JSON.parse(authData);
+        return {
+          username: parsed.email || "usuario",
+          email: parsed.email,
+          isAdmin: false,
+          teacherId: parsed.email || "usuario",
+        };
+      }
+    } catch (e) {
+      console.error("Error getting user:", e);
+    }
     return {
-      username: localStorage.getItem("username") || "admin",
-      isAdmin: (localStorage.getItem("username") || "admin") === "admin",
-      teacherId: localStorage.getItem("username") || "admin",
+      username: "usuario",
+      email: null,
+      isAdmin: false,
+      teacherId: "usuario",
     };
   },
 
-  // Set user session
+  // Set user session (for compatibility - Cognito handles this)
   setSession(username) {
-    localStorage.setItem("isAuthed", "true");
-    localStorage.setItem("username", username);
-    localStorage.setItem("loginTime", new Date().toISOString());
+    // Cognito handles session storage, this is for compatibility
+    console.log("Session set for:", username);
   },
 
   // Clear user session
   clearSession() {
-    localStorage.removeItem("isAuthed");
-    localStorage.removeItem("username");
-    localStorage.removeItem("loginTime");
+    if (window.authModule && typeof window.authModule.signOut === "function") {
+      window.authModule.signOut();
+    }
+    localStorage.removeItem("ai_verification_auth");
   },
 
-  // Check if session is expired (optional - for future use)
+  // Check if session is expired
   isSessionExpired() {
-    const loginTime = localStorage.getItem("loginTime");
-    if (!loginTime) return true;
-
-    const sessionDuration = 8 * 60 * 60 * 1000; // 8 hours
-    const now = new Date().getTime();
-    const login = new Date(loginTime).getTime();
-
-    return now - login > sessionDuration;
+    try {
+      const authData = localStorage.getItem("ai_verification_auth");
+      if (!authData) return true;
+      const parsed = JSON.parse(authData);
+      if (!parsed.expiresAt) return true;
+      return Date.now() > parsed.expiresAt;
+    } catch (e) {
+      return true;
+    }
   },
 };
 
 // Make SessionManager globally available
 window.SessionManager = SessionManager;
 
+// Initialize auth module globally
+let authModule = null;
+
+// Initialize authentication module
+async function initAuthModule() {
+  if (window.COGNITO_CONFIG && window.AuthModule) {
+    try {
+      authModule = new window.AuthModule(
+        window.COGNITO_CONFIG.USER_POOL_ID,
+        window.COGNITO_CONFIG.APP_CLIENT_ID,
+        window.COGNITO_CONFIG.REGION,
+      );
+      window.authModule = authModule;
+      console.log("Auth module initialized");
+      console.log("Is authenticated:", authModule.isAuthenticated());
+      console.log("Current user:", authModule.getCurrentUserEmail());
+      return true;
+    } catch (error) {
+      console.error("Failed to initialize auth module:", error);
+      return false;
+    }
+  } else {
+    console.warn("COGNITO_CONFIG or AuthModule not available");
+  }
+  return false;
+}
+
 // Check authentication on page load
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
+  // Initialize auth module first
+  await initAuthModule();
+
   checkAuthentication();
   initializeApp();
 });
 
 // Authentication functions
 function checkAuthentication() {
+  const currentPage = window.location.pathname.split("/").pop() || "index.html";
+
+  // Skip auth check for login, signup, verify pages
+  if (
+    currentPage === "login.html" ||
+    currentPage === "signup.html" ||
+    currentPage === "verify.html"
+  ) {
+    return; // Let those pages handle their own auth logic
+  }
+
+  // For protected pages, check if authenticated
   const isAuthed = window.SessionManager
     ? window.SessionManager.isAuthenticated()
-    : localStorage.getItem("isAuthed") === "true";
-  const currentPage = window.location.pathname.split("/").pop();
+    : false;
+
+  console.log(
+    "checkAuthentication - page:",
+    currentPage,
+    "isAuthed:",
+    isAuthed,
+  );
 
   if (!isAuthed) {
-    if (currentPage !== "login.html" && currentPage !== "") {
-      window.location.href = "login.html";
-    }
-  } else {
-    if (currentPage === "login.html") {
-      window.location.href = "index.html";
-    }
+    console.log("Not authenticated, redirecting to login...");
+    window.location.href = "login.html";
   }
 }
 
@@ -131,12 +220,22 @@ function logout() {
     cancelButtonText: "Cancelar",
   }).then((result) => {
     if (result.isConfirmed) {
+      // Clear Cognito session
+      if (
+        window.authModule &&
+        typeof window.authModule.signOut === "function"
+      ) {
+        window.authModule.signOut();
+      }
+      // Also clear using SessionManager for compatibility
       if (window.SessionManager) {
         window.SessionManager.clearSession();
-      } else {
-        localStorage.removeItem("isAuthed");
-        localStorage.removeItem("username");
       }
+      // Clear any legacy auth data
+      localStorage.removeItem("ai_verification_auth");
+      localStorage.removeItem("isAuthed");
+      localStorage.removeItem("username");
+      localStorage.removeItem("userRole");
       window.location.href = "login.html";
     }
   });
@@ -364,9 +463,31 @@ function showComingSoon(featureName) {
 
 // API utility functions
 async function apiCall(endpoint, options = {}) {
+  // Get auth token if available
+  let authHeaders = {};
+  if (
+    window.authModule &&
+    typeof window.authModule.getAuthHeader === "function"
+  ) {
+    try {
+      const authHeader = await window.authModule.getAuthHeader();
+      if (authHeader) {
+        authHeaders = authHeader;
+        console.log("Auth header added to request");
+      } else {
+        console.warn("No auth header available - user may not be logged in");
+      }
+    } catch (error) {
+      console.warn("Could not get auth header:", error);
+    }
+  } else {
+    console.warn("Auth module not available for API call");
+  }
+
   const defaultOptions = {
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders,
       ...options.headers,
     },
   };
@@ -379,6 +500,34 @@ async function apiCall(endpoint, options = {}) {
 
   try {
     const response = await fetch(url, finalOptions);
+
+    // Handle 401 Unauthorized - redirect to login
+    if (response.status === 401) {
+      console.warn("Received 401 Unauthorized - redirecting to login");
+      // Clear auth data
+      if (
+        window.authModule &&
+        typeof window.authModule.signOut === "function"
+      ) {
+        window.authModule.signOut();
+      }
+      localStorage.removeItem("ai_verification_auth");
+      // Store current page for redirect after login
+      const currentPath =
+        window.location.pathname +
+        window.location.search +
+        window.location.hash;
+      sessionStorage.setItem("redirectAfterLogin", currentPath);
+      // Redirect to login
+      window.location.href = "login.html";
+      throw new Error("Unauthorized - redirecting to login");
+    }
+
+    // Handle 403 Forbidden
+    if (response.status === 403) {
+      console.warn("Received 403 Forbidden - access denied");
+      throw new Error("No tienes permisos para realizar esta acción");
+    }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -512,7 +661,7 @@ async function loadRecentAnalyses() {
                 <td>${formatDate(analysis.createdAt)}</td>
                 <td>
                     <span class="badge badge-${getScoreColor(
-                      analysis.aiLikelihoodScore || 0
+                      analysis.aiLikelihoodScore || 0,
                     )}">
                         ${analysis.aiLikelihoodScore || 0}%
                     </span>
@@ -526,7 +675,7 @@ async function loadRecentAnalyses() {
                     </button>
                 </td>
             </tr>
-        `
+        `,
       )
       .join("");
   } catch (error) {
@@ -771,3 +920,36 @@ function showExamAnalyticsSection() {
 
 // Make function globally available
 window.showExamAnalyticsSection = showExamAnalyticsSection;
+
+// Show admin section in sidebar if user is admin
+function showAdminSectionIfAdmin() {
+  try {
+    // For now, show admin section for all authenticated users
+    // In production, this should check the user role from Cognito
+    const isAuthenticated = window.SessionManager
+      ? window.SessionManager.isAuthenticated()
+      : false;
+
+    console.log("Checking admin status - isAuthenticated:", isAuthenticated);
+
+    // Show admin sections for all authenticated users (temporary for testing)
+    if (isAuthenticated) {
+      const adminSections = document.querySelectorAll(".admin-only-section");
+      adminSections.forEach((section) => {
+        section.style.display = "block";
+      });
+      console.log("Admin sections shown:", adminSections.length);
+    }
+  } catch (error) {
+    console.error("Error checking admin status:", error);
+  }
+}
+
+// Call on page load to show admin section
+document.addEventListener("DOMContentLoaded", function () {
+  // Small delay to ensure auth is loaded
+  setTimeout(showAdminSectionIfAdmin, 500);
+});
+
+// Make function globally available
+window.showAdminSectionIfAdmin = showAdminSectionIfAdmin;

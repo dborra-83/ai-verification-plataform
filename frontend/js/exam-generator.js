@@ -1,11 +1,28 @@
 // Exam Generator - Main JavaScript Module
 // Handles the multi-step exam generation workflow
 
-// API utility function
+// API utility function with auth support
 async function apiCall(endpoint, options = {}) {
+  // Get auth token if available
+  let authHeaders = {};
+  if (
+    window.authModule &&
+    typeof window.authModule.getAuthHeader === "function"
+  ) {
+    try {
+      const authHeader = await window.authModule.getAuthHeader();
+      if (authHeader) {
+        authHeaders = authHeader;
+      }
+    } catch (error) {
+      console.warn("Could not get auth header:", error);
+    }
+  }
+
   const defaultOptions = {
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders,
       ...options.headers,
     },
   };
@@ -18,10 +35,27 @@ async function apiCall(endpoint, options = {}) {
 
   try {
     console.log(`Making API call to: ${url}`);
-    console.log(`Options:`, finalOptions);
     console.log(`CONFIG:`, CONFIG);
 
     const response = await fetch(url, finalOptions);
+
+    // Handle 401 Unauthorized - redirect to login
+    if (response.status === 401) {
+      console.warn("Received 401 Unauthorized - redirecting to login");
+      if (
+        window.authModule &&
+        typeof window.authModule.signOut === "function"
+      ) {
+        window.authModule.signOut();
+      }
+      localStorage.removeItem("ai_verification_auth");
+      sessionStorage.setItem(
+        "redirectAfterLogin",
+        window.location.pathname + window.location.search,
+      );
+      window.location.href = "login.html";
+      throw new Error("Unauthorized - redirecting to login");
+    }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -219,7 +253,7 @@ function processSelectedFiles(files) {
     if (!file.type.includes("pdf")) {
       showError(
         `El archivo "${file.name}" no es un PDF válido`,
-        "Formato Inválido"
+        "Formato Inválido",
       );
       continue;
     }
@@ -228,7 +262,7 @@ function processSelectedFiles(files) {
       // 5MB limit to avoid 413 errors
       showError(
         `El archivo "${file.name}" excede el límite de 5MB`,
-        "Archivo Muy Grande"
+        "Archivo Muy Grande",
       );
       continue;
     }
@@ -271,7 +305,7 @@ function updateUploadedFilesList() {
                 <div>
                     <div class="fw-medium">${file.name}</div>
                     <small class="text-muted">${formatFileSize(
-                      file.size
+                      file.size,
                     )}</small>
                 </div>
             </div>
@@ -279,7 +313,7 @@ function updateUploadedFilesList() {
                 <i class="bi bi-trash"></i>
             </button>
         </div>
-    `
+    `,
     )
     .join("");
 }
@@ -345,7 +379,7 @@ async function extractTopicsFromDocuments() {
         progressBar,
         progressText,
         progress,
-        "Procesando documentos..."
+        "Procesando documentos...",
       );
 
       // Process file
@@ -421,7 +455,7 @@ function displayExtractedTopics() {
   console.log("Displaying extracted topics...");
   console.log(
     "Extracted topics count:",
-    examGeneratorState.extractedTopics?.length || 0
+    examGeneratorState.extractedTopics?.length || 0,
   );
 
   const topicsContainer = document.getElementById("topicsContainer");
@@ -462,7 +496,7 @@ function displayExtractedTopics() {
     if (!validation.isValid) {
       console.error("❌ Topic validation failed:", validation.errors);
       throw new Error(
-        `Validación de temas falló: ${validation.errors.join(", ")}`
+        `Validación de temas falló: ${validation.errors.join(", ")}`,
       );
     }
 
@@ -475,7 +509,7 @@ function displayExtractedTopics() {
 
     if (validTopics.length === 0) {
       throw new Error(
-        "No hay temas válidos para mostrar después de la validación"
+        "No hay temas válidos para mostrar después de la validación",
       );
     }
 
@@ -496,18 +530,18 @@ function displayExtractedTopics() {
     console.log("Rendered tree type:", typeof renderedTree);
     console.log(
       "Rendered tree length:",
-      renderedTree ? renderedTree.length : 0
+      renderedTree ? renderedTree.length : 0,
     );
     console.log(
       "Rendered tree preview:",
-      renderedTree ? renderedTree.substring(0, 200) : "null/undefined"
+      renderedTree ? renderedTree.substring(0, 200) : "null/undefined",
     );
 
     // Skip complex rendering and use simple approach
     console.log("🔄 Using simplified topic rendering approach");
     console.log(
       "📊 Topic data for simple rendering:",
-      JSON.stringify(validTopics, null, 2)
+      JSON.stringify(validTopics, null, 2),
     );
 
     let simpleHtml = null;
@@ -516,16 +550,16 @@ function displayExtractedTopics() {
       simpleHtml = createSimpleTopicDisplay(validTopics);
       const endTime = performance.now();
       console.log(
-        `⏱️ Simple rendering took ${endTime - startTime} milliseconds`
+        `⏱️ Simple rendering took ${endTime - startTime} milliseconds`,
       );
 
       console.log(
         "📝 Generated HTML length:",
-        simpleHtml ? simpleHtml.length : 0
+        simpleHtml ? simpleHtml.length : 0,
       );
       console.log(
         "📝 HTML preview:",
-        simpleHtml ? simpleHtml.substring(0, 300) + "..." : "null/undefined"
+        simpleHtml ? simpleHtml.substring(0, 300) + "..." : "null/undefined",
       );
     } catch (simpleError) {
       console.error("❌ Error in createSimpleTopicDisplay:", simpleError);
@@ -589,7 +623,7 @@ function displayExtractedTopics() {
       } catch (emergencyDomError) {
         console.error(
           "❌ Error inserting emergency HTML into DOM:",
-          emergencyDomError
+          emergencyDomError,
         );
         console.error("❌ Emergency DOM Error stack:", emergencyDomError.stack);
       }
@@ -605,11 +639,11 @@ function displayExtractedTopics() {
       const fallbackHtml = createFallbackTopicList(validTopics);
       console.log(
         "Fallback HTML length:",
-        fallbackHtml ? fallbackHtml.length : 0
+        fallbackHtml ? fallbackHtml.length : 0,
       );
       console.log(
         "Fallback HTML preview:",
-        fallbackHtml ? fallbackHtml.substring(0, 200) : "null/undefined"
+        fallbackHtml ? fallbackHtml.substring(0, 200) : "null/undefined",
       );
 
       if (fallbackHtml && fallbackHtml.trim() !== "") {
@@ -617,7 +651,7 @@ function displayExtractedTopics() {
         topicsContainer.innerHTML = fallbackHtml;
       } else {
         console.error(
-          "Fallback rendering also failed, using emergency fallback"
+          "Fallback rendering also failed, using emergency fallback",
         );
 
         // Emergency fallback - create a very simple list
@@ -659,7 +693,7 @@ function displayExtractedTopics() {
           `;
         } else {
           console.error(
-            "❌ All rendering methods failed - showing final error message"
+            "❌ All rendering methods failed - showing final error message",
           );
           topicsContainer.innerHTML = `
             <div class="alert alert-danger">
@@ -684,7 +718,7 @@ function displayExtractedTopics() {
                     timestamp: new Date().toISOString(),
                   },
                   null,
-                  2
+                  2,
                 )}</pre>
               </details>
             </div>
@@ -755,7 +789,7 @@ function displayExtractedTopics() {
                           ${sub}
                         </label>
                       </div>
-                    `
+                    `,
                       )
                       .join("")}
                   </div>
@@ -822,7 +856,7 @@ function buildTopicTree(topics) {
     try {
       console.log(
         `Processing topic ${topicIndex + 1}/${topics.length}:`,
-        topic
+        topic,
       );
 
       // Handle different topic structure formats with better validation
@@ -856,7 +890,7 @@ function buildTopicTree(topics) {
         "Processing topic:",
         topicTitle,
         "with subtopics:",
-        subtopics
+        subtopics,
       );
 
       // Create main topic if it doesn't exist
@@ -910,14 +944,14 @@ function buildTopicTree(topics) {
             } else {
               console.warn(
                 `Skipping invalid subtopic ${subtopicIndex}:`,
-                subtopic
+                subtopic,
               );
             }
           } catch (subtopicError) {
             console.error(
               `Error processing subtopic ${subtopicIndex}:`,
               subtopicError,
-              subtopic
+              subtopic,
             );
           }
         });
@@ -961,7 +995,7 @@ function renderTopicTree(tree, level = 0) {
   const treeKeys = Object.keys(tree);
   console.log(
     `Rendering tree at level ${level} with ${treeKeys.length} nodes:`,
-    treeKeys
+    treeKeys,
   );
 
   if (treeKeys.length === 0) {
@@ -992,7 +1026,7 @@ function renderTopicTree(tree, level = 0) {
         }
 
         console.log(
-          `Processing node ${index + 1}/${treeKeys.length}: "${node.title}"`
+          `Processing node ${index + 1}/${treeKeys.length}: "${node.title}"`,
         );
 
         const hasChildren =
@@ -1014,7 +1048,7 @@ function renderTopicTree(tree, level = 0) {
             "Using fallback ID for topic:",
             node.title,
             "->",
-            topicId
+            topicId,
           );
         }
 
@@ -1048,8 +1082,8 @@ function renderTopicTree(tree, level = 0) {
                                 <i class="bi ${
                                   hasChildren ? "bi-folder" : "bi-file-text"
                                 } me-2 text-${
-          hasChildren ? "primary" : "info"
-        }"></i>
+                                  hasChildren ? "primary" : "info"
+                                }"></i>
                                 <span class="fw-${
                                   hasChildren ? "medium" : "normal"
                                 }">${escapeHtml(node.title)}</span>
@@ -1057,7 +1091,7 @@ function renderTopicTree(tree, level = 0) {
                                   node.topicData?.description &&
                                   typeof node.topicData.description === "string"
                                     ? `<small class="text-muted ms-2">(${escapeHtml(
-                                        node.topicData.description
+                                        node.topicData.description,
                                       )})</small>`
                                     : ""
                                 }
@@ -1076,7 +1110,7 @@ function renderTopicTree(tree, level = 0) {
 
         html += nodeHtml;
         console.log(
-          `Added HTML for node "${node.title}", current HTML length: ${html.length}`
+          `Added HTML for node "${node.title}", current HTML length: ${html.length}`,
         );
       } catch (nodeError) {
         console.error(`Error processing node ${index}:`, nodeError, node);
@@ -1089,7 +1123,7 @@ function renderTopicTree(tree, level = 0) {
   }
 
   console.log(
-    `Finished rendering tree at level ${level}, HTML length: ${html.length}`
+    `Finished rendering tree at level ${level}, HTML length: ${html.length}`,
   );
 
   if (html.length === 0) {
@@ -1114,7 +1148,7 @@ function escapeHtml(text) {
   } catch (error) {
     console.warn(
       "⚠️ DOM-based HTML escape failed, using manual method:",
-      error
+      error,
     );
 
     // Fallback manual escape
@@ -1270,7 +1304,7 @@ function createFallbackTopicList(topics) {
             } catch (subtopicError) {
               console.error(
                 `Error processing subtopic ${subIndex}:`,
-                subtopicError
+                subtopicError,
               );
             }
           });
@@ -1285,7 +1319,7 @@ function createFallbackTopicList(topics) {
     });
 
     console.log(
-      `Fallback rendering completed: ${validTopicCount} valid topics, HTML length: ${html.length}`
+      `Fallback rendering completed: ${validTopicCount} valid topics, HTML length: ${html.length}`,
     );
 
     if (validTopicCount === 0) {
@@ -1340,7 +1374,7 @@ function handleTopicSelection(checkbox) {
     "🎯 Topic selection changed:",
     checkbox.id,
     "checked:",
-    checkbox.checked
+    checkbox.checked,
   );
   try {
     updateSelectedTopicsCount();
@@ -1354,7 +1388,7 @@ function updateSelectedTopicsCount() {
     console.log("📊 Updating selected topics count");
 
     const selectedCheckboxes = document.querySelectorAll(
-      "input[data-topic-id]:checked"
+      "input[data-topic-id]:checked",
     );
     const count = selectedCheckboxes.length;
 
@@ -1386,7 +1420,7 @@ function updateSelectedTopicsCount() {
             title: "Tema desconocido",
           };
         }
-      }
+      },
     );
 
     console.log("📊 Selected topics:", examGeneratorState.selectedTopics);
@@ -1463,7 +1497,7 @@ function showSelectedTopics() {
   const selectedList = examGeneratorState.selectedTopics
     .map(
       (topic) =>
-        `<li><i class="bi bi-check-circle text-success me-2"></i>${topic.title}</li>`
+        `<li><i class="bi bi-check-circle text-success me-2"></i>${topic.title}</li>`,
     )
     .join("");
 
@@ -1491,7 +1525,7 @@ function updateSourceDocumentsList() {
             <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
             <span class="small">${file.name}</span>
         </div>
-    `
+    `,
     )
     .join("");
 }
@@ -1525,7 +1559,7 @@ function updateConfigurationPreview() {
   const versions = document.getElementById("versions").value || "2";
   const language = document.getElementById("language").value || "es";
   const selfAssessment = document.getElementById(
-    "includeSelfAssessment"
+    "includeSelfAssessment",
   ).checked;
 
   // Get selected question types
@@ -1557,7 +1591,7 @@ function updateConfigurationPreview() {
       .map(
         (topic) => `
         <span class="badge bg-primary me-1 mb-1">${topic.title}</span>
-    `
+    `,
       )
       .join("") +
     (examGeneratorState.selectedTopics.length > 5
@@ -1609,7 +1643,7 @@ function validateExamConfiguration() {
   if (!questionCount) {
     showError(
       "Debe seleccionar el número de preguntas",
-      "Configuración Incompleta"
+      "Configuración Incompleta",
     );
     return false;
   }
@@ -1617,7 +1651,7 @@ function validateExamConfiguration() {
   if (!difficulty) {
     showError(
       "Debe seleccionar el nivel de dificultad",
-      "Configuración Incompleta"
+      "Configuración Incompleta",
     );
     return false;
   }
@@ -1631,7 +1665,7 @@ function validateExamConfiguration() {
   if (!hasQuestionType) {
     showError(
       "Debe seleccionar al menos un tipo de pregunta",
-      "Configuración Incompleta"
+      "Configuración Incompleta",
     );
     return false;
   }
@@ -1666,12 +1700,12 @@ function updateGenerationSummary() {
   document.getElementById("summaryQuestionCount").textContent =
     examGeneratorState.examConfig.questionCount;
   document.getElementById("summaryDifficulty").textContent = getDifficultyLabel(
-    examGeneratorState.examConfig.difficulty
+    examGeneratorState.examConfig.difficulty,
   );
   document.getElementById("summaryVersions").textContent =
     examGeneratorState.examConfig.versions;
   document.getElementById("summaryLanguage").textContent = getLanguageLabel(
-    examGeneratorState.examConfig.language
+    examGeneratorState.examConfig.language,
   );
 }
 
@@ -1695,7 +1729,7 @@ async function startGeneration() {
     updateGenerationProgress(
       5,
       "Iniciando generación...",
-      "Preparando documentos y configuración..."
+      "Preparando documentos y configuración...",
     );
 
     const generationRequest = {
@@ -1710,7 +1744,7 @@ async function startGeneration() {
     updateGenerationProgress(
       10,
       "Enviando solicitud...",
-      "Iniciando procesamiento asíncrono..."
+      "Iniciando procesamiento asíncrono...",
     );
 
     const response = await apiCall("/exam/generate/start", {
@@ -1730,7 +1764,7 @@ async function startGeneration() {
       updateGenerationProgress(
         15,
         "Generación iniciada",
-        "Comenzando procesamiento en segundo plano..."
+        "Comenzando procesamiento en segundo plano...",
       );
     }
 
@@ -1749,7 +1783,7 @@ async function pollGenerationStatus() {
 
   console.log(
     "🔄 Starting status polling for exam:",
-    examGeneratorState.generationId
+    examGeneratorState.generationId,
   );
 
   const poll = async () => {
@@ -1759,7 +1793,7 @@ async function pollGenerationStatus() {
       console.log(`📊 Polling attempt ${attempts}/${maxAttempts}`);
 
       const status = await apiCall(
-        `/exam/generate/${examGeneratorState.generationId}`
+        `/exam/generate/${examGeneratorState.generationId}`,
       );
 
       console.log("📈 Status update received:", status);
@@ -1776,7 +1810,7 @@ async function pollGenerationStatus() {
             updateGenerationProgress(
               timeProgress,
               "Generando examen...",
-              "Este proceso puede tomar varios minutos..."
+              "Este proceso puede tomar varios minutos...",
             );
             lastProgress = timeProgress;
           }
@@ -1787,7 +1821,7 @@ async function pollGenerationStatus() {
             setTimeout(poll, pollInterval);
           } else {
             throw new Error(
-              "Tiempo de espera agotado. La generación puede continuar en segundo plano."
+              "Tiempo de espera agotado. La generación puede continuar en segundo plano.",
             );
           }
           break;
@@ -1797,7 +1831,7 @@ async function pollGenerationStatus() {
           updateGenerationProgress(
             100,
             "Generación completada",
-            "Examen generado exitosamente"
+            "Examen generado exitosamente",
           );
           setTimeout(() => showGenerationResults(status), 1000);
           break;
@@ -1872,7 +1906,7 @@ function updateGenerationProgressFromBackend(progressInfo, status) {
       const now = new Date();
       const remainingMinutes = Math.max(
         0,
-        Math.ceil((estimatedTime - now) / (1000 * 60))
+        Math.ceil((estimatedTime - now) / (1000 * 60)),
       );
 
       if (remainingMinutes > 0) {
@@ -1891,7 +1925,7 @@ function updateGenerationProgressFromBackend(progressInfo, status) {
     updateGenerationProgress(
       progressInfo.percentage || 0,
       "Generando examen...",
-      progressInfo.message || "Procesando..."
+      progressInfo.message || "Procesando...",
     );
   }
 }
@@ -1938,8 +1972,8 @@ function showGenerationResults(statusData) {
                                         <button class="btn btn-sm btn-primary" onclick="downloadFile('${
                                           file.s3Key
                                         }', '${file.type}_v${
-                      file.version
-                    }.pdf')" title="Descargar PDF">
+                                          file.version
+                                        }.pdf')" title="Descargar PDF">
                                             <i class="bi bi-download"></i>
                                         </button>
                                         <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split" 
@@ -1950,23 +1984,23 @@ function showGenerationResults(statusData) {
                                             <li><a class="dropdown-item" href="#" onclick="downloadFile('${
                                               file.s3Key
                                             }', '${file.type}_v${
-                      file.version
-                    }.pdf', 'original')">
+                                              file.version
+                                            }.pdf', 'original')">
                                                 <i class="bi bi-file-pdf me-2"></i>PDF Original
                                             </a></li>
                                             <li><a class="dropdown-item" href="#" onclick="downloadFile('${
                                               file.s3Key
                                             }', '${file.type}_v${
-                      file.version
-                    }.docx', 'docx')">
+                                              file.version
+                                            }.docx', 'docx')">
                                                 <i class="bi bi-file-word me-2"></i>Documento Word
                                             </a></li>
                                             <li><hr class="dropdown-divider"></li>
                                             <li><a class="dropdown-item" href="#" onclick="downloadFileWithOptions('${
                                               file.s3Key
                                             }', '${file.type}_v${
-                      file.version
-                    }')">
+                                              file.version
+                                            }')">
                                                 <i class="bi bi-gear me-2"></i>Opciones avanzadas
                                             </a></li>
                                         </ul>
@@ -1975,7 +2009,7 @@ function showGenerationResults(statusData) {
                             </div>
                         </div>
                     </div>
-                `
+                `,
                   )
                   .join("")}
             </div>
@@ -2031,7 +2065,7 @@ async function checkGenerationStatus() {
   if (!examGeneratorState.generationId) {
     showError(
       "No hay una generación en curso para verificar",
-      "Sin Generación Activa"
+      "Sin Generación Activa",
     );
     return;
   }
@@ -2039,12 +2073,12 @@ async function checkGenerationStatus() {
   try {
     console.log(
       "🔍 Checking generation status for:",
-      examGeneratorState.generationId
+      examGeneratorState.generationId,
     );
     showLoading("Verificando estado de generación...");
 
     const status = await apiCall(
-      `/exam/generate/${examGeneratorState.generationId}`
+      `/exam/generate/${examGeneratorState.generationId}`,
     );
 
     hideLoading();
@@ -2052,13 +2086,13 @@ async function checkGenerationStatus() {
     if (status.status === "COMPLETED") {
       showSuccess(
         "¡La generación se completó exitosamente!",
-        "Generación Completada"
+        "Generación Completada",
       );
       showGenerationResults(status);
     } else if (status.status === "PROCESSING") {
       showSuccess(
         "La generación aún está en proceso. Continuando con el seguimiento...",
-        "Generación en Proceso"
+        "Generación en Proceso",
       );
       // Restart polling
       document.getElementById("generationProgress").style.display = "block";
@@ -2067,7 +2101,7 @@ async function checkGenerationStatus() {
     } else if (status.status === "FAILED") {
       showError(
         `La generación falló: ${status.errorMessage || "Error desconocido"}`,
-        "Generación Fallida"
+        "Generación Fallida",
       );
     } else {
       showError(`Estado desconocido: ${status.status}`, "Estado Desconocido");
@@ -2077,7 +2111,7 @@ async function checkGenerationStatus() {
     console.error("❌ Error checking generation status:", error);
     showError(
       `Error al verificar el estado: ${error.message}`,
-      "Error de Verificación"
+      "Error de Verificación",
     );
   }
 }
@@ -2088,7 +2122,7 @@ async function downloadFile(s3Key, fileName, format = "original") {
     showLoading("Preparando descarga...");
 
     const response = await apiCall(
-      `/exam/download/${encodeURIComponent(s3Key)}?format=${format}`
+      `/exam/download/${encodeURIComponent(s3Key)}?format=${format}`,
     );
 
     // Create download link
@@ -2199,7 +2233,7 @@ function goToExamHistory() {
 function startNewExam() {
   if (
     confirm(
-      "¿Está seguro de que desea iniciar un nuevo examen? Se perderá el progreso actual."
+      "¿Está seguro de que desea iniciar un nuevo examen? Se perderá el progreso actual.",
     )
   ) {
     // Reset state
@@ -2318,7 +2352,7 @@ function createSimpleTopicDisplay(topics) {
       try {
         console.log(
           `🔄 Processing topic ${topicIndex + 1}/${topics.length}:`,
-          topic
+          topic,
         );
 
         // Extract topic title and subtopics
@@ -2336,13 +2370,13 @@ function createSimpleTopicDisplay(topics) {
             `Tema ${topicIndex + 1}`;
           subtopics = topic.subtopics || topic.children || topic.items || [];
           console.log(
-            `📝 Topic ${topicIndex} is object - title: "${topicTitle}", subtopics: ${subtopics.length}`
+            `📝 Topic ${topicIndex} is object - title: "${topicTitle}", subtopics: ${subtopics.length}`,
           );
         } else {
           console.warn(
             `⚠️ Topic ${topicIndex} has invalid type:`,
             typeof topic,
-            topic
+            topic,
           );
         }
 
@@ -2354,7 +2388,7 @@ function createSimpleTopicDisplay(topics) {
         const mainTopicId = generateSafeId(
           "main_topic",
           topicIndex,
-          topicTitle
+          topicTitle,
         );
         const safeTitle = sanitizeTopicTitle(topicTitle);
 
@@ -2394,7 +2428,7 @@ function createSimpleTopicDisplay(topics) {
               const subtopicId = generateSafeId(
                 "subtopic",
                 `${topicIndex}_${subIndex}`,
-                subtopicTitle
+                subtopicTitle,
               );
               const safeSub = sanitizeTopicTitle(subtopicTitle);
 
@@ -2496,7 +2530,7 @@ function createSimpleTopicDisplay(topics) {
         } catch (topicError) {
           console.error(
             `❌ Error processing topic ${index} in fallback:`,
-            topicError
+            topicError,
           );
           // Continue with next topic
         }
@@ -2539,17 +2573,17 @@ function createSimpleTopicDisplay(topics) {
 // Handler for main topic selection (selects/deselects all subtopics)
 function handleMainTopicSelection(checkbox, topicIndex) {
   console.log(
-    `🔗 Main topic selection changed: ${checkbox.id}, index: ${topicIndex}, checked: ${checkbox.checked}`
+    `🔗 Main topic selection changed: ${checkbox.id}, index: ${topicIndex}, checked: ${checkbox.checked}`,
   );
 
   try {
     const isChecked = checkbox.checked;
     const subtopicCheckboxes = document.querySelectorAll(
-      `input[data-parent-topic="${topicIndex}"]`
+      `input[data-parent-topic="${topicIndex}"]`,
     );
 
     console.log(
-      `🔗 Found ${subtopicCheckboxes.length} subtopics for topic ${topicIndex}`
+      `🔗 Found ${subtopicCheckboxes.length} subtopics for topic ${topicIndex}`,
     );
 
     subtopicCheckboxes.forEach((subtopicCheckbox, subIndex) => {
@@ -2575,7 +2609,7 @@ function handleMainTopicSelection(checkbox, topicIndex) {
     } catch (countError) {
       console.error(
         "❌ Error updating count after hierarchical selection error:",
-        countError
+        countError,
       );
     }
   }
@@ -2669,7 +2703,7 @@ function createEmergencyTopicDisplay(topics) {
     } catch (topicError) {
       console.error(
         `❌ Error in emergency rendering for topic ${index}:`,
-        topicError
+        topicError,
       );
       // Continue with a generic topic
       const fallbackId = `emergency_fallback_${index}_${Date.now()}`;
@@ -2772,13 +2806,13 @@ function validateTopicData(topics) {
         } else {
           validation.stats.invalid++;
           validation.warnings.push(
-            `Topic ${index}: ${topicValidation.errors.join(", ")}`
+            `Topic ${index}: ${topicValidation.errors.join(", ")}`,
           );
         }
       } catch (topicError) {
         validation.stats.invalid++;
         validation.errors.push(
-          `Error validating topic ${index}: ${topicError.message}`
+          `Error validating topic ${index}: ${topicError.message}`,
         );
       }
     });
@@ -2788,7 +2822,7 @@ function validateTopicData(topics) {
 
     if (validation.stats.invalid > 0) {
       validation.warnings.push(
-        `${validation.stats.invalid} topics were invalid and will be skipped`
+        `${validation.stats.invalid} topics were invalid and will be skipped`,
       );
     }
 

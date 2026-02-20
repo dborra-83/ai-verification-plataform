@@ -48,7 +48,7 @@ async function loadExamDashboardData() {
         ) {
           console.log(
             "❌ EXAM DASHBOARD EXCLUDED - AI Detection record:",
-            exam.examId || exam.analysisId
+            exam.examId || exam.analysisId,
           );
           return false;
         }
@@ -87,7 +87,7 @@ async function loadExamDashboardData() {
 
         console.log(
           "❌ EXAM DASHBOARD EXCLUDED - No exam indicators:",
-          exam.examId || exam.analysisId
+          exam.examId || exam.analysisId,
         );
         return false;
       });
@@ -102,10 +102,10 @@ async function loadExamDashboardData() {
       // Calculate KPIs
       const totalExams = exams.length;
       const completedExams = exams.filter(
-        (exam) => exam.status === "COMPLETED"
+        (exam) => exam.status === "COMPLETED",
       ).length;
       const processingExams = exams.filter(
-        (exam) => exam.status === "PROCESSING"
+        (exam) => exam.status === "PROCESSING",
       ).length;
 
       // Calculate today's exams
@@ -113,7 +113,7 @@ async function loadExamDashboardData() {
       const todayStart = new Date(
         today.getFullYear(),
         today.getMonth(),
-        today.getDate()
+        today.getDate(),
       );
       const todayExams = exams.filter((exam) => {
         const examDate = new Date(exam.createdAt);
@@ -122,15 +122,15 @@ async function loadExamDashboardData() {
 
       // Calculate average questions
       const completedExamsWithQuestions = exams.filter(
-        (exam) => exam.status === "COMPLETED" && exam.questionCount
+        (exam) => exam.status === "COMPLETED" && exam.questionCount,
       );
       const avgQuestions =
         completedExamsWithQuestions.length > 0
           ? Math.round(
               completedExamsWithQuestions.reduce(
                 (sum, exam) => sum + (exam.questionCount || 0),
-                0
-              ) / completedExamsWithQuestions.length
+                0,
+              ) / completedExamsWithQuestions.length,
             )
           : 0;
 
@@ -215,7 +215,7 @@ async function loadRecentExams() {
       ) {
         console.log(
           "❌ RECENT EXAMS EXCLUDED - AI Detection record:",
-          exam.examId || exam.analysisId
+          exam.examId || exam.analysisId,
         );
         return false;
       }
@@ -244,7 +244,7 @@ async function loadRecentExams() {
       ) {
         console.log(
           "✅ RECENT EXAMS INCLUDED:",
-          exam.examId || exam.analysisId
+          exam.examId || exam.analysisId,
         );
         return true;
       }
@@ -311,7 +311,7 @@ async function loadRecentExams() {
                     </div>
                 </td>
             </tr>
-        `
+        `,
       )
       .join("");
   } catch (error) {
@@ -576,7 +576,7 @@ function validateExamRecord(record) {
         recordId: record.examId || record.analysisId,
         hasExamIndicators: hasExamId || hasExamConfig || hasQuestionCount,
         hasAIFields: hasAIScore || hasOriginalityScore || hasStudentName,
-      }
+      },
     );
   }
 
@@ -609,7 +609,7 @@ function monitorExamDataContamination(records) {
     // Send contamination alert (in production, this could be sent to monitoring service)
     if (window.appSettings?.enableContaminationAlerts) {
       alert(
-        `Advertencia: Se detectaron ${contaminationReport.contaminatedRecords} registros contaminados en el Dashboard de Exámenes.`
+        `Advertencia: Se detectaron ${contaminationReport.contaminatedRecords} registros contaminados en el Dashboard de Exámenes.`,
       );
     }
   }

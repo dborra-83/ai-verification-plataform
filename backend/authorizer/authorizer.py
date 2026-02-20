@@ -201,11 +201,18 @@ def generate_policy(principal_id: str, effect: str, resource: str) -> Dict[str, 
     """
     # Extract API Gateway ARN parts to create wildcard resource
     # Format: arn:aws:execute-api:region:account-id:api-id/stage/method/resource
+    # We need to keep the api-id in the resource ARN
     arn_parts = resource.split(':')
-    api_gateway_arn = ':'.join(arn_parts[:5])
+    
+    # Get the api-id/stage/method/resource part
+    api_path = arn_parts[5] if len(arn_parts) > 5 else ''
+    api_id = api_path.split('/')[0] if api_path else ''
+    
+    # Construct the base ARN with api-id
+    base_arn = ':'.join(arn_parts[:5])
     
     # Allow/Deny all methods in the API
-    resource_arn = f"{api_gateway_arn}/*"
+    resource_arn = f"{base_arn}:{api_id}/*"
     
     policy = {
         'principalId': principal_id,

@@ -3,14 +3,33 @@
  * Handles email verification with confirmation code
  */
 
-import AuthModule from "./auth.js";
-
 // Initialize Auth Module with Cognito configuration
-const auth = new AuthModule(
-  window.COGNITO_CONFIG.USER_POOL_ID,
-  window.COGNITO_CONFIG.APP_CLIENT_ID,
-  window.COGNITO_CONFIG.REGION,
-);
+let auth = null;
+
+// Wait for AuthModule to be available
+function initAuth() {
+  if (window.AuthModule && window.COGNITO_CONFIG) {
+    auth = new window.AuthModule(
+      window.COGNITO_CONFIG.USER_POOL_ID,
+      window.COGNITO_CONFIG.APP_CLIENT_ID,
+      window.COGNITO_CONFIG.REGION,
+    );
+
+    // Check if already authenticated
+    if (auth.isAuthenticated()) {
+      window.location.href = "index.html";
+    }
+
+    // Initialize email after auth is ready
+    initializeEmail();
+  } else {
+    // Retry after a short delay
+    setTimeout(initAuth, 100);
+  }
+}
+
+// Initialize on page load
+document.addEventListener("DOMContentLoaded", initAuth);
 
 // DOM elements
 const verifyForm = document.getElementById("verifyForm");
@@ -43,21 +62,23 @@ function getEmail() {
   return null;
 }
 
-// Initialize email
-userEmail = getEmail();
+// Initialize email (called after auth is ready)
+function initializeEmail() {
+  userEmail = getEmail();
 
-if (!userEmail) {
-  // No email found, redirect to signup
-  showMessage(
-    errorMessage,
-    "No se encontró el correo electrónico. Redirigiendo...",
-  );
-  setTimeout(() => {
-    window.location.href = "signup.html";
-  }, 2000);
-} else {
-  // Display email
-  emailDisplay.textContent = userEmail;
+  if (!userEmail) {
+    // No email found, redirect to signup
+    showMessage(
+      errorMessage,
+      "No se encontró el correo electrónico. Redirigiendo...",
+    );
+    setTimeout(() => {
+      window.location.href = "signup.html";
+    }, 2000);
+  } else {
+    // Display email
+    emailDisplay.textContent = userEmail;
+  }
 }
 
 // Handle verify form submission
@@ -186,9 +207,4 @@ function showLoading(show) {
     verifyBtn.disabled = false;
     resendBtn.disabled = false;
   }
-}
-
-// Check if already authenticated
-if (auth.isAuthenticated()) {
-  window.location.href = "index.html";
 }

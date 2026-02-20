@@ -3,27 +3,58 @@
  * Handles user registration form submission and validation
  */
 
-import AuthModule from "./auth.js";
-
 // Initialize Auth Module with Cognito configuration
-const auth = new AuthModule(
-  window.COGNITO_CONFIG.USER_POOL_ID,
-  window.COGNITO_CONFIG.APP_CLIENT_ID,
-  window.COGNITO_CONFIG.REGION,
-);
+let auth = null;
 
-// DOM elements
-const signupForm = document.getElementById("signupForm");
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-const confirmPasswordInput = document.getElementById("confirmPassword");
-const signupBtn = document.getElementById("signupBtn");
-const errorMessage = document.getElementById("errorMessage");
-const successMessage = document.getElementById("successMessage");
-const loadingIndicator = document.getElementById("loadingIndicator");
+// DOM elements (will be initialized after DOM is ready)
+let signupForm, emailInput, passwordInput, confirmPasswordInput;
+let signupBtn, errorMessage, successMessage, loadingIndicator;
+
+// Wait for AuthModule to be available
+function initAuth() {
+  if (window.AuthModule && window.COGNITO_CONFIG) {
+    auth = new window.AuthModule(
+      window.COGNITO_CONFIG.USER_POOL_ID,
+      window.COGNITO_CONFIG.APP_CLIENT_ID,
+      window.COGNITO_CONFIG.REGION,
+    );
+
+    // Check if already authenticated
+    if (auth.isAuthenticated()) {
+      window.location.href = "index.html";
+    }
+
+    // Initialize form after auth is ready
+    initializeForm();
+  } else {
+    // Retry after a short delay
+    setTimeout(initAuth, 100);
+  }
+}
+
+// Initialize form elements and event listeners
+function initializeForm() {
+  // Get DOM elements
+  signupForm = document.getElementById("signupForm");
+  emailInput = document.getElementById("email");
+  passwordInput = document.getElementById("password");
+  confirmPasswordInput = document.getElementById("confirmPassword");
+  signupBtn = document.getElementById("signupBtn");
+  errorMessage = document.getElementById("errorMessage");
+  successMessage = document.getElementById("successMessage");
+  loadingIndicator = document.getElementById("loadingIndicator");
+
+  // Register form submit handler
+  if (signupForm) {
+    signupForm.addEventListener("submit", handleFormSubmit);
+  }
+}
+
+// Initialize on page load
+document.addEventListener("DOMContentLoaded", initAuth);
 
 // Handle form submission
-signupForm.addEventListener("submit", async (e) => {
+async function handleFormSubmit(e) {
   e.preventDefault();
 
   // Clear previous messages
@@ -34,6 +65,15 @@ signupForm.addEventListener("submit", async (e) => {
   const email = emailInput.value.trim();
   const password = passwordInput.value;
   const confirmPassword = confirmPasswordInput.value;
+
+  // Check if auth module is initialized
+  if (!auth) {
+    showMessage(
+      errorMessage,
+      "El módulo de autenticación no está listo. Por favor recarga la página.",
+    );
+    return;
+  }
 
   // Validate password confirmation
   if (password !== confirmPassword) {
@@ -81,7 +121,7 @@ signupForm.addEventListener("submit", async (e) => {
       "Ocurrió un error inesperado. Por favor intenta de nuevo.",
     );
   }
-});
+}
 
 /**
  * Validate password meets requirements
@@ -144,9 +184,4 @@ function showLoading(show) {
     loadingIndicator.classList.add("d-none");
     signupBtn.disabled = false;
   }
-}
-
-// Check if already authenticated
-if (auth.isAuthenticated()) {
-  window.location.href = "index.html";
 }

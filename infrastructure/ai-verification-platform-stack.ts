@@ -145,6 +145,49 @@ export class AiVerificationPlatformStack extends cdk.Stack {
       }),
     );
 
+    // Add Cognito admin permissions for user management
+    lambdaRole.addToPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "cognito-idp:AdminListUsers",
+          "cognito-idp:AdminGetUser",
+          "cognito-idp:AdminCreateUser",
+          "cognito-idp:AdminDeleteUser",
+          "cognito-idp:AdminDisableUser",
+          "cognito-idp:AdminEnableUser",
+          "cognito-idp:AdminUpdateUserAttributes",
+          "cognito-idp:AdminResetUserPassword",
+          "cognito-idp:AdminRespondToAuthChallenge",
+          "cognito-idp:ListUsers",
+          "cognito-idp:DescribeUserPool",
+        ],
+        resources: [userPool.userPoolArn],
+      }),
+    );
+
+    // Add CloudWatch permissions for system health monitoring
+    lambdaRole.addToPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "cloudwatch:GetMetricStatistics",
+          "cloudwatch:GetMetricData",
+          "cloudwatch:ListMetrics",
+        ],
+        resources: ["*"],
+      }),
+    );
+
+    // Add DynamoDB describe table permission for health checks
+    lambdaRole.addToPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ["dynamodb:DescribeTable"],
+        resources: [analysisTable.tableArn],
+      }),
+    );
+
     // Upload presign Lambda function
     const uploadLambda = new lambda.Function(this, "UploadLambda", {
       runtime: lambda.Runtime.PYTHON_3_11,
@@ -233,6 +276,65 @@ export class AiVerificationPlatformStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(30),
     });
 
+    // Admin Lambda function (existing metrics and reports)
+    const adminLambda = new lambda.Function(this, "AdminLambda", {
+      runtime: lambda.Runtime.PYTHON_3_11,
+      handler: "admin_handler.lambda_handler",
+      code: lambda.Code.fromAsset("backend/admin"),
+      role: lambdaRole,
+      environment: {
+        ANALYSIS_TABLE: analysisTable.tableName,
+        UPLOAD_BUCKET: uploadBucket.bucketName,
+        USER_POOL_ID: userPool.userPoolId,
+      },
+      timeout: cdk.Duration.seconds(30),
+    });
+
+    // User Management Lambda function
+    const userManagementLambda = new lambda.Function(
+      this,
+      "UserManagementLambda",
+      {
+        runtime: lambda.Runtime.PYTHON_3_11,
+        handler: "user_management_handler.lambda_handler",
+        code: lambda.Code.fromAsset("backend/admin"),
+        role: lambdaRole,
+        environment: {
+          ANALYSIS_TABLE: analysisTable.tableName,
+          UPLOAD_BUCKET: uploadBucket.bucketName,
+          USER_POOL_ID: userPool.userPoolId,
+        },
+        timeout: cdk.Duration.minutes(2),
+        memorySize: 512,
+      },
+    );
+
+    // Audit Handler Lambda function
+    const auditLambda = new lambda.Function(this, "AuditLambda", {
+      runtime: lambda.Runtime.PYTHON_3_11,
+      handler: "audit_handler.lambda_handler",
+      code: lambda.Code.fromAsset("backend/admin"),
+      role: lambdaRole,
+      environment: {
+        ANALYSIS_TABLE: analysisTable.tableName,
+        UPLOAD_BUCKET: uploadBucket.bucketName,
+      },
+      timeout: cdk.Duration.seconds(30),
+    });
+
+    // Config Handler Lambda function
+    const configLambda = new lambda.Function(this, "ConfigLambda", {
+      runtime: lambda.Runtime.PYTHON_3_11,
+      handler: "config_handler.lambda_handler",
+      code: lambda.Code.fromAsset("backend/admin"),
+      role: lambdaRole,
+      environment: {
+        ANALYSIS_TABLE: analysisTable.tableName,
+        UPLOAD_BUCKET: uploadBucket.bucketName,
+      },
+      timeout: cdk.Duration.seconds(30),
+    });
+
     // Lambda Authorizer for API Gateway
     const authorizerFunction = new lambda.Function(this, "CognitoAuthorizer", {
       runtime: lambda.Runtime.PYTHON_3_11,
@@ -269,6 +371,53 @@ export class AiVerificationPlatformStack extends cdk.Stack {
           "X-Requested-With",
         ],
         allowCredentials: false,
+      },
+    });
+
+    // Add Gateway Responses for CORS on errors (401, 403, 500)
+    api.addGatewayResponse("UnauthorizedResponse", {
+      type: apigateway.ResponseType.UNAUTHORIZED,
+      responseHeaders: {
+        "Access-Control-Allow-Origin": "'*'",
+        "Access-Control-Allow-Headers":
+          "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
+        "Access-Control-Allow-Methods": "'GET,POST,PUT,DELETE,OPTIONS'",
+      },
+      templates: {
+        "application/json": '{"message": "Unauthorized", "statusCode": 401}',
+      },
+    });
+
+    api.addGatewayResponse("AccessDeniedResponse", {
+      type: apigateway.ResponseType.ACCESS_DENIED,
+      responseHeaders: {
+        "Access-Control-Allow-Origin": "'*'",
+        "Access-Control-Allow-Headers":
+          "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
+        "Access-Control-Allow-Methods": "'GET,POST,PUT,DELETE,OPTIONS'",
+      },
+      templates: {
+        "application/json": '{"message": "Access Denied", "statusCode": 403}',
+      },
+    });
+
+    api.addGatewayResponse("DefaultError", {
+      type: apigateway.ResponseType.DEFAULT_4XX,
+      responseHeaders: {
+        "Access-Control-Allow-Origin": "'*'",
+        "Access-Control-Allow-Headers":
+          "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
+        "Access-Control-Allow-Methods": "'GET,POST,PUT,DELETE,OPTIONS'",
+      },
+    });
+
+    api.addGatewayResponse("Default5XXError", {
+      type: apigateway.ResponseType.DEFAULT_5XX,
+      responseHeaders: {
+        "Access-Control-Allow-Origin": "'*'",
+        "Access-Control-Allow-Headers":
+          "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
+        "Access-Control-Allow-Methods": "'GET,POST,PUT,DELETE,OPTIONS'",
       },
     });
 
@@ -461,6 +610,282 @@ export class AiVerificationPlatformStack extends cdk.Stack {
     fileIdResource.addMethod(
       "GET",
       new apigateway.LambdaIntegration(examHistoryLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    // Admin API Resources
+    const adminResource = api.root.addResource("admin");
+
+    // Admin metrics endpoints (existing)
+    const metricsResource = adminResource.addResource("metrics");
+    const examsMetricsResource = metricsResource.addResource("exams");
+    examsMetricsResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(adminLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    const usersMetricsResource = metricsResource.addResource("users");
+    usersMetricsResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(adminLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    const systemMetricsResource = metricsResource.addResource("system");
+    systemMetricsResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(adminLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    // System health endpoint
+    const systemHealthResource = adminResource.addResource("system-health");
+    systemHealthResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(adminLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    // User management endpoints
+    const usersResource = adminResource.addResource("users");
+    usersResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(userManagementLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+    usersResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(userManagementLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    // User statistics endpoint
+    const userStatsResource = usersResource.addResource("statistics");
+    userStatsResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(userManagementLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    // Bulk operations endpoint
+    const bulkResource = usersResource.addResource("bulk");
+    bulkResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(userManagementLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    // User export endpoint
+    const userExportResource = usersResource.addResource("export");
+    userExportResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(userManagementLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    // Individual user endpoints
+    const userIdResource = usersResource.addResource("{userId}");
+    userIdResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(userManagementLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+    userIdResource.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(userManagementLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    // User status endpoint
+    const userStatusResource = userIdResource.addResource("status");
+    userStatusResource.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(userManagementLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    // User role endpoint
+    const userRoleResource = userIdResource.addResource("role");
+    userRoleResource.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(userManagementLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    // Password reset endpoint
+    const resetPasswordResource = userIdResource.addResource("reset-password");
+    resetPasswordResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(userManagementLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    // Resend verification endpoint
+    const resendVerificationResource = userIdResource.addResource(
+      "resend-verification",
+    );
+    resendVerificationResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(userManagementLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    // Audit endpoints
+    const auditResource = adminResource.addResource("audit");
+    auditResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(auditLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    const loginHistoryResource = auditResource.addResource("login-history");
+    loginHistoryResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(auditLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    const failedLoginsResource = auditResource.addResource("failed-logins");
+    failedLoginsResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(auditLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    const securityAlertsResource = auditResource.addResource("security-alerts");
+    securityAlertsResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(auditLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    const auditExportResource = auditResource.addResource("export");
+    auditExportResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(auditLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    // Config endpoints
+    const configResource = adminResource.addResource("config");
+    configResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(configLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+    configResource.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(configLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    // Email templates endpoints
+    const emailTemplatesResource =
+      configResource.addResource("email-templates");
+    emailTemplatesResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(configLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    const templateIdResource =
+      emailTemplatesResource.addResource("{templateId}");
+    templateIdResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(configLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+    templateIdResource.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(configLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    // Template preview endpoint
+    const previewTemplateResource =
+      configResource.addResource("preview-template");
+    previewTemplateResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(configLambda),
       {
         authorizer: authorizer,
         authorizationType: apigateway.AuthorizationType.CUSTOM,

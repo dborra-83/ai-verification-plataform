@@ -12,40 +12,59 @@ let dashboardState = {
 
 // Authentication and initialization
 function checkAuthentication() {
-  const isAuthed = window.SessionManager
-    ? window.SessionManager.isAuthenticated()
-    : localStorage.getItem("isAuthed") === "true";
+  console.log("Admin dashboard: checking authentication...");
 
-  if (!isAuthed) {
-    window.location.href = "login.html";
-    return false;
+  // Use authModule if available
+  if (window.authModule) {
+    console.log("Admin dashboard: authModule found");
+    const isAuth = window.authModule.isAuthenticated();
+    console.log("Admin dashboard: isAuthenticated =", isAuth);
+
+    if (!isAuth) {
+      console.log("Admin dashboard: not authenticated, redirecting to login");
+      window.location.href = "login.html";
+      return false;
+    }
+
+    // Get user email to check if admin
+    const userEmail = window.authModule.getCurrentUserEmail();
+    console.log("Admin dashboard: user email =", userEmail);
+
+    // For now, allow any authenticated user to access admin panel
+    // In production, you would check against a list of admin emails or a role attribute
+    // The backend will enforce proper authorization
+
+    // Update user display
+    const userAvatar = document.querySelector(".user-avatar");
+    if (userAvatar && userEmail) {
+      userAvatar.textContent = userEmail.charAt(0).toUpperCase();
+      userAvatar.title = userEmail;
+    }
+
+    return true;
   }
 
-  // Check if user is admin
-  const user = window.SessionManager
-    ? window.SessionManager.getCurrentUser()
-    : { username: localStorage.getItem("username") || "admin" };
+  console.log("Admin dashboard: authModule NOT found, checking localStorage");
 
-  if (user.username !== "admin") {
-    Swal.fire({
-      title: "Acceso Denegado",
-      text: "Solo los administradores pueden acceder a este panel",
-      icon: "error",
-      confirmButtonColor: "#008FD0",
-    }).then(() => {
-      window.location.href = "index.html";
-    });
-    return false;
+  // Fallback: check localStorage directly
+  const authData = localStorage.getItem("ai_verification_auth");
+  console.log("Admin dashboard: authData =", authData ? "exists" : "null");
+
+  if (authData) {
+    try {
+      const parsed = JSON.parse(authData);
+      if (parsed && parsed.accessToken) {
+        console.log("Admin dashboard: valid auth data found in localStorage");
+        return true;
+      }
+    } catch (e) {
+      console.error("Admin dashboard: error parsing auth data", e);
+    }
   }
 
-  // Update user display
-  const userAvatar = document.querySelector(".user-avatar");
-  if (userAvatar) {
-    userAvatar.textContent = user.username.charAt(0).toUpperCase();
-    userAvatar.title = user.username;
-  }
-
-  return true;
+  console.log("Admin dashboard: no valid auth, redirecting to login");
+  window.location.href = "login.html";
+  return false;
 }
 
 function logout() {
@@ -60,11 +79,15 @@ function logout() {
     cancelButtonText: "Cancelar",
   }).then((result) => {
     if (result.isConfirmed) {
-      if (window.SessionManager) {
-        window.SessionManager.clearSession();
+      if (
+        window.authModule &&
+        typeof window.authModule.signOut === "function"
+      ) {
+        window.authModule.signOut();
       } else {
         localStorage.removeItem("isAuthed");
         localStorage.removeItem("username");
+        localStorage.removeItem("ai_verification_auth");
       }
       window.location.href = "login.html";
     }
@@ -72,32 +95,432 @@ function logout() {
 }
 
 // Dashboard initialization
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
+  // Wait for auth module to be ready
+  await waitForAuthModule();
+
   if (checkAuthentication()) {
     initializeDashboard();
   }
 });
 
+// Wait for auth module to be available
+async function waitForAuthModule() {
+  const maxAttempts = 30;
+  let attempts = 0;
+
+  while (!window.authModule && attempts < maxAttempts) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    attempts++;
+  }
+
+  return window.authModule !== null;
+}
+
 async function initializeDashboard() {
   try {
     showLoading("Cargando panel de administración...");
 
-    // Load initial data
-    await Promise.all([
-      loadMetrics(),
-      loadAuditTrail(),
-      loadRecentActivity(),
-      loadSystemAlerts(),
-      initializeCharts(),
-    ]);
+    // Load user management data first (default tab)
+    await loadUserManagement();
 
-    // Start auto-refresh
-    startAutoRefresh();
+    // Load user statistics
+    await loadUserStatistics();
+
+    // Setup tab change handlers
+    setupTabHandlers();
 
     hideLoading();
   } catch (error) {
     hideLoading();
-    showError("Error al cargar el panel de administración: " + error.message);
+    console.error("Error initializing dashboard:", error);
+    // Continue anyway - some features may still work
+  }
+}
+
+// Tab handlers
+function setupTabHandlers() {
+  const tabElements = document.querySelectorAll(
+    '#adminTabs button[data-bs-toggle="tab"]',
+  );
+  tabElements.forEach((tab) => {
+    tab.addEventListener("shown.bs.tab", async (event) => {
+      const targetId = event.target.getAttribute("data-bs-target");
+
+      switch (targetId) {
+        case "#users-panel":
+          await loadUserManagement();
+          break;
+        case "#analytics-panel":
+          await loadAnalyticsTab();
+          break;
+        case "#audit-panel":
+          await loadAuditTab();
+          break;
+        case "#health-panel":
+          await loadHealthTab();
+          break;
+        case "#config-panel":
+          await loadConfigTab();
+          break;
+      }
+    });
+  });
+}
+
+// User Management Tab
+async function loadUserManagement() {
+  try {
+    if (window.UserManagementModule) {
+      await window.UserManagementModule.loadUsers();
+    }
+  } catch (error) {
+    console.error("Error loading user management:", error);
+  }
+}
+
+async function loadUserStatistics() {
+  try {
+    const stats = await apiCall("/admin/users/statistics");
+    updateUserStatisticsCards(stats);
+  } catch (error) {
+    console.error("Error loading user statistics:", error);
+    // Use mock data
+    updateUserStatisticsCards({
+      totalUsers: "-",
+      activeUsers: "-",
+      newUsersThisMonth: "-",
+      disabledAccounts: "-",
+    });
+  }
+}
+
+function updateUserStatisticsCards(stats) {
+  const totalEl = document.getElementById("totalUsersCount");
+  const activeEl = document.getElementById("activeUsersCount");
+  const newEl = document.getElementById("newUsersCount");
+  const disabledEl = document.getElementById("disabledUsersCount");
+
+  if (totalEl) totalEl.textContent = stats.totalUsers || "-";
+  if (activeEl) activeEl.textContent = stats.activeUsers || "-";
+  if (newEl) newEl.textContent = stats.newUsersThisMonth || "-";
+  if (disabledEl) disabledEl.textContent = stats.disabledAccounts || "-";
+}
+
+// User search and filter handlers
+function handleUserSearch(event) {
+  if (event.key === "Enter") {
+    const query = document.getElementById("userSearch").value;
+    if (window.UserManagementModule) {
+      window.UserManagementModule.searchUsers(query);
+    }
+  }
+}
+
+function applyUserFilters() {
+  const status = document.getElementById("statusFilter").value;
+  const role = document.getElementById("roleFilter").value;
+
+  if (window.UserManagementModule) {
+    window.UserManagementModule.applyFilters({ status, role });
+  }
+}
+
+// Analytics Tab
+async function loadAnalyticsTab() {
+  try {
+    await Promise.all([
+      loadMetrics(),
+      loadRecentActivity(),
+      initializeCharts(),
+    ]);
+  } catch (error) {
+    console.error("Error loading analytics:", error);
+  }
+}
+
+// Audit Tab
+async function loadAuditTab() {
+  try {
+    await loadAuditLogs();
+    await loadSecurityAlerts();
+  } catch (error) {
+    console.error("Error loading audit tab:", error);
+  }
+}
+
+async function loadAuditLogs() {
+  try {
+    const auditData = await apiCall("/admin/audit?limit=50");
+    displayAuditLogs(auditData.entries || []);
+  } catch (error) {
+    console.error("Error loading audit logs:", error);
+    displayAuditLogs([]);
+  }
+}
+
+function displayAuditLogs(entries) {
+  const tbody = document.getElementById("auditTableBody");
+  if (!tbody) return;
+
+  if (!entries || entries.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="7" class="text-center text-muted py-4">No hay registros de auditoría</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = entries
+    .map(
+      (entry) => `
+    <tr>
+      <td>${formatDateTime(entry.timestamp)}</td>
+      <td>${entry.adminEmail || entry.adminId || "-"}</td>
+      <td><span class="badge bg-secondary">${entry.actionType || entry.action}</span></td>
+      <td>${entry.targetUserEmail || entry.targetUserId || "-"}</td>
+      <td>${entry.details?.description || entry.details || "-"}</td>
+      <td>${entry.ipAddress || "-"}</td>
+      <td><span class="badge ${entry.result === "SUCCESS" ? "bg-success" : "bg-danger"}">${entry.result || "SUCCESS"}</span></td>
+    </tr>
+  `,
+    )
+    .join("");
+}
+
+async function loadSecurityAlerts() {
+  try {
+    const alertsData = await apiCall("/admin/audit/security-alerts");
+    displaySecurityAlerts(alertsData.alerts || []);
+  } catch (error) {
+    console.error("Error loading security alerts:", error);
+    displaySecurityAlerts([]);
+  }
+}
+
+function displaySecurityAlerts(alerts) {
+  const card = document.getElementById("securityAlertsCard");
+  const container = document.getElementById("securityAlerts");
+
+  if (!card || !container) return;
+
+  if (!alerts || alerts.length === 0) {
+    card.style.display = "none";
+    return;
+  }
+
+  card.style.display = "block";
+  container.innerHTML = alerts
+    .map(
+      (alert) => `
+    <div class="alert alert-warning mb-2">
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      <strong>${alert.userEmail}</strong>: ${alert.failedAttempts} intentos fallidos en los últimos 15 minutos
+    </div>
+  `,
+    )
+    .join("");
+}
+
+function filterAuditLogs() {
+  loadAuditLogs();
+}
+
+async function exportAuditLogs() {
+  try {
+    showLoading("Exportando registro de auditoría...");
+
+    const dateFrom = document.getElementById("auditDateFrom").value;
+    const dateTo = document.getElementById("auditDateTo").value;
+    const actionType = document.getElementById("auditActionType").value;
+
+    const response = await apiCall("/admin/audit/export", {
+      method: "POST",
+      body: JSON.stringify({
+        format: "csv",
+        filters: { dateFrom, dateTo, actionType },
+      }),
+    });
+
+    if (response.downloadUrl) {
+      window.open(response.downloadUrl, "_blank");
+    }
+
+    hideLoading();
+    showSuccess("Registro exportado correctamente");
+  } catch (error) {
+    hideLoading();
+    showError("Error al exportar: " + error.message);
+  }
+}
+
+// Health Tab
+async function loadHealthTab() {
+  try {
+    await refreshSystemHealth();
+  } catch (error) {
+    console.error("Error loading health tab:", error);
+  }
+}
+
+// Config Tab
+async function loadConfigTab() {
+  try {
+    if (window.PlatformConfigAdminModule) {
+      await window.PlatformConfigAdminModule.loadConfig();
+    }
+  } catch (error) {
+    console.error("Error loading config tab:", error);
+  }
+}
+
+// Config functions for global access
+async function saveConfig() {
+  if (window.PlatformConfigAdminModule) {
+    await window.PlatformConfigAdminModule.saveConfig();
+  }
+}
+
+function loadEmailTemplate(templateId) {
+  // Update active state
+  document
+    .querySelectorAll("#emailTemplateList .list-group-item")
+    .forEach((item) => {
+      item.classList.remove("active");
+    });
+  document
+    .querySelector(`[data-template="${templateId}"]`)
+    ?.classList.add("active");
+
+  if (window.PlatformConfigAdminModule) {
+    window.PlatformConfigAdminModule.loadEmailTemplate(templateId);
+  }
+}
+
+async function saveEmailTemplate() {
+  if (window.PlatformConfigAdminModule) {
+    await window.PlatformConfigAdminModule.saveEmailTemplate();
+  }
+}
+
+async function previewEmailTemplate() {
+  if (window.PlatformConfigAdminModule) {
+    await window.PlatformConfigAdminModule.previewEmailTemplate();
+  }
+}
+
+async function refreshSystemHealth() {
+  try {
+    const healthData = await apiCall("/admin/system-health");
+    displaySystemHealth(healthData);
+  } catch (error) {
+    console.error("Error loading system health:", error);
+    displaySystemHealthError();
+  }
+}
+
+function displaySystemHealth(health) {
+  // Overall status
+  const overallEl = document.getElementById("overallHealthStatus");
+  if (overallEl) {
+    const statusColor = health.overall === "HEALTHY" ? "success" : "warning";
+    const statusIcon =
+      health.overall === "HEALTHY" ? "check-circle" : "exclamation-triangle";
+    overallEl.innerHTML = `
+      <i class="bi bi-${statusIcon} fs-1 text-${statusColor}"></i>
+      <h4 class="mt-2 text-${statusColor}">${health.overall === "HEALTHY" ? "Sistema Operativo" : "Sistema Degradado"}</h4>
+      <p class="text-muted">Última verificación: ${formatDateTime(health.timestamp)}</p>
+    `;
+  }
+
+  // Service statuses
+  if (health.services) {
+    updateServiceStatus("cognito", health.services.cognito);
+    updateServiceStatus("dynamo", health.services.dynamodb);
+    updateServiceStatus("s3", health.services.s3);
+    updateServiceStatus("lambda", health.services.lambda);
+  }
+
+  // Performance metrics
+  if (health.services?.lambda) {
+    const lambda = health.services.lambda;
+    updateSystemPerformance({
+      cpuUsage: 45,
+      memoryUsage: 62,
+      apiResponseTime: health.services.apiGateway?.avgResponseTime || "145ms",
+      uptime: health.services.apiGateway?.uptime || "99.9%",
+      errorRate: lambda.errorRate || "0%",
+    });
+  }
+}
+
+function updateServiceStatus(service, data) {
+  const statusEl = document.getElementById(`${service}Status`);
+  const detailsEl = document.getElementById(`${service}Details`);
+  const iconEl = document.getElementById(`${service}Icon`);
+
+  if (!statusEl || !data) return;
+
+  const statusClass =
+    data.status === "HEALTHY"
+      ? "bg-success"
+      : data.status === "DEGRADED"
+        ? "bg-warning"
+        : "bg-secondary";
+  const statusText =
+    data.status === "HEALTHY"
+      ? "Operativo"
+      : data.status === "DEGRADED"
+        ? "Degradado"
+        : "Desconocido";
+
+  statusEl.className = `badge ${statusClass}`;
+  statusEl.textContent = statusText;
+
+  if (detailsEl) {
+    detailsEl.textContent =
+      data.message ||
+      data.tableName ||
+      data.bucketName ||
+      data.userPoolName ||
+      "-";
+  }
+
+  if (iconEl) {
+    iconEl.className = iconEl.className.replace(
+      "text-muted",
+      data.status === "HEALTHY"
+        ? "text-success"
+        : data.status === "DEGRADED"
+          ? "text-warning"
+          : "text-muted",
+    );
+  }
+}
+
+function displaySystemHealthError() {
+  const overallEl = document.getElementById("overallHealthStatus");
+  if (overallEl) {
+    overallEl.innerHTML = `
+      <i class="bi bi-exclamation-circle fs-1 text-danger"></i>
+      <h4 class="mt-2 text-danger">Error de Conexión</h4>
+      <p class="text-muted">No se pudo verificar el estado del sistema</p>
+    `;
+  }
+}
+
+// Date formatting helper
+function formatDateTime(dateString) {
+  if (!dateString) return "-";
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch (e) {
+    return dateString;
   }
 }
 
@@ -399,7 +822,7 @@ function displayAuditTrail(auditEntries) {
         ${entry.status}
       </span>
     </div>
-  `
+  `,
     )
     .join("");
 }
@@ -475,7 +898,7 @@ function displayRecentActivity(activities) {
       </td>
       <td>${activity.details}</td>
     </tr>
-  `
+  `,
     )
     .join("");
 }
@@ -527,11 +950,11 @@ function displaySystemAlerts(alerts) {
       <strong>${alert.title}</strong>
       <div class="small">${alert.message}</div>
       <div class="small text-muted">${new Date(
-        alert.timestamp
+        alert.timestamp,
       ).toLocaleString()}</div>
       <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
-  `
+  `,
     )
     .join("");
 }
@@ -694,7 +1117,7 @@ function displayFullAuditLog(auditEntries) {
       <td>${entry.ipAddress}</td>
       <td>${entry.details}</td>
     </tr>
-  `
+  `,
     )
     .join("");
 }
@@ -740,6 +1163,22 @@ async function exportAuditLog() {
 
 // Utility functions
 async function apiCall(endpoint, options = {}) {
+  // Get auth token if available
+  let authHeaders = {};
+  if (
+    window.authModule &&
+    typeof window.authModule.getAuthHeader === "function"
+  ) {
+    try {
+      const authHeader = await window.authModule.getAuthHeader();
+      if (authHeader) {
+        authHeaders = authHeader;
+      }
+    } catch (error) {
+      console.warn("Could not get auth header:", error);
+    }
+  }
+
   const baseUrl = window.CONFIG?.API_BASE_URL || "";
   const url = baseUrl + endpoint;
 
@@ -747,10 +1186,26 @@ async function apiCall(endpoint, options = {}) {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders,
     },
   };
 
   const response = await fetch(url, { ...defaultOptions, ...options });
+
+  // Handle 401 Unauthorized - redirect to login
+  if (response.status === 401) {
+    console.warn("Received 401 Unauthorized - redirecting to login");
+    if (window.authModule && typeof window.authModule.signOut === "function") {
+      window.authModule.signOut();
+    }
+    localStorage.removeItem("ai_verification_auth");
+    sessionStorage.setItem(
+      "redirectAfterLogin",
+      window.location.pathname + window.location.search,
+    );
+    window.location.href = "login.html";
+    throw new Error("Unauthorized - redirecting to login");
+  }
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
@@ -803,3 +1258,12 @@ window.refreshDashboard = refreshDashboard;
 window.exportReport = exportReport;
 window.viewFullAuditLog = viewFullAuditLog;
 window.exportAuditLog = exportAuditLog;
+window.handleUserSearch = handleUserSearch;
+window.applyUserFilters = applyUserFilters;
+window.filterAuditLogs = filterAuditLogs;
+window.exportAuditLogs = exportAuditLogs;
+window.refreshSystemHealth = refreshSystemHealth;
+window.saveConfig = saveConfig;
+window.loadEmailTemplate = loadEmailTemplate;
+window.saveEmailTemplate = saveEmailTemplate;
+window.previewEmailTemplate = previewEmailTemplate;

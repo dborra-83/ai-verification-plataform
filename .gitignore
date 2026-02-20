@@ -64,6 +64,28 @@ venv.bak/
 # PyPDF2 installed in backend
 backend/analysis/PyPDF2/
 backend/analysis/pypdf2-*
+backend/exam-topic-extraction/PyPDF2/
+backend/exam-topic-extraction/pypdf2-*
+
+# Python dependencies in authorizer (installed via pip)
+backend/authorizer/bin/
+backend/authorizer/cffi/
+backend/authorizer/cffi-*.dist-info/
+backend/authorizer/cryptography/
+backend/authorizer/cryptography-*.dist-info/
+backend/authorizer/ecdsa/
+backend/authorizer/ecdsa-*.dist-info/
+backend/authorizer/jose/
+backend/authorizer/pyasn1/
+backend/authorizer/pyasn1-*.dist-info/
+backend/authorizer/pycparser/
+backend/authorizer/pycparser-*.dist-info/
+backend/authorizer/python_jose-*.dist-info/
+backend/authorizer/rsa/
+backend/authorizer/rsa-*.dist-info/
+backend/authorizer/six-*.dist-info/
+backend/authorizer/six.py
+backend/authorizer/_cffi_backend*.so
 
 # Kiro specs (development only)
 .kiro/

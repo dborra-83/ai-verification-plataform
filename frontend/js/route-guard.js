@@ -1,128 +1,150 @@
 /**
  * Route Guard Module
  * Protects routes by checking authentication status
- * Note: This uses a global AuthModule instance created by auth.js
  */
 
 (function () {
   "use strict";
 
-  // Wait for auth.js to load and create global auth instance
-  let authModule = null;
+  console.log("Route guard loaded");
 
-  /**
-   * Initialize auth module
-   */
-  function initAuth() {
-    if (window.AuthModule && window.COGNITO_CONFIG) {
-      authModule = new window.AuthModule(
-        window.COGNITO_CONFIG.USER_POOL_ID,
-        window.COGNITO_CONFIG.APP_CLIENT_ID,
-        window.COGNITO_CONFIG.REGION,
-      );
-      return true;
-    }
-    return false;
+  // Pages that don't require authentication
+  const publicPages = [
+    "login.html",
+    "signup.html",
+    "verify.html",
+    "forgot-password.html",
+  ];
+
+  // Check if current page is public
+  function isPublicPage() {
+    const currentPage =
+      window.location.pathname.split("/").pop() || "index.html";
+    return publicPages.includes(currentPage);
   }
 
-  /**
-   * Check if user is authenticated
-   * Redirects to login if not authenticated
-   */
-  async function checkAuth() {
-    // Initialize auth if not already done
-    if (!authModule && !initAuth()) {
-      console.error("Auth module not initialized");
-      return false;
-    }
-
-    // Check if user has valid authentication
-    if (!authModule.isAuthenticated()) {
-      // Store intended destination
-      sessionStorage.setItem("redirectAfterLogin", window.location.pathname);
-      // Redirect to login
-      window.location.href = "/login.html";
-      return false;
-    }
-
-    // Verify token is still valid (triggers refresh if needed)
-    const token = await authModule.getAccessToken();
-    if (!token) {
-      // Token refresh failed, redirect to login
-      sessionStorage.setItem("redirectAfterLogin", window.location.pathname);
-      window.location.href = "/login.html";
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Initialize topbar with user email and logout button
-   */
-  function initializeTopbar() {
-    if (!authModule && !initAuth()) {
+  // Initialize route guard
+  document.addEventListener("DOMContentLoaded", async () => {
+    // Skip auth check for public pages
+    if (isPublicPage()) {
+      console.log("Public page - skipping auth check");
       return;
     }
 
-    const email = authModule.getCurrentUserEmail();
+    // Wait for auth module to be ready
+    await waitForAuthModule();
 
-    // Update user email display
-    const userEmailElement = document.getElementById("user-email");
-    if (userEmailElement && email) {
-      userEmailElement.textContent = email;
+    // Check authentication
+    const isAuthenticated = checkAuthentication();
+
+    if (isAuthenticated) {
+      // Initialize topbar with user info
+      initializeTopbar();
+    }
+  });
+
+  // Wait for auth module to be available
+  async function waitForAuthModule() {
+    const maxAttempts = 30;
+    let attempts = 0;
+
+    while (!window.authModule && attempts < maxAttempts) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      attempts++;
     }
 
-    // Add logout functionality
-    const logoutBtn = document.getElementById("logout-btn");
-    if (logoutBtn) {
-      logoutBtn.addEventListener("click", () => {
-        authModule.signOut();
-        window.location.href = "/login.html";
-      });
-    }
-
-    // Also handle logout from sidebar
-    const sidebarLogoutLinks = document.querySelectorAll(
-      'a[onclick*="logout"]',
-    );
-    sidebarLogoutLinks.forEach((link) => {
-      link.addEventListener("click", (e) => {
-        e.preventDefault();
-        authModule.signOut();
-        window.location.href = "/login.html";
-      });
-    });
+    return window.authModule !== null;
   }
 
-  /**
-   * Handle post-login redirect
-   */
-  function handlePostLoginRedirect() {
-    const redirectPath = sessionStorage.getItem("redirectAfterLogin");
-    if (redirectPath && redirectPath !== "/login.html") {
-      sessionStorage.removeItem("redirectAfterLogin");
-      window.location.href = redirectPath;
-    }
-  }
-
-  // Make functions globally available
-  window.checkAuth = checkAuth;
-  window.initializeTopbar = initializeTopbar;
-  window.handlePostLoginRedirect = handlePostLoginRedirect;
-
-  // Auto-initialize on protected pages
-  if (
-    window.location.pathname !== "/login.html" &&
-    window.location.pathname !== "/signup.html" &&
-    window.location.pathname !== "/verify.html" &&
-    window.location.pathname !== "/forgot-password.html"
-  ) {
-    document.addEventListener("DOMContentLoaded", async () => {
-      const authenticated = await checkAuth();
-      if (authenticated) {
-        initializeTopbar();
+  // Check if user is authenticated
+  function checkAuthentication() {
+    try {
+      if (window.authModule && window.authModule.isAuthenticated()) {
+        return true;
       }
-    });
+
+      // Fallback: check localStorage directly
+      const authData = localStorage.getItem("ai_verification_auth");
+      if (authData) {
+        const parsed = JSON.parse(authData);
+        if (parsed && parsed.accessToken) {
+          return true;
+        }
+      }
+
+      // Not authenticated - redirect to login
+      console.log("Not authenticated, redirecting to login...");
+
+      // Store intended destination
+      const currentPath =
+        window.location.pathname +
+        window.location.search +
+        window.location.hash;
+      sessionStorage.setItem("redirectAfterLogin", currentPath);
+
+      window.location.href = "login.html";
+      return false;
+    } catch (error) {
+      console.error("Auth check error:", error);
+      window.location.href = "login.html";
+      return false;
+    }
   }
+
+  // Initialize topbar with user info
+  function initializeTopbar() {
+    try {
+      // Get user email
+      let email = null;
+
+      if (
+        window.authModule &&
+        typeof window.authModule.getCurrentUserEmail === "function"
+      ) {
+        email = window.authModule.getCurrentUserEmail();
+      }
+
+      if (!email) {
+        // Fallback: get from localStorage
+        const authData = localStorage.getItem("ai_verification_auth");
+        if (authData) {
+          const parsed = JSON.parse(authData);
+          email = parsed.email;
+        }
+      }
+
+      // Update user email display
+      const userEmailElement = document.getElementById("user-email");
+      if (userEmailElement && email) {
+        userEmailElement.textContent = email;
+      }
+
+      // Setup logout button
+      const logoutBtn = document.getElementById("logout-btn");
+      if (logoutBtn) {
+        logoutBtn.addEventListener("click", handleLogout);
+      }
+
+      // Also handle any element with onclick="logout()"
+      // This is handled by app.js
+    } catch (error) {
+      console.error("Topbar initialization error:", error);
+    }
+  }
+
+  // Handle logout
+  function handleLogout() {
+    if (window.authModule && typeof window.authModule.signOut === "function") {
+      window.authModule.signOut();
+    }
+    localStorage.removeItem("ai_verification_auth");
+    window.location.href = "login.html";
+  }
+
+  // Export for global access
+  window.RouteGuard = {
+    checkAuthentication,
+    initializeTopbar,
+    handleLogout,
+  };
 })();
