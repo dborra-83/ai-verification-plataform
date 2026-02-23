@@ -144,8 +144,6 @@ def is_valid_email(email):
 def lambda_handler(event, context):
     """Main Lambda handler for configuration operations"""
     try:
-        print(f"Config Lambda - Received event: {json.dumps(event)}")
-        
         http_method = event.get('httpMethod', 'GET')
         path = event.get('path', '')
         path_params = event.get('pathParameters') or {}

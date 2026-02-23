@@ -1,7 +1,7 @@
 // Service Worker for AI Verification Platform
 // Provides basic offline functionality
 
-const CACHE_NAME = "ai-verification-v5"; // Updated version to force cache refresh
+const CACHE_NAME = "ai-verification-v9"; // Bumped to force full cache clear
 const urlsToCache = [
   "/",
   "/index.html",
@@ -11,19 +11,6 @@ const urlsToCache = [
   "/forgot-password.html",
   "/detail.html",
   "/css/styles.css",
-  "/js/app.js",
-  "/js/auth.js",
-  "/js/login.js",
-  "/js/signup.js",
-  "/js/verify.js",
-  "/js/forgot-password.js",
-  "/js/dashboard.js",
-  "/js/upload.js",
-  "/js/analytics.js",
-  "/js/tags.js",
-  "/js/ux-enhancements.js",
-  "/js/platform-config.js",
-  "/config.js",
   "https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css",
   "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css",
   "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap",
@@ -50,14 +37,18 @@ self.addEventListener("install", (event) => {
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
-  // Skip caching for API calls - let them go directly to the network
+  // Skip caching for API calls and all JS/CSS assets - always fetch from network
   if (
     url.hostname.includes("execute-api") ||
     url.hostname.includes("amazonaws.com") ||
     url.pathname.includes("/prod/") ||
-    url.pathname.includes("/api/")
+    url.pathname.includes("/api/") ||
+    url.pathname.startsWith("/admin/") ||
+    url.pathname.endsWith(".js") ||
+    url.pathname.endsWith(".css") ||
+    url.search.length > 0
   ) {
-    // Don't intercept API calls - let them pass through
+    // Don't intercept - let them pass through to network
     return;
   }
 

@@ -12,29 +12,15 @@ let dashboardState = {
 
 // Authentication and initialization
 function checkAuthentication() {
-  console.log("Admin dashboard: checking authentication...");
-
-  // Use authModule if available
   if (window.authModule) {
-    console.log("Admin dashboard: authModule found");
     const isAuth = window.authModule.isAuthenticated();
-    console.log("Admin dashboard: isAuthenticated =", isAuth);
 
     if (!isAuth) {
-      console.log("Admin dashboard: not authenticated, redirecting to login");
       window.location.href = "login.html";
       return false;
     }
 
-    // Get user email to check if admin
     const userEmail = window.authModule.getCurrentUserEmail();
-    console.log("Admin dashboard: user email =", userEmail);
-
-    // For now, allow any authenticated user to access admin panel
-    // In production, you would check against a list of admin emails or a role attribute
-    // The backend will enforce proper authorization
-
-    // Update user display
     const userAvatar = document.querySelector(".user-avatar");
     if (userAvatar && userEmail) {
       userAvatar.textContent = userEmail.charAt(0).toUpperCase();
@@ -44,25 +30,18 @@ function checkAuthentication() {
     return true;
   }
 
-  console.log("Admin dashboard: authModule NOT found, checking localStorage");
-
-  // Fallback: check localStorage directly
   const authData = localStorage.getItem("ai_verification_auth");
-  console.log("Admin dashboard: authData =", authData ? "exists" : "null");
-
   if (authData) {
     try {
       const parsed = JSON.parse(authData);
       if (parsed && parsed.accessToken) {
-        console.log("Admin dashboard: valid auth data found in localStorage");
         return true;
       }
     } catch (e) {
-      console.error("Admin dashboard: error parsing auth data", e);
+      console.error("Error parsing auth data", e);
     }
   }
 
-  console.log("Admin dashboard: no valid auth, redirecting to login");
   window.location.href = "login.html";
   return false;
 }
@@ -84,11 +63,8 @@ function logout() {
         typeof window.authModule.signOut === "function"
       ) {
         window.authModule.signOut();
-      } else {
-        localStorage.removeItem("isAuthed");
-        localStorage.removeItem("username");
-        localStorage.removeItem("ai_verification_auth");
       }
+      localStorage.removeItem("ai_verification_auth");
       window.location.href = "login.html";
     }
   });
@@ -1165,7 +1141,24 @@ async function exportAuditLog() {
 async function apiCall(endpoint, options = {}) {
   // Get auth token if available
   let authHeaders = {};
+
+  // Try localStorage first (ai_verification_auth)
+  try {
+    const authData = localStorage.getItem("ai_verification_auth");
+    if (authData) {
+      const parsed = JSON.parse(authData);
+      const token = parsed.accessToken;
+      if (token) {
+        authHeaders = { Authorization: `Bearer ${token}` };
+      }
+    }
+  } catch (e) {
+    console.warn("Could not read auth from localStorage:", e);
+  }
+
+  // Fallback to authModule if no token found
   if (
+    !authHeaders.Authorization &&
     window.authModule &&
     typeof window.authModule.getAuthHeader === "function"
   ) {
@@ -1179,7 +1172,9 @@ async function apiCall(endpoint, options = {}) {
     }
   }
 
-  const baseUrl = window.CONFIG?.API_BASE_URL || "";
+  const baseUrl =
+    window.CONFIG?.API_BASE_URL ||
+    "https://9o3urlbyuc.execute-api.us-east-1.amazonaws.com/prod";
   const url = baseUrl + endpoint;
 
   const defaultOptions = {

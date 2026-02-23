@@ -18,7 +18,11 @@ window.UserManagementModule = (function () {
    * Get API URL from config
    */
   function getApiBaseUrl() {
-    return window.CONFIG?.API_URL || window.CONFIG?.API_BASE_URL || "";
+    const url =
+      window.CONFIG?.API_URL ||
+      window.CONFIG?.API_BASE_URL ||
+      "https://9o3urlbyuc.execute-api.us-east-1.amazonaws.com/prod";
+    return url;
   }
 
   /**
@@ -31,8 +35,9 @@ window.UserManagementModule = (function () {
       const authData = localStorage.getItem("ai_verification_auth");
       if (authData) {
         const parsed = JSON.parse(authData);
-        if (parsed && parsed.accessToken) {
-          headers.Authorization = `Bearer ${parsed.accessToken}`;
+        const token = parsed.accessToken;
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
           return headers;
         }
       }
@@ -139,7 +144,6 @@ window.UserManagementModule = (function () {
       options.body = JSON.stringify(body);
     }
 
-    console.log("[UserMgmt] API call:", method, url);
     const response = await fetch(url, options);
 
     if (response.status === 401 || response.status === 403) {
@@ -158,7 +162,6 @@ window.UserManagementModule = (function () {
       console.error("[UserMgmt] Non-JSON response:", text.substring(0, 200));
       throw new Error("Respuesta no válida del servidor");
     }
-
     const data = await response.json();
 
     if (!response.ok) {
@@ -184,8 +187,6 @@ window.UserManagementModule = (function () {
       if (currentFilters.role) params.append("role", currentFilters.role);
 
       const data = await apiCall(`/admin/users?${params}`);
-
-      console.log("[UserMgmt] Loaded", data.users?.length || 0, "users");
 
       currentUsers = data.users || [];
       currentPaginationToken = data.paginationToken;
@@ -378,18 +379,18 @@ window.UserManagementModule = (function () {
                 <div class="text-start">
                     <div class="mb-3">
                         <label class="form-label">Correo Electrónico *</label>
-                        <input type="email" id="newUserEmail" class="form-control" placeholder="usuario@ejemplo.com" required>
+                        <input type="email" id="swalNewUserEmail" class="form-control" placeholder="usuario@ejemplo.com" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Rol *</label>
-                        <select id="newUserRole" class="form-select">
+                        <select id="swalNewUserRole" class="form-select">
                             <option value="teacher">Profesor</option>
                             <option value="admin">Administrador</option>
                         </select>
                     </div>
                     <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="sendWelcomeEmail" checked>
-                        <label class="form-check-label" for="sendWelcomeEmail">
+                        <input type="checkbox" class="form-check-input" id="swalSendWelcomeEmail" checked>
+                        <label class="form-check-label" for="swalSendWelcomeEmail">
                             Enviar correo de bienvenida con contraseña temporal
                         </label>
                     </div>
@@ -400,10 +401,11 @@ window.UserManagementModule = (function () {
       cancelButtonText: "Cancelar",
       confirmButtonColor: "#008FD0",
       preConfirm: () => {
-        const email = document.getElementById("newUserEmail").value.trim();
-        const role = document.getElementById("newUserRole").value;
-        const sendWelcomeEmail =
-          document.getElementById("sendWelcomeEmail").checked;
+        const email = document.getElementById("swalNewUserEmail").value.trim();
+        const role = document.getElementById("swalNewUserRole").value;
+        const sendWelcomeEmail = document.getElementById(
+          "swalSendWelcomeEmail",
+        ).checked;
 
         if (!email || !email.includes("@")) {
           Swal.showValidationMessage(
@@ -665,14 +667,17 @@ window.UserManagementModule = (function () {
         didOpen: () => Swal.showLoading(),
       });
 
-      await apiCall(
+      const data = await apiCall(
         `/admin/users/${encodeURIComponent(userId)}/reset-password`,
         "POST",
       );
 
+      // If a temp password was generated (FORCE_CHANGE_PASSWORD users), show it
+      const text = data.message || "Contraseña restablecida correctamente";
+
       Swal.fire({
         title: "¡Éxito!",
-        text: "Se ha enviado un correo con la nueva contraseña temporal",
+        text: text,
         icon: "success",
         confirmButtonColor: "#008FD0",
       });
@@ -861,6 +866,4 @@ window.UserManagementModule = (function () {
 })();
 
 // Initialize when DOM is ready
-document.addEventListener("DOMContentLoaded", function () {
-  console.log("[UserMgmt] Module loaded");
-});
+document.addEventListener("DOMContentLoaded", function () {});

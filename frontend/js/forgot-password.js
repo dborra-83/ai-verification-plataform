@@ -21,13 +21,11 @@ async function initAuthModule() {
         window.COGNITO_CONFIG.APP_CLIENT_ID,
         window.COGNITO_CONFIG.REGION,
       );
-      console.log("Auth module initialized for forgot password");
     } catch (error) {
       console.error("Failed to initialize auth module:", error);
       showAlert("Error al inicializar. Recarga la página.", "danger");
     }
   } else {
-    console.error("COGNITO_CONFIG or AuthModule not available");
     showAlert("Error de configuración. Contacta al administrador.", "danger");
   }
 }

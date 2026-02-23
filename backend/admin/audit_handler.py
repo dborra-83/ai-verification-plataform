@@ -83,8 +83,6 @@ def get_user_context(event):
 def lambda_handler(event, context):
     """Main Lambda handler for audit operations"""
     try:
-        print(f"Audit Lambda - Received event: {json.dumps(event)}")
-        
         http_method = event.get('httpMethod', 'GET')
         path = event.get('path', '')
         
@@ -153,7 +151,6 @@ def record_audit_entry(admin_id, admin_email, action_type, target_user_id=None,
         }
         
         table.put_item(Item=audit_entry)
-        print(f"Audit log recorded: {action_type} by {admin_email}")
         return audit_entry
         
     except Exception as e:

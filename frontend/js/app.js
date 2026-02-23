@@ -53,14 +53,12 @@
 const SessionManager = {
   // Check if user is authenticated using Cognito tokens
   isAuthenticated() {
-    // First check if authModule is available and use it
     if (
       window.authModule &&
       typeof window.authModule.isAuthenticated === "function"
     ) {
       return window.authModule.isAuthenticated();
     }
-    // Fallback: check localStorage directly for Cognito tokens
     try {
       const authData = localStorage.getItem("ai_verification_auth");
       if (authData) {
@@ -87,7 +85,6 @@ const SessionManager = {
         teacherId: email || "usuario",
       };
     }
-    // Fallback: check localStorage directly
     try {
       const authData = localStorage.getItem("ai_verification_auth");
       if (authData) {
@@ -110,10 +107,8 @@ const SessionManager = {
     };
   },
 
-  // Set user session (for compatibility - Cognito handles this)
-  setSession(username) {
-    // Cognito handles session storage, this is for compatibility
-    console.log("Session set for:", username);
+  setSession() {
+    // Cognito handles session storage
   },
 
   // Clear user session
@@ -154,16 +149,11 @@ async function initAuthModule() {
         window.COGNITO_CONFIG.REGION,
       );
       window.authModule = authModule;
-      console.log("Auth module initialized");
-      console.log("Is authenticated:", authModule.isAuthenticated());
-      console.log("Current user:", authModule.getCurrentUserEmail());
       return true;
     } catch (error) {
       console.error("Failed to initialize auth module:", error);
       return false;
     }
-  } else {
-    console.warn("COGNITO_CONFIG or AuthModule not available");
   }
   return false;
 }
@@ -181,29 +171,19 @@ document.addEventListener("DOMContentLoaded", async function () {
 function checkAuthentication() {
   const currentPage = window.location.pathname.split("/").pop() || "index.html";
 
-  // Skip auth check for login, signup, verify pages
   if (
     currentPage === "login.html" ||
     currentPage === "signup.html" ||
     currentPage === "verify.html"
   ) {
-    return; // Let those pages handle their own auth logic
+    return;
   }
 
-  // For protected pages, check if authenticated
   const isAuthed = window.SessionManager
     ? window.SessionManager.isAuthenticated()
     : false;
 
-  console.log(
-    "checkAuthentication - page:",
-    currentPage,
-    "isAuthed:",
-    isAuthed,
-  );
-
   if (!isAuthed) {
-    console.log("Not authenticated, redirecting to login...");
     window.location.href = "login.html";
   }
 }
@@ -324,9 +304,7 @@ function setupSearch() {
   const searchInput = document.getElementById("searchInput");
   if (searchInput) {
     searchInput.addEventListener("input", function (e) {
-      const query = e.target.value.toLowerCase();
-      // Implement search logic here
-      console.log("Searching for:", query);
+      // Search logic placeholder
     });
   }
 }
@@ -463,7 +441,6 @@ function showComingSoon(featureName) {
 
 // API utility functions
 async function apiCall(endpoint, options = {}) {
-  // Get auth token if available
   let authHeaders = {};
   if (
     window.authModule &&
@@ -473,15 +450,10 @@ async function apiCall(endpoint, options = {}) {
       const authHeader = await window.authModule.getAuthHeader();
       if (authHeader) {
         authHeaders = authHeader;
-        console.log("Auth header added to request");
-      } else {
-        console.warn("No auth header available - user may not be logged in");
       }
     } catch (error) {
       console.warn("Could not get auth header:", error);
     }
-  } else {
-    console.warn("Auth module not available for API call");
   }
 
   const defaultOptions = {
@@ -501,10 +473,7 @@ async function apiCall(endpoint, options = {}) {
   try {
     const response = await fetch(url, finalOptions);
 
-    // Handle 401 Unauthorized - redirect to login
     if (response.status === 401) {
-      console.warn("Received 401 Unauthorized - redirecting to login");
-      // Clear auth data
       if (
         window.authModule &&
         typeof window.authModule.signOut === "function"
@@ -512,20 +481,16 @@ async function apiCall(endpoint, options = {}) {
         window.authModule.signOut();
       }
       localStorage.removeItem("ai_verification_auth");
-      // Store current page for redirect after login
       const currentPath =
         window.location.pathname +
         window.location.search +
         window.location.hash;
       sessionStorage.setItem("redirectAfterLogin", currentPath);
-      // Redirect to login
       window.location.href = "login.html";
       throw new Error("Unauthorized - redirecting to login");
     }
 
-    // Handle 403 Forbidden
     if (response.status === 403) {
-      console.warn("Received 403 Forbidden - access denied");
       throw new Error("No tienes permisos para realizar esta acción");
     }
 
@@ -619,14 +584,8 @@ function hideLoading() {
 // Dashboard data loading (placeholder)
 async function loadDashboardData() {
   try {
-    // This will be implemented when the API is ready
-    console.log("Loading dashboard data...");
-
-    // For now, show placeholder data
     document.getElementById("totalAnalyses").textContent = "0";
     document.getElementById("avgAiScore").textContent = "0.0";
-
-    // Load recent analyses
     loadRecentAnalyses();
   } catch (error) {
     console.error("Error loading dashboard data:", error);
@@ -692,10 +651,8 @@ async function loadRecentAnalyses() {
   }
 }
 
-// History data loading (placeholder)
 async function loadHistoryData() {
-  console.log("Loading history data...");
-  // This will be implemented when the API is ready
+  // Placeholder - implemented in exam-history.js
 }
 
 // Navigation to analysis detail
@@ -921,24 +878,17 @@ function showExamAnalyticsSection() {
 // Make function globally available
 window.showExamAnalyticsSection = showExamAnalyticsSection;
 
-// Show admin section in sidebar if user is admin
 function showAdminSectionIfAdmin() {
   try {
-    // For now, show admin section for all authenticated users
-    // In production, this should check the user role from Cognito
     const isAuthenticated = window.SessionManager
       ? window.SessionManager.isAuthenticated()
       : false;
 
-    console.log("Checking admin status - isAuthenticated:", isAuthenticated);
-
-    // Show admin sections for all authenticated users (temporary for testing)
     if (isAuthenticated) {
       const adminSections = document.querySelectorAll(".admin-only-section");
       adminSections.forEach((section) => {
         section.style.display = "block";
       });
-      console.log("Admin sections shown:", adminSections.length);
     }
   } catch (error) {
     console.error("Error checking admin status:", error);

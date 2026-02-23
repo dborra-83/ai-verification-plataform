@@ -49,7 +49,6 @@ class AuthModule {
         region: this.region,
       });
       this.sdkReady = true;
-      console.log("Cognito SDK initialized");
     } else {
       console.error("AWS SDK not available");
     }
@@ -169,9 +168,74 @@ class AuthModule {
         };
       }
 
+      // Handle NEW_PASSWORD_REQUIRED challenge (admin-created users)
+      if (response.ChallengeName === "NEW_PASSWORD_REQUIRED") {
+        // Store session and email for the password change step
+        sessionStorage.setItem("cognito_challenge_session", response.Session);
+        sessionStorage.setItem("cognito_challenge_email", email);
+        return {
+          success: false,
+          challenge: "NEW_PASSWORD_REQUIRED",
+          session: response.Session,
+          email: email,
+          message: "Debes establecer una nueva contraseña para continuar",
+        };
+      }
+
       return { success: false, message: "Error al iniciar sesión" };
     } catch (error) {
       console.error("SignIn error:", error);
+      return { success: false, message: this.translateError(error) };
+    }
+  }
+
+  /**
+   * Complete NEW_PASSWORD_REQUIRED challenge
+   */
+  async completeNewPasswordChallenge(email, newPassword) {
+    try {
+      await this.waitForSDK();
+      if (!this.cognitoClient) throw new Error("SDK not ready");
+
+      const session = sessionStorage.getItem("cognito_challenge_session");
+      if (!session)
+        throw new Error("Sesión expirada. Inicia sesión nuevamente.");
+
+      const params = {
+        ChallengeName: "NEW_PASSWORD_REQUIRED",
+        ClientId: this.clientId,
+        ChallengeResponses: {
+          USERNAME: email,
+          NEW_PASSWORD: newPassword,
+        },
+        Session: session,
+      };
+
+      const response = await this.cognitoClient
+        .respondToAuthChallenge(params)
+        .promise();
+
+      if (response.AuthenticationResult) {
+        const tokens = response.AuthenticationResult;
+        this.storeAuth({
+          accessToken: tokens.AccessToken,
+          refreshToken: tokens.RefreshToken,
+          idToken: tokens.IdToken,
+          email: email,
+          expiresAt: Date.now() + tokens.ExpiresIn * 1000,
+        });
+        sessionStorage.removeItem("cognito_challenge_session");
+        sessionStorage.removeItem("cognito_challenge_email");
+        return {
+          success: true,
+          tokens,
+          message: "Contraseña actualizada. Bienvenido.",
+        };
+      }
+
+      return { success: false, message: "Error al establecer la contraseña" };
+    } catch (error) {
+      console.error("NewPasswordChallenge error:", error);
       return { success: false, message: this.translateError(error) };
     }
   }
@@ -235,24 +299,18 @@ class AuthModule {
    */
   async getAccessToken() {
     const auth = this.getStoredAuth();
-    console.log("getAccessToken - stored auth:", auth ? "exists" : "null");
     if (!auth) return null;
 
-    // Check if token expires in next 5 minutes
     const expiresIn = auth.expiresAt - Date.now();
-    console.log("getAccessToken - expires in:", expiresIn, "ms");
     if (expiresIn < 5 * 60 * 1000) {
-      console.log("Token expiring soon, refreshing...");
       const refreshed = await this.refreshAccessToken();
       if (!refreshed) {
-        console.log("Token refresh failed, signing out");
         this.signOut();
         return null;
       }
       return this.getStoredAuth().accessToken;
     }
 
-    console.log("getAccessToken - returning token");
     return auth.accessToken;
   }
 
@@ -356,4 +414,3 @@ class AuthModule {
 
 // Make available globally
 window.AuthModule = AuthModule;
-console.log("AuthModule loaded and available globally");

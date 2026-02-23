@@ -18,28 +18,19 @@ function initAuth() {
       window.COGNITO_CONFIG.APP_CLIENT_ID,
       window.COGNITO_CONFIG.REGION,
     );
-
-    // DON'T auto-redirect even if authenticated
-    // This prevents the redirect loop
-    // User can login again or navigate manually
-
-    // Initialize form
     initializeForm();
   } else {
-    // Retry after a short delay
     setTimeout(initAuth, 100);
   }
 }
 
 // Initialize form elements and event listeners
 function initializeForm() {
-  // Get DOM elements
   loginForm = document.getElementById("loginForm");
-  emailInput = document.getElementById("username"); // Using username field for email
+  emailInput = document.getElementById("username");
   passwordInput = document.getElementById("password");
   loginBtn = document.querySelector('button[type="submit"]');
 
-  // Create error message element if it doesn't exist
   if (!document.getElementById("errorMessage")) {
     const errorDiv = document.createElement("div");
     errorDiv.id = "errorMessage";
@@ -49,7 +40,6 @@ function initializeForm() {
   }
   errorMessage = document.getElementById("errorMessage");
 
-  // Create loading indicator if it doesn't exist
   if (!document.getElementById("loadingIndicator")) {
     const loadingDiv = document.createElement("div");
     loadingDiv.id = "loadingIndicator";
@@ -64,7 +54,6 @@ function initializeForm() {
   }
   loadingIndicator = document.getElementById("loadingIndicator");
 
-  // Register form submit handler
   if (loginForm) {
     loginForm.addEventListener("submit", handleFormSubmit);
   }
@@ -77,26 +66,17 @@ document.addEventListener("DOMContentLoaded", initAuth);
 async function handleFormSubmit(e) {
   e.preventDefault();
 
-  console.log("Form submitted");
-
-  // Clear previous messages
   hideMessage(errorMessage);
 
-  // Get form values
   const email = emailInput.value.trim();
   const password = passwordInput.value;
 
-  console.log("Email:", email);
-
-  // Validate inputs
   if (!email || !password) {
     showMessage(errorMessage, "Por favor ingrese email y contraseña");
     return;
   }
 
-  // Check if auth is ready
   if (!auth) {
-    console.error("Auth module not initialized");
     showMessage(
       errorMessage,
       "El módulo de autenticación no está listo. Recarga la página.",
@@ -104,54 +84,37 @@ async function handleFormSubmit(e) {
     return;
   }
 
-  // Show loading indicator
   showLoading(true);
 
   try {
-    console.log("Calling auth.signIn...");
-    // Call signIn method
     const result = await auth.signIn(email, password);
 
-    console.log("SignIn result:", result);
-
-    // Hide loading indicator
     showLoading(false);
 
     if (result.success) {
-      console.log("Login successful, extracting user role...");
-
       // Extract user role from ID token
       try {
         const idToken = result.tokens.IdToken;
         if (idToken) {
-          // Decode JWT payload (base64)
           const payload = JSON.parse(atob(idToken.split(".")[1]));
-          const userRole = payload["custom:role"] || "teacher";
-          console.log("User role from token:", userRole);
-
-          // Store user role
+          const userRole =
+            payload["custom:role"] || payload["profile"] || "teacher";
           localStorage.setItem("userRole", userRole);
         }
       } catch (tokenError) {
-        console.error("Error extracting role from token:", tokenError);
-        // Default to teacher role if extraction fails
         localStorage.setItem("userRole", "teacher");
       }
 
-      console.log("Redirecting...");
-      // Check for stored redirect destination
       const redirectUrl = sessionStorage.getItem("redirectAfterLogin");
       if (redirectUrl) {
         sessionStorage.removeItem("redirectAfterLogin");
-        console.log("Redirecting to stored destination:", redirectUrl);
         window.location.href = redirectUrl;
       } else {
-        // Default to dashboard
         window.location.href = "index.html";
       }
+    } else if (result.challenge === "NEW_PASSWORD_REQUIRED") {
+      showNewPasswordForm(result.email);
     } else {
-      console.log("Login failed:", result.message);
-      // Show error message
       showMessage(errorMessage, result.message);
     }
   } catch (error) {
@@ -161,6 +124,94 @@ async function handleFormSubmit(e) {
       errorMessage,
       "Ocurrió un error inesperado. Por favor intenta de nuevo.",
     );
+  }
+}
+
+/**
+ * Show new password form for admin-created users (NEW_PASSWORD_REQUIRED challenge)
+ */
+async function showNewPasswordForm(email) {
+  const { value: formValues } = await Swal.fire({
+    title: "Establece tu nueva contraseña",
+    html: `
+      <p class="text-muted mb-3">Es tu primer inicio de sesión. Debes crear una contraseña personal.</p>
+      <input id="swal-new-password" type="password" class="swal2-input" placeholder="Nueva contraseña">
+      <input id="swal-confirm-password" type="password" class="swal2-input" placeholder="Confirmar contraseña">
+      <div id="swal-pw-error" class="text-danger mt-2 small d-none"></div>
+    `,
+    confirmButtonText: "Guardar contraseña",
+    confirmButtonColor: "#4361ee",
+    showCancelButton: false,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    focusConfirm: false,
+    preConfirm: () => {
+      const newPw = document.getElementById("swal-new-password").value;
+      const confirmPw = document.getElementById("swal-confirm-password").value;
+      const errEl = document.getElementById("swal-pw-error");
+
+      if (!newPw || !confirmPw) {
+        errEl.textContent = "Por favor completa ambos campos.";
+        errEl.classList.remove("d-none");
+        return false;
+      }
+      if (newPw !== confirmPw) {
+        errEl.textContent = "Las contraseñas no coinciden.";
+        errEl.classList.remove("d-none");
+        return false;
+      }
+      if (newPw.length < 8) {
+        errEl.textContent = "La contraseña debe tener al menos 8 caracteres.";
+        errEl.classList.remove("d-none");
+        return false;
+      }
+      if (
+        !/[A-Z]/.test(newPw) ||
+        !/[a-z]/.test(newPw) ||
+        !/[0-9]/.test(newPw)
+      ) {
+        errEl.textContent = "Debe incluir mayúsculas, minúsculas y números.";
+        errEl.classList.remove("d-none");
+        return false;
+      }
+      return { newPassword: newPw };
+    },
+  });
+
+  if (!formValues) return;
+
+  try {
+    Swal.showLoading();
+    const result = await auth.completeNewPasswordChallenge(
+      email,
+      formValues.newPassword,
+    );
+    if (result.success) {
+      await Swal.fire({
+        icon: "success",
+        title: "¡Contraseña establecida!",
+        text: "Tu contraseña fue actualizada. Bienvenido.",
+        confirmButtonColor: "#4361ee",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+      window.location.href = "index.html";
+    } else {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: result.message || "No se pudo establecer la contraseña.",
+        confirmButtonColor: "#4361ee",
+      });
+    }
+  } catch (err) {
+    console.error("completeNewPasswordChallenge error:", err);
+    Swal.fire({
+      icon: "error",
+      title: "Error inesperado",
+      text: "Ocurrió un error. Por favor intenta de nuevo.",
+      confirmButtonColor: "#4361ee",
+    });
   }
 }
 

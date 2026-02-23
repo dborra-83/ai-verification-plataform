@@ -85,22 +85,26 @@ def get_user_context(event):
 def handle_cognito_error(error):
     """Map Cognito errors to user-friendly Spanish messages"""
     error_code = error.response['Error']['Code']
+    error_message = error.response['Error'].get('Message', '')
     
     cognito_error_map = {
         'UserNotFoundException': ('USER_NOT_FOUND', 404),
         'UsernameExistsException': ('USER_ALREADY_EXISTS', 409),
-        'InvalidParameterException': ('INVALID_EMAIL', 400),
         'NotAuthorizedException': ('UNAUTHORIZED', 401),
         'TooManyRequestsException': ('COGNITO_ERROR', 429),
         'InternalErrorException': ('COGNITO_ERROR', 500),
         'InvalidPaginationTokenException': ('INVALID_PAGINATION_TOKEN', 400),
     }
     
+    if error_code == 'InvalidParameterException':
+        return create_error_response(400, 'VALIDATION_ERROR',
+            f'Error de parámetro: {error_message}')
+    
     if error_code in cognito_error_map:
         code, status = cognito_error_map[error_code]
         return create_error_response(status, code)
     
-    return create_error_response(500, 'COGNITO_ERROR')
+    return create_error_response(500, 'COGNITO_ERROR', f'{error_code}: {error_message}')
 
 
 def generate_temp_password(length=12):
@@ -132,7 +136,7 @@ def parse_cognito_user(user):
         'userStatus': user.get('UserStatus', ''),
         'userCreateDate': user.get('UserCreateDate', ''),
         'userLastModifiedDate': user.get('UserLastModifiedDate', ''),
-        'role': attributes.get('custom:role', 'teacher'),
+        'role': attributes.get('custom:role', attributes.get('profile', 'teacher')),
         'attributes': attributes
     }
 
@@ -140,18 +144,12 @@ def parse_cognito_user(user):
 def lambda_handler(event, context):
     """Main Lambda handler for user management operations"""
     try:
-        print(f"User Management Lambda - Received event: {json.dumps(event)}")
-        
         http_method = event.get('httpMethod', 'GET')
         path = event.get('path', '')
         path_params = event.get('pathParameters') or {}
         
-        # Extract admin context
         admin_context = get_user_context(event)
-        if admin_context:
-            print(f"Request from admin: {admin_context.get('email')}")
         
-        # Route to appropriate handler
         if '/admin/users/bulk' in path and http_method == 'POST':
             return handle_bulk_operation(event, admin_context)
         elif '/admin/users/export' in path and http_method == 'POST':
@@ -332,17 +330,23 @@ def handle_create_user(event, admin_context):
         user_attributes = [
             {'Name': 'email', 'Value': email},
             {'Name': 'email_verified', 'Value': 'true'},
-            {'Name': 'custom:role', 'Value': role}
         ]
+        # Note: custom:role is not in this user pool's schema
+        # Role is stored in the user's profile/name field as a workaround
+        # or managed externally
         
-        response = cognito_client.admin_create_user(
-            UserPoolId=USER_POOL_ID,
-            Username=email,
-            UserAttributes=user_attributes,
-            TemporaryPassword=temp_password,
-            MessageAction='SUPPRESS' if not send_welcome_email else 'RESEND',
-            DesiredDeliveryMediums=['EMAIL']
-        )
+        # Build Cognito create user params
+        create_params = {
+            'UserPoolId': USER_POOL_ID,
+            'Username': email,
+            'UserAttributes': user_attributes,
+            'TemporaryPassword': temp_password,
+        }
+        # SUPPRESS suppresses the welcome email; omitting MessageAction lets Cognito send it
+        if not send_welcome_email:
+            create_params['MessageAction'] = 'SUPPRESS'
+        
+        response = cognito_client.admin_create_user(**create_params)
         
         user = parse_cognito_user(response.get('User', {}))
         
@@ -486,18 +490,18 @@ def handle_update_user_role(event, user_id, admin_context):
             )
             previous_role = 'teacher'
             for attr in user_response.get('UserAttributes', []):
-                if attr['Name'] == 'custom:role':
+                if attr['Name'] in ('custom:role', 'profile'):
                     previous_role = attr['Value']
                     break
         except:
             previous_role = 'unknown'
         
-        # Update role attribute
+        # Update role attribute - use 'profile' since custom:role doesn't exist in this pool
         cognito_client.admin_update_user_attributes(
             UserPoolId=USER_POOL_ID,
             Username=user_id,
             UserAttributes=[
-                {'Name': 'custom:role', 'Value': new_role}
+                {'Name': 'profile', 'Value': new_role}
             ]
         )
         
@@ -532,26 +536,42 @@ def handle_reset_password(event, user_id, admin_context):
     POST /admin/users/{userId}/reset-password
     """
     try:
-        # Reset password - Cognito will send email with new temp password
-        cognito_client.admin_reset_user_password(
+        user_response = cognito_client.admin_get_user(
             UserPoolId=USER_POOL_ID,
             Username=user_id
         )
-        
-        # Record audit log
+        user_status = user_response.get('UserStatus', '')
+
+        if user_status == 'FORCE_CHANGE_PASSWORD':
+            temp_password = generate_temp_password()
+            cognito_client.admin_set_user_password(
+                UserPoolId=USER_POOL_ID,
+                Username=user_id,
+                Password=temp_password,
+                Permanent=False
+            )
+            message = f'Nueva contraseña temporal generada: {temp_password}'
+        else:
+            cognito_client.admin_reset_user_password(
+                UserPoolId=USER_POOL_ID,
+                Username=user_id
+            )
+            message = 'Contraseña restablecida. El usuario recibirá un correo con instrucciones.'
+
         record_audit_log(
             admin_context,
             'PASSWORD_RESET',
             user_id,
             None,
-            {}
+            {'userStatus': user_status}
         )
-        
+
         return create_response(200, {
-            'message': 'Contraseña restablecida exitosamente. El usuario recibirá un correo con la nueva contraseña temporal.',
-            'userId': user_id
+            'message': message,
+            'userId': user_id,
+            'userStatus': user_status
         })
-        
+
     except ClientError as e:
         print(f"Cognito error resetting password: {e}")
         return handle_cognito_error(e)
@@ -955,7 +975,6 @@ def record_audit_log(admin_context, action_type, target_user_id, target_email, d
         }
         
         table.put_item(Item=audit_entry)
-        print(f"Audit log recorded: {action_type} by {audit_entry['adminEmail']}")
         
     except Exception as e:
         print(f"Error recording audit log: {e}")
