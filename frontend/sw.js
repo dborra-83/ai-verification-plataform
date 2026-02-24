@@ -1,7 +1,7 @@
 // Service Worker for AI Verification Platform
 // Provides basic offline functionality
 
-const CACHE_NAME = "ai-verification-v9"; // Bumped to force full cache clear
+const CACHE_NAME = "ai-verification-v10"; // Bumped to force full cache clear
 const urlsToCache = [
   "/",
   "/index.html",

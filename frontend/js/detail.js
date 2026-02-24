@@ -68,7 +68,7 @@ function populateAnalysisDetail(analysis) {
   document.getElementById("assignmentName").textContent =
     analysis.metadata?.assignmentName || "Sin tarea";
   document.getElementById("analysisDate").textContent = formatDate(
-    analysis.createdAt
+    analysis.createdAt,
   );
 
   // Status badge
@@ -95,12 +95,95 @@ function populateAnalysisDetail(analysis) {
   // Technical details
   populateTechnicalDetails(analysis);
 
+  // Teacher notes
+  populateTeacherNotes(analysis);
+
   // Setup download button
   setupDownloadButton(analysis.analysisId);
 
   // Update tags display
   updateTagsDisplay();
 }
+
+function populateTeacherNotes(analysis) {
+  const notesInput = document.getElementById("teacherNotesInput");
+  const notesLastSaved = document.getElementById("notesLastSaved");
+  if (!notesInput) return;
+
+  notesInput.value = analysis.teacherNotes || "";
+  if (analysis.notesUpdatedAt) {
+    notesLastSaved.textContent = `Última edición: ${formatDate(analysis.notesUpdatedAt)}`;
+  }
+}
+
+async function saveTeacherNotes() {
+  if (!currentAnalysis) return;
+  const notes = document.getElementById("teacherNotesInput").value.trim();
+
+  try {
+    await apiCall(`/analysis/${currentAnalysis.analysisId}/notes`, {
+      method: "PATCH",
+      body: JSON.stringify({ notes }),
+    });
+    const ts = new Date().toLocaleString("es-ES");
+    document.getElementById("notesLastSaved").textContent = `Guardado: ${ts}`;
+    showSuccess("Notas guardadas correctamente");
+  } catch (err) {
+    showError("Error al guardar las notas: " + err.message);
+  }
+}
+
+async function reanalyzeDocument() {
+  if (!currentAnalysis) return;
+
+  const confirm = await Swal.fire({
+    title: "¿Re-analizar documento?",
+    text: "Se volverá a procesar el documento con el modelo de IA actual. Los resultados anteriores serán reemplazados.",
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonColor: "#f0a500",
+    cancelButtonColor: "#6c757d",
+    confirmButtonText: "Sí, re-analizar",
+    cancelButtonText: "Cancelar",
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  try {
+    showLoading("Iniciando re-análisis...");
+    const result = await apiCall(
+      `/analysis/${currentAnalysis.analysisId}/reanalyze`,
+      { method: "POST" },
+    );
+    hideLoading();
+
+    await Swal.fire({
+      icon: "success",
+      title: "Re-análisis iniciado",
+      text: result.message || "El documento está siendo re-analizado.",
+      confirmButtonColor: "#008FD0",
+    });
+
+    window.location.reload();
+  } catch (err) {
+    hideLoading();
+    showError("Error al iniciar re-análisis: " + err.message);
+  }
+}
+
+function viewStudentHistory() {
+  if (!currentAnalysis) return;
+  const studentName = currentAnalysis.metadata?.studentName;
+  if (!studentName) {
+    showError("No se encontró el nombre del alumno");
+    return;
+  }
+  window.location.href = `student-history.html?student=${encodeURIComponent(studentName)}`;
+}
+
+window.saveTeacherNotes = saveTeacherNotes;
+window.reanalyzeDocument = reanalyzeDocument;
+window.viewStudentHistory = viewStudentHistory;
 
 function populateScores(analysis) {
   const aiScore = analysis.aiLikelihoodScore || 0;
@@ -119,7 +202,7 @@ function populateScores(analysis) {
   const originalityScoreText = document.getElementById("originalityScoreText");
   originalityScoreBar.style.width = `${originalityScore}%`;
   originalityScoreBar.className = `progress-bar progress-bar-${getScoreColor(
-    100 - originalityScore
+    100 - originalityScore,
   )}`;
   originalityScoreText.textContent = `${originalityScore}%`;
 
@@ -128,7 +211,7 @@ function populateScores(analysis) {
   const confidenceText = document.getElementById("confidenceText");
   confidenceBar.style.width = `${confidence}%`;
   confidenceBar.className = `progress-bar progress-bar-${getConfidenceColor(
-    confidence
+    confidence,
   )}`;
   confidenceText.textContent = `${confidence}%`;
 }
@@ -157,14 +240,14 @@ function populateSignals(signals) {
                     }" type="button" 
                             data-bs-toggle="collapse" data-bs-target="#collapse-${signalId}">
                         <i class="bi ${signalType.icon} me-2 text-${
-        signalType.color
-      }"></i>
+                          signalType.color
+                        }"></i>
                         <strong>${signalType.title}</strong>
                     </button>
                 </h2>
                 <div id="collapse-${signalId}" class="accordion-collapse collapse ${
-        index === 0 ? "show" : ""
-      }" 
+                  index === 0 ? "show" : ""
+                }" 
                      data-bs-parent="#signalsAccordion">
                     <div class="accordion-body">
                         <p class="mb-2">${signal.description}</p>
@@ -206,7 +289,7 @@ function populateRecommendations(recommendations) {
                 ${recommendation}
             </label>
         </div>
-    `
+    `,
     )
     .join("");
 }
@@ -229,7 +312,7 @@ function populateLimitations(limitations) {
             <i class="bi bi-exclamation-triangle me-2 mt-1"></i>
             <div>${limitation}</div>
         </div>
-    `
+    `,
     )
     .join("");
 }
@@ -426,7 +509,7 @@ async function downloadPDF(analysisId) {
     }
 
     const response = await apiCall(
-      `/downloads/presign?analysisId=${analysisId}`
+      `/downloads/presign?analysisId=${analysisId}`,
     );
 
     // Close loading message
@@ -471,7 +554,7 @@ function showTagModalForDetail() {
   if (typeof showTagModal === "function") {
     showTagModal(
       currentAnalysis.analysisId,
-      currentAnalysis.studentName || "Sin nombre"
+      currentAnalysis.studentName || "Sin nombre",
     );
   } else {
     showError("Función de etiquetas no disponible");

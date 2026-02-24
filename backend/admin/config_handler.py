@@ -151,7 +151,12 @@ def lambda_handler(event, context):
         admin_context = get_user_context(event)
         
         # Route to appropriate handler
-        if '/admin/config/email-templates' in path:
+        if '/admin/config/course-thresholds' in path:
+            if http_method == 'GET':
+                return handle_get_course_thresholds()
+            elif http_method in ('PUT', 'POST'):
+                return handle_update_course_thresholds(event, admin_context)
+        elif '/admin/config/email-templates' in path:
             template_id = path_params.get('templateId')
             if template_id:
                 if http_method == 'GET':
@@ -598,3 +603,69 @@ def record_template_audit(admin_context, template_id, previous_template, new_tem
         table.put_item(Item=audit_entry)
     except Exception as e:
         print(f"Error recording template audit: {e}")
+
+
+def handle_get_course_thresholds():
+    """
+    GET /admin/config/course-thresholds
+    Returns per-course AI detection thresholds.
+    """
+    try:
+        thresholds = {}
+
+        if ANALYSIS_TABLE:
+            table = dynamodb.Table(ANALYSIS_TABLE)
+            try:
+                response = table.get_item(Key={'PK': 'CONFIG', 'SK': 'COURSE_THRESHOLDS'})
+                if 'Item' in response:
+                    thresholds = response['Item'].get('thresholds', {})
+            except Exception as e:
+                print(f"Error reading course thresholds: {e}")
+
+        return create_response(200, {
+            'thresholds': thresholds,
+            'globalDefault': DEFAULT_CONFIG.get('analysisThreshold', 70)
+        })
+
+    except Exception as e:
+        print(f"Error getting course thresholds: {e}")
+        return create_error_response(500, 'OPERATION_FAILED')
+
+
+def handle_update_course_thresholds(event, admin_context):
+    """
+    PUT /admin/config/course-thresholds
+    Body: { thresholds: { "Matemáticas": 75, "Literatura": 85, ... } }
+    """
+    try:
+        body = json.loads(event.get('body', '{}'))
+        thresholds = body.get('thresholds', {})
+
+        # Validate all values are 0-100
+        for course, value in thresholds.items():
+            if not isinstance(value, (int, float)) or value < 0 or value > 100:
+                return create_error_response(400, 'INVALID_CONFIG',
+                    f'El umbral para "{course}" debe ser un número entre 0 y 100')
+
+        if not ANALYSIS_TABLE:
+            return create_error_response(500, 'OPERATION_FAILED', 'Tabla de configuración no disponible')
+
+        table = dynamodb.Table(ANALYSIS_TABLE)
+        timestamp = datetime.utcnow().isoformat() + 'Z'
+
+        table.put_item(Item={
+            'PK': 'CONFIG',
+            'SK': 'COURSE_THRESHOLDS',
+            'thresholds': thresholds,
+            'updatedAt': timestamp,
+            'updatedBy': admin_context.get('userId') if admin_context else 'system'
+        })
+
+        return create_response(200, {
+            'message': 'Umbrales por curso actualizados exitosamente',
+            'thresholds': thresholds
+        })
+
+    except Exception as e:
+        print(f"Error updating course thresholds: {e}")
+        return create_error_response(500, 'OPERATION_FAILED')

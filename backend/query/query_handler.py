@@ -78,6 +78,12 @@ def lambda_handler(event, context):
         
         if path == '/analysis' and method == 'GET':
             return handle_list_analyses(event)
+        elif path == '/analysis/student' and method == 'GET':
+            return handle_get_student_history(event)
+        elif '/analysis/' in path and path.endswith('/notes') and method in ('PUT', 'PATCH'):
+            return handle_update_notes(event)
+        elif '/analysis/' in path and path.endswith('/reanalyze') and method == 'POST':
+            return handle_reanalyze(event)
         elif path.startswith('/analysis/') and method == 'GET':
             return handle_get_analysis_detail(event)
         elif path.startswith('/analysis/') and method == 'DELETE':
@@ -335,7 +341,9 @@ def handle_get_analysis_detail(event):
                 'limitations': convert_decimals(item.get('limitations', [])),
                 'modelUsed': item.get('modelUsed'),
                 'promptVersion': item.get('promptVersion'),
-                'errorMessage': item.get('errorMessage')
+                'errorMessage': item.get('errorMessage'),
+                'teacherNotes': item.get('teacherNotes', ''),
+                'notesUpdatedAt': item.get('notesUpdatedAt')
             }
             
             print(f"Returning formatted item: {formatted_item}")
@@ -581,3 +589,276 @@ def get_cors_headers():
         'Access-Control-Allow-Methods': 'GET, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     }
+
+
+def handle_update_notes(event):
+    """
+    PATCH /analysis/{analysisId}/notes
+    Body: { notes: "texto libre del docente" }
+    """
+    try:
+        path_parameters = event.get('pathParameters') or {}
+        analysis_id = path_parameters.get('analysisId')
+        if not analysis_id:
+            path = event.get('path', '')
+            parts = path.split('/')
+            analysis_id = parts[-2] if len(parts) >= 2 else None
+
+        if not analysis_id:
+            return create_error_response(400, 'MISSING_ID', 'Analysis ID is required')
+
+        body = json.loads(event.get('body', '{}'))
+        notes = body.get('notes', '').strip()
+
+        table = dynamodb.Table(os.environ['ANALYSIS_TABLE'])
+
+        # Verify analysis exists
+        resp = table.get_item(Key={'analysisId': analysis_id})
+        if 'Item' not in resp:
+            return create_error_response(404, 'NOT_FOUND', 'Analysis not found')
+
+        table.update_item(
+            Key={'analysisId': analysis_id},
+            UpdateExpression='SET teacherNotes = :notes, notesUpdatedAt = :ts',
+            ExpressionAttributeValues={
+                ':notes': notes,
+                ':ts': datetime.utcnow().isoformat() + 'Z'
+            }
+        )
+
+        return {
+            'statusCode': 200,
+            'headers': get_cors_headers(),
+            'body': json.dumps({'message': 'Notas guardadas exitosamente', 'analysisId': analysis_id})
+        }
+
+    except Exception as e:
+        print(f"Error updating notes: {e}")
+        return create_error_response(500, 'UPDATE_ERROR', 'Failed to update notes')
+
+
+def handle_reanalyze(event):
+    """
+    POST /analysis/{analysisId}/reanalyze
+    Re-triggers Bedrock analysis for an existing record using the same S3 key.
+    """
+    try:
+        path_parameters = event.get('pathParameters') or {}
+        analysis_id = path_parameters.get('analysisId')
+        if not analysis_id:
+            path = event.get('path', '')
+            parts = path.split('/')
+            analysis_id = parts[-2] if len(parts) >= 2 else None
+
+        if not analysis_id:
+            return create_error_response(400, 'MISSING_ID', 'Analysis ID is required')
+
+        table = dynamodb.Table(os.environ['ANALYSIS_TABLE'])
+
+        resp = table.get_item(Key={'analysisId': analysis_id})
+        if 'Item' not in resp:
+            return create_error_response(404, 'NOT_FOUND', 'Analysis not found')
+
+        item = resp['Item']
+        s3_key = item.get('s3Key')
+        s3_bucket = item.get('s3Bucket')
+        metadata = item.get('metadata', {})
+
+        if not s3_key or not s3_bucket:
+            return create_error_response(400, 'MISSING_S3_INFO', 'Original file not found for this analysis')
+
+        # Mark as re-processing
+        table.update_item(
+            Key={'analysisId': analysis_id},
+            UpdateExpression='SET #status = :status, reanalyzedAt = :ts',
+            ExpressionAttributeNames={'#status': 'status'},
+            ExpressionAttributeValues={
+                ':status': 'STARTED',
+                ':ts': datetime.utcnow().isoformat() + 'Z'
+            }
+        )
+
+        # Invoke analysis lambda asynchronously via direct call
+        # We reuse the same analysis lambda by calling it synchronously here
+        import boto3 as _boto3
+        lambda_client = _boto3.client('lambda')
+        analysis_fn = os.environ.get('ANALYSIS_FUNCTION_NAME', '')
+
+        if analysis_fn:
+            payload = {
+                'body': json.dumps({'s3Key': s3_key, 'metadata': metadata}),
+                'requestContext': event.get('requestContext', {})
+            }
+            lambda_client.invoke(
+                FunctionName=analysis_fn,
+                InvocationType='Event',  # async
+                Payload=json.dumps(payload)
+            )
+            message = 'Re-análisis iniciado. Los resultados estarán disponibles en unos momentos.'
+        else:
+            # Fallback: do it inline (slower but works without env var)
+            import io
+            s3_client_local = boto3.client('s3')
+            bedrock_client_local = boto3.client('bedrock-runtime')
+
+            pdf_content = s3_client_local.get_object(Bucket=s3_bucket, Key=s3_key)['Body'].read()
+
+            try:
+                import PyPDF2
+                pdf_reader = PyPDF2.PdfReader(io.BytesIO(pdf_content))
+                extracted_text = ''.join(p.extract_text() + '\n' for p in pdf_reader.pages).strip()
+            except Exception:
+                extracted_text = ''
+
+            if len(extracted_text) < 100:
+                table.update_item(
+                    Key={'analysisId': analysis_id},
+                    UpdateExpression='SET #status = :status, errorMessage = :err',
+                    ExpressionAttributeNames={'#status': 'status'},
+                    ExpressionAttributeValues={':status': 'FAILED', ':err': 'Texto insuficiente para re-análisis'}
+                )
+                return create_error_response(422, 'INSUFFICIENT_TEXT', 'Not enough text to reanalyze')
+
+            prompt = f"""Eres un sistema experto en detección de contenido generado por IA en textos académicos en español.
+Analiza el siguiente texto y responde ÚNICAMENTE con JSON válido:
+{{
+  "aiLikelihoodScore": <0-100>,
+  "originalityScore": <0-100>,
+  "confidence": <0-100>,
+  "summary": "<resumen en español>",
+  "signals": [{{"type": "<tipo>", "description": "<desc>", "evidenceSnippet": "<fragmento>"}}],
+  "recommendations": ["<recomendación>"],
+  "limitations": ["<limitación>"]
+}}
+Texto: {extracted_text[:4000]}"""
+
+            response = bedrock_client_local.invoke_model(
+                modelId='anthropic.claude-3-5-sonnet-20240620-v1:0',
+                body=json.dumps({
+                    'anthropic_version': 'bedrock-2023-05-31',
+                    'max_tokens': 1000,
+                    'temperature': 0.3,
+                    'messages': [{'role': 'user', 'content': prompt}]
+                })
+            )
+            content = json.loads(response['body'].read())['content'][0]['text']
+            js = json.loads(content[content.find('{'):content.rfind('}') + 1])
+
+            table.update_item(
+                Key={'analysisId': analysis_id},
+                UpdateExpression='SET #status=:s, aiLikelihoodScore=:ail, originalityScore=:os, confidence=:c, summary=:sum, signals=:sig, recommendations=:rec, limitations=:lim, modelUsed=:m, promptVersion=:pv',
+                ExpressionAttributeNames={'#status': 'status'},
+                ExpressionAttributeValues={
+                    ':s': 'COMPLETED',
+                    ':ail': int(js.get('aiLikelihoodScore', 0)),
+                    ':os': int(js.get('originalityScore', 0)),
+                    ':c': int(js.get('confidence', 0)),
+                    ':sum': js.get('summary', ''),
+                    ':sig': js.get('signals', []),
+                    ':rec': js.get('recommendations', []),
+                    ':lim': js.get('limitations', []),
+                    ':m': 'anthropic.claude-3-5-sonnet-20240620-v1:0',
+                    ':pv': 'v2.0-reanalysis'
+                }
+            )
+            message = 'Re-análisis completado exitosamente.'
+
+        return {
+            'statusCode': 200,
+            'headers': get_cors_headers(),
+            'body': json.dumps({'message': message, 'analysisId': analysis_id})
+        }
+
+    except Exception as e:
+        print(f"Error in reanalyze: {e}")
+        return create_error_response(500, 'REANALYZE_ERROR', f'Failed to reanalyze: {str(e)}')
+
+
+def handle_get_student_history(event):
+    """
+    GET /analysis/student?studentName=xxx
+    Returns all analyses for a given student, sorted by date, with trend data.
+    """
+    try:
+        query_params = event.get('queryStringParameters') or {}
+        student_name = query_params.get('studentName', '').strip()
+
+        if not student_name:
+            return create_error_response(400, 'MISSING_PARAM', 'studentName query parameter is required')
+
+        table = dynamodb.Table(os.environ['ANALYSIS_TABLE'])
+
+        # Scan GSI1 for all RESULTS and filter by studentName
+        # (small dataset — acceptable for demo scale)
+        all_items = []
+        last_key = None
+        while True:
+            params = {
+                'IndexName': 'GSI1',
+                'KeyConditionExpression': Key('GSI1PK').eq('RESULTS'),
+                'ScanIndexForward': False,
+                'Limit': 100
+            }
+            if last_key:
+                params['ExclusiveStartKey'] = last_key
+            resp = table.query(**params)
+            all_items.extend(resp.get('Items', []))
+            last_key = resp.get('LastEvaluatedKey')
+            if not last_key:
+                break
+
+        # Filter by student name (case-insensitive)
+        student_lower = student_name.lower()
+        student_items = [
+            i for i in all_items
+            if (i.get('metadata', {}).get('studentName', '') or '').lower() == student_lower
+            and i.get('status') == 'COMPLETED'
+            and 'aiLikelihoodScore' in i
+        ]
+
+        # Sort by date ascending for trend
+        student_items.sort(key=lambda x: x.get('createdAt', ''))
+
+        formatted = []
+        for item in student_items:
+            formatted.append({
+                'analysisId': item.get('analysisId'),
+                'createdAt': item.get('createdAt'),
+                'course': item.get('metadata', {}).get('course', ''),
+                'assignmentName': item.get('metadata', {}).get('assignmentName', ''),
+                'aiLikelihoodScore': convert_decimals(item.get('aiLikelihoodScore', 0)),
+                'originalityScore': convert_decimals(item.get('originalityScore', 0)),
+                'confidence': convert_decimals(item.get('confidence', 0)),
+                'teacherNotes': item.get('teacherNotes', ''),
+                'status': item.get('status')
+            })
+
+        # Compute trend summary
+        scores = [f['aiLikelihoodScore'] for f in formatted]
+        avg_score = round(sum(scores) / len(scores), 1) if scores else 0
+        trend = 'stable'
+        if len(scores) >= 2:
+            if scores[-1] > scores[0] + 10:
+                trend = 'increasing'
+            elif scores[-1] < scores[0] - 10:
+                trend = 'decreasing'
+
+        return {
+            'statusCode': 200,
+            'headers': get_cors_headers(),
+            'body': json.dumps({
+                'studentName': student_name,
+                'analyses': formatted,
+                'summary': {
+                    'totalAnalyses': len(formatted),
+                    'avgAiScore': avg_score,
+                    'trend': trend,
+                    'maxScore': max(scores) if scores else 0,
+                    'minScore': min(scores) if scores else 0
+                }
+            })
+        }
+
+    except Exception as e:
+        print(f"Error getting student history: {e}")
+        return create_error_response(500, 'QUERY_ERROR', f'Failed to get student history: {str(e)}')

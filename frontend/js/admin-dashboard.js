@@ -1241,6 +1241,97 @@ function showError(message) {
   });
 }
 
+// ── Course Thresholds ──────────────────────────────────────────────────────────
+
+async function loadCourseThresholds() {
+  const container = document.getElementById("courseThresholdsList");
+  if (!container) return;
+
+  try {
+    const data = await apiCall("/admin/config/course-thresholds");
+    const thresholds = data.thresholds || {};
+    container.innerHTML = "";
+
+    if (Object.keys(thresholds).length === 0) {
+      container.innerHTML = `<p class="text-muted small">No hay umbrales por curso definidos. Usa "Agregar Curso" para añadir uno.</p>`;
+      return;
+    }
+
+    Object.entries(thresholds).forEach(([course, value]) => {
+      addCourseThresholdRow(course, value);
+    });
+  } catch (error) {
+    console.error("Error loading course thresholds:", error);
+    container.innerHTML = `<p class="text-muted small">No hay umbrales por curso definidos. Usa "Agregar Curso" para añadir uno.</p>`;
+  }
+}
+
+function addCourseThresholdRow(courseName = "", value = 70) {
+  const container = document.getElementById("courseThresholdsList");
+  if (!container) return;
+
+  // Remove placeholder text if present
+  const placeholder = container.querySelector("p.text-muted");
+  if (placeholder) placeholder.remove();
+
+  const row = document.createElement("div");
+  row.className = "d-flex align-items-center gap-2 mb-2 course-threshold-row";
+  row.innerHTML = `
+    <input type="text" class="form-control" placeholder="Nombre del curso (ej: Matemáticas)"
+      value="${courseName}" style="max-width: 260px;">
+    <input type="number" class="form-control" placeholder="Umbral %" min="0" max="100"
+      value="${value}" style="max-width: 110px;">
+    <span class="text-muted small">%</span>
+    <button class="btn btn-sm btn-outline-danger" onclick="removeCourseThresholdRow(this)" title="Eliminar">
+      <i class="bi bi-trash"></i>
+    </button>
+  `;
+  container.appendChild(row);
+}
+
+function removeCourseThresholdRow(btn) {
+  const row = btn.closest(".course-threshold-row");
+  if (row) {
+    row.remove();
+    const container = document.getElementById("courseThresholdsList");
+    if (
+      container &&
+      container.querySelectorAll(".course-threshold-row").length === 0
+    ) {
+      container.innerHTML = `<p class="text-muted small">No hay umbrales por curso definidos. Usa "Agregar Curso" para añadir uno.</p>`;
+    }
+  }
+}
+
+async function saveCourseThresholds() {
+  const rows = document.querySelectorAll(".course-threshold-row");
+  const thresholds = {};
+
+  rows.forEach((row) => {
+    const inputs = row.querySelectorAll("input");
+    const course = inputs[0].value.trim();
+    const value = parseInt(inputs[1].value, 10);
+    if (course && !isNaN(value)) {
+      thresholds[course] = value;
+    }
+  });
+
+  await apiCall("/admin/config/course-thresholds", {
+    method: "PUT",
+    body: JSON.stringify({ thresholds }),
+  });
+}
+
+// Hook: load thresholds when dashboard tab is shown
+document.addEventListener("DOMContentLoaded", () => {
+  const dashboardTab = document.getElementById("dashboard-tab");
+  if (dashboardTab) {
+    dashboardTab.addEventListener("shown.bs.tab", () => {
+      loadCourseThresholds();
+    });
+  }
+});
+
 // Cleanup on page unload
 window.addEventListener("beforeunload", () => {
   stopAutoRefresh();
@@ -1262,3 +1353,7 @@ window.saveConfig = saveConfig;
 window.loadEmailTemplate = loadEmailTemplate;
 window.saveEmailTemplate = saveEmailTemplate;
 window.previewEmailTemplate = previewEmailTemplate;
+window.loadCourseThresholds = loadCourseThresholds;
+window.addCourseThresholdRow = addCourseThresholdRow;
+window.removeCourseThresholdRow = removeCourseThresholdRow;
+window.saveCourseThresholds = saveCourseThresholds;
