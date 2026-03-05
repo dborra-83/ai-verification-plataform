@@ -748,7 +748,7 @@ Responde ÚNICAMENTE con JSON válido en este formato exacto:
 
         # Call Bedrock with Claude 3.5 Sonnet
         response = bedrock_client.invoke_model(
-            modelId='anthropic.claude-3-5-sonnet-20240620-v1:0',
+            modelId='us.anthropic.claude-3-5-sonnet-20241022-v2:0',
             body=json.dumps({
                 'anthropic_version': 'bedrock-2023-05-31',
                 'max_tokens': 4000,
@@ -833,7 +833,7 @@ Responde ÚNICAMENTE con JSON válido en este formato exacto:
 
         # Call Bedrock with Claude 3.5 Sonnet
         response = bedrock_client.invoke_model(
-            modelId='anthropic.claude-3-5-sonnet-20240620-v1:0',
+            modelId='us.anthropic.claude-3-5-sonnet-20241022-v2:0',
             body=json.dumps({
                 'anthropic_version': 'bedrock-2023-05-31',
                 'max_tokens': 3000,

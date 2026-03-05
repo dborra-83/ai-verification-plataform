@@ -16,17 +16,18 @@
     <link href="css/styles.css" rel="stylesheet">
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- Configuration -->
-    <script src="config.js"></script>
 </head>
 
 <body>
     <div class="app-container">
         <!-- Sidebar -->
         <nav class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <h1><i class="bi bi-mortarboard me-2"></i><span id="platformName">EduTech AI</span></h1>
-                <p>Plataforma Educativa Docente</p>
+            <div class="sidebar-logo">
+                <div class="sidebar-logo-icon"><i class="bi bi-mortarboard"></i></div>
+                <div class="sidebar-logo-text">
+                    <strong id="platformName">EduTech AI</strong>
+                    <span>Plataforma Educativa</span>
+                </div>
             </div>
 
             <div class="sidebar-nav">
@@ -93,12 +94,17 @@
                     <i class="bi bi-collection-play me-2"></i>
                     Otras Demos
                 </div>
+                <a href="https://universidad.demolatamchconnect.com/" class="nav-item" target="_blank">
+                    <i class="bi bi-telephone-fill"></i>
+                    Amazon Connect (Educación)
+                    <i class="bi bi-box-arrow-up-right ms-auto" style="font-size: 0.8rem; opacity: 0.7;"></i>
+                </a>
                 <a href="https://d2wi2vfruzr64e.cloudfront.net/" class="nav-item" target="_blank">
                     <i class="bi bi-pc-display"></i>
                     Entornos Virtuales
                     <i class="bi bi-box-arrow-up-right ms-auto" style="font-size: 0.8rem; opacity: 0.7;"></i>
                 </a>
-                <a href="https://d1btovt86fwovd.cloudfront.net/" class="nav-item" target="_blank">
+                <a href="https://acadexia.demolatamchconnect.com/" class="nav-item" target="_blank">
                     <i class="bi bi-exclamation-triangle"></i>
                     Detección Temprana de Riesgo Académico
                     <i class="bi bi-box-arrow-up-right ms-auto" style="font-size: 0.8rem; opacity: 0.7;"></i>
@@ -116,18 +122,16 @@
         <main class="main-content">
             <!-- Topbar -->
             <div class="topbar">
+                <button class="app-header-hamburger" onclick="toggleSidebar()" aria-label="Menú"><i class="bi bi-list"></i></button>
                 <h2 id="pageTitle">Generador de Exámenes</h2>
                 <div class="topbar-actions">
                     <div class="search-box">
                         <i class="bi bi-search"></i>
                         <input type="text" placeholder="Buscar documentos..." id="searchInput">
                     </div>
-                    <button class="btn btn-outline-info btn-sm me-2" onclick="window.location.href='admin-dashboard.html'" title="Analytics para Exámenes con IA">
-                        <i class="bi bi-file-earmark-text me-1"></i>Analytics - Exámenes IA
-                    </button>
-                    <div class="user-avatar" title="Admin">
-                        A
-                    </div>
+                    <span id="user-email" style="font-size: .82rem; color: rgba(255,255,255,.8);"></span>
+                    <button id="logout-btn" class="header-btn"><i class="bi bi-box-arrow-right me-1"></i>Salir</button>
+                    <div class="header-avatar" id="userAvatar">U</div>
                 </div>
             </div>
 
@@ -752,8 +756,40 @@
         </main>
     </div>
 
+    <!-- Exam Preview Modal -->
+    <div class="modal fade" id="examPreviewModal" tabindex="-1" aria-labelledby="examPreviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="examPreviewModalLabel">
+                        <i class="bi bi-eye me-2"></i>Vista Previa del Examen
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="d-flex border-bottom px-3 py-2 gap-2 flex-wrap align-items-center bg-light">
+                        <span class="text-muted small me-2" id="previewFileLabel">Archivo:</span>
+                        <div id="previewFileTabs" class="d-flex gap-2 flex-wrap"></div>
+                    </div>
+                    <div id="examPreviewContent" class="p-4" style="font-family: 'Courier New', monospace; white-space: pre-wrap; font-size: 0.85rem; min-height: 400px; background: #fff;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-success" id="previewDownloadPdfBtn" onclick="downloadCurrentPreviewAsPdf()">
+                        <i class="bi bi-file-pdf me-2"></i>Descargar PDF
+                    </button>
+                    <button type="button" class="btn btn-primary" id="previewDownloadTxtBtn" onclick="downloadCurrentPreviewAsTxt()">
+                        <i class="bi bi-download me-2"></i>Descargar TXT
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jsPDF for client-side PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Cognito SDK -->
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1472.0.min.js"></script>
     <script src="config.js"></script>
@@ -764,7 +800,7 @@
     <script src="js/route-guard.js?v=6"></script>
     <!-- Custom JS -->
     <script src="js/app.js?v=6"></script>
-    <script src="js/exam-generator.js"></script>
+    <script src="js/exam-generator.js?v=17"></script>
     <script src="js/topic-selection.js"></script>
     <script src="js/exam-config.js"></script>
 </body>

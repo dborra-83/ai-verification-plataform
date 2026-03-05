@@ -425,7 +425,7 @@ function showComingSoon(featureName) {
     title: `${featureName} - Próximamente`,
     html: `
             <div class="text-center">
-                <i class="bi bi-tools" style="font-size: 3rem; color: var(--ch-blue); margin-bottom: 1rem;"></i>
+                <i class="bi bi-tools" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
                 <p class="text-muted">Esta funcionalidad está en desarrollo y estará disponible en una futura actualización.</p>
                 <p class="text-muted small">
                     <i class="bi bi-info-circle me-1"></i>

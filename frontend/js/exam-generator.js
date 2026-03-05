@@ -1943,6 +1943,10 @@ function showGenerationResults(statusData) {
   document.getElementById("viewHistoryBtn").style.display = "inline-block";
   document.getElementById("newExamBtn").style.display = "inline-block";
 
+  // Store generated files globally for preview
+  window._lastGeneratedFiles = statusData.generatedFiles || [];
+  window._lastExamId = examGeneratorState.generationId;
+
   // Display generated files
   if (statusData.generatedFiles && statusData.generatedFiles.length > 0) {
     filesList.innerHTML = `
@@ -1957,53 +1961,34 @@ function showGenerationResults(statusData) {
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
                                         <h6 class="mb-1">
-                                            <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+                                            <i class="bi bi-file-earmark-text text-primary me-2"></i>
                                             ${
                                               file.type === "student_version"
                                                 ? "Versión Estudiante"
-                                                : "Versión Profesor"
+                                                : file.type ===
+                                                    "teacher_version"
+                                                  ? "Versión Profesor"
+                                                  : "Autoevaluación"
                                             }
                                         </h6>
-                                        <small class="text-muted">Versión ${
-                                          file.version
-                                        } - ${file.format}</small>
+                                        <small class="text-muted">Versión ${file.version}</small>
                                     </div>
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-primary" onclick="downloadFile('${
-                                          file.s3Key
-                                        }', '${file.type}_v${
-                                          file.version
-                                        }.pdf')" title="Descargar PDF">
+                                    <div class="d-flex gap-1">
+                                        <button class="btn btn-sm btn-outline-info" 
+                                                onclick="previewExamFile('${file.s3Key}', '${file.type}_v${file.version}')" 
+                                                title="Vista previa">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-success" 
+                                                onclick="downloadFileAsPdf('${file.s3Key}', '${file.type}_v${file.version}')" 
+                                                title="Descargar PDF">
+                                            <i class="bi bi-file-pdf"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-primary" 
+                                                onclick="downloadFile('${file.s3Key}', '${file.type}_v${file.version}.txt')" 
+                                                title="Descargar TXT">
                                             <i class="bi bi-download"></i>
                                         </button>
-                                        <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split" 
-                                                data-bs-toggle="dropdown" aria-expanded="false" title="Más formatos">
-                                            <span class="visually-hidden">Toggle Dropdown</span>
-                                        </button>
-                                        <ul class="dropdown-menu">
-                                            <li><a class="dropdown-item" href="#" onclick="downloadFile('${
-                                              file.s3Key
-                                            }', '${file.type}_v${
-                                              file.version
-                                            }.pdf', 'original')">
-                                                <i class="bi bi-file-pdf me-2"></i>PDF Original
-                                            </a></li>
-                                            <li><a class="dropdown-item" href="#" onclick="downloadFile('${
-                                              file.s3Key
-                                            }', '${file.type}_v${
-                                              file.version
-                                            }.docx', 'docx')">
-                                                <i class="bi bi-file-word me-2"></i>Documento Word
-                                            </a></li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li><a class="dropdown-item" href="#" onclick="downloadFileWithOptions('${
-                                              file.s3Key
-                                            }', '${file.type}_v${
-                                              file.version
-                                            }')">
-                                                <i class="bi bi-gear me-2"></i>Opciones avanzadas
-                                            </a></li>
-                                        </ul>
                                     </div>
                                 </div>
                             </div>
@@ -2012,6 +1997,11 @@ function showGenerationResults(statusData) {
                 `,
                   )
                   .join("")}
+            </div>
+            <div class="mt-2">
+                <button class="btn btn-outline-success" onclick="previewAllFiles()">
+                    <i class="bi bi-eye me-2"></i>Vista Previa de Todos los Archivos
+                </button>
             </div>
         `;
   }
@@ -2308,6 +2298,11 @@ window.toggleTopicGroup = toggleTopicGroup;
 window.handleTopicSelection = handleTopicSelection;
 window.downloadFile = downloadFile;
 window.downloadFileWithOptions = downloadFileWithOptions;
+window.previewExamFile = previewExamFile;
+window.previewAllFiles = previewAllFiles;
+window.downloadFileAsPdf = downloadFileAsPdf;
+window.downloadCurrentPreviewAsPdf = downloadCurrentPreviewAsPdf;
+window.downloadCurrentPreviewAsTxt = downloadCurrentPreviewAsTxt;
 
 // Simple topic display function - alternative to complex tree rendering
 function createSimpleTopicDisplay(topics) {
@@ -2932,3 +2927,253 @@ window.createSimpleTopicDisplay = createSimpleTopicDisplay;
 window.createEmergencyTopicDisplay = createEmergencyTopicDisplay;
 window.handleMainTopicSelection = handleMainTopicSelection;
 window.validateTopicData = validateTopicData;
+
+// ============================================================
+// EXAM PREVIEW & PDF GENERATION
+// ============================================================
+
+// State for current preview
+let _previewFiles = [];
+let _currentPreviewIndex = 0;
+let _currentPreviewContent = "";
+let _currentPreviewName = "";
+
+async function previewExamFile(s3Key, fileName) {
+  try {
+    showLoading("Cargando vista previa...");
+    const content = await fetchFileContent(s3Key);
+    hideLoading();
+
+    _previewFiles = [{ s3Key, fileName, content }];
+    _currentPreviewIndex = 0;
+    openPreviewModal(_previewFiles, 0);
+  } catch (error) {
+    hideLoading();
+    showError("Error al cargar la vista previa: " + error.message);
+  }
+}
+
+async function previewAllFiles() {
+  const files = window._lastGeneratedFiles || [];
+  if (files.length === 0) {
+    showError("No hay archivos para previsualizar");
+    return;
+  }
+
+  showLoading("Cargando archivos...");
+  try {
+    const loaded = [];
+    for (const file of files) {
+      const label =
+        file.type === "student_version"
+          ? `Estudiante V${file.version}`
+          : file.type === "teacher_version"
+            ? `Profesor V${file.version}`
+            : `Autoevaluación V${file.version}`;
+      const content = await fetchFileContent(file.s3Key);
+      loaded.push({
+        s3Key: file.s3Key,
+        fileName: `${file.type}_v${file.version}`,
+        label,
+        content,
+      });
+    }
+    hideLoading();
+    _previewFiles = loaded;
+    _currentPreviewIndex = 0;
+    openPreviewModal(loaded, 0);
+  } catch (error) {
+    hideLoading();
+    showError("Error al cargar los archivos: " + error.message);
+  }
+}
+
+async function fetchFileContent(s3Key) {
+  const response = await apiCall(`/exam/download/${encodeURIComponent(s3Key)}`);
+  const downloadUrl = response.downloadUrl;
+
+  const res = await fetch(downloadUrl);
+  if (!res.ok) throw new Error("No se pudo descargar el archivo");
+  return await res.text();
+}
+
+function openPreviewModal(files, index) {
+  _previewFiles = files;
+  _currentPreviewIndex = index;
+
+  // Build tabs
+  const tabsContainer = document.getElementById("previewFileTabs");
+  tabsContainer.innerHTML = files
+    .map(
+      (f, i) => `
+    <button class="btn btn-sm ${i === index ? "btn-primary" : "btn-outline-secondary"}"
+            onclick="switchPreviewTab(${i})" id="previewTab_${i}">
+      ${f.label || f.fileName}
+    </button>
+  `,
+    )
+    .join("");
+
+  renderPreviewContent(index);
+
+  const modal = new bootstrap.Modal(
+    document.getElementById("examPreviewModal"),
+  );
+  modal.show();
+}
+
+function switchPreviewTab(index) {
+  _currentPreviewIndex = index;
+
+  // Update tab styles
+  _previewFiles.forEach((_, i) => {
+    const tab = document.getElementById(`previewTab_${i}`);
+    if (tab) {
+      tab.className = `btn btn-sm ${i === index ? "btn-primary" : "btn-outline-secondary"}`;
+    }
+  });
+
+  renderPreviewContent(index);
+}
+
+function renderPreviewContent(index) {
+  const file = _previewFiles[index];
+  if (!file) return;
+
+  _currentPreviewContent = file.content;
+  _currentPreviewName = file.fileName || file.label || "examen";
+
+  const contentEl = document.getElementById("examPreviewContent");
+  const labelEl = document.getElementById("previewFileLabel");
+
+  if (labelEl) labelEl.textContent = file.label || file.fileName;
+
+  // Render with basic formatting
+  contentEl.innerHTML = formatExamContentForPreview(file.content);
+}
+
+function formatExamContentForPreview(text) {
+  if (!text) return '<em class="text-muted">Sin contenido</em>';
+
+  // Escape HTML first
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // Highlight section headers (lines in ALL CAPS or starting with ===)
+  return escaped
+    .split("\n")
+    .map((line) => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("===") || trimmed.startsWith("---")) {
+        return `<span style="color:#008FD0; font-weight:bold;">${line}</span>`;
+      }
+      if (/^\d+[\.\)]\s/.test(trimmed)) {
+        return `<span style="color:#333; font-weight:500;">${line}</span>`;
+      }
+      if (/^[A-Z][A-Z\s]{4,}:?$/.test(trimmed)) {
+        return `<span style="color:#495057; font-weight:bold; text-decoration:underline;">${line}</span>`;
+      }
+      return line;
+    })
+    .join("\n");
+}
+
+async function downloadFileAsPdf(s3Key, fileName) {
+  try {
+    showLoading("Generando PDF...");
+    const content = await fetchFileContent(s3Key);
+    hideLoading();
+    generatePdfFromText(content, fileName);
+  } catch (error) {
+    hideLoading();
+    showError("Error al generar el PDF: " + error.message);
+  }
+}
+
+function downloadCurrentPreviewAsPdf() {
+  if (!_currentPreviewContent) {
+    showError("No hay contenido para descargar");
+    return;
+  }
+  generatePdfFromText(_currentPreviewContent, _currentPreviewName);
+}
+
+function downloadCurrentPreviewAsTxt() {
+  if (!_currentPreviewContent) {
+    showError("No hay contenido para descargar");
+    return;
+  }
+  const blob = new Blob([_currentPreviewContent], {
+    type: "text/plain;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${_currentPreviewName}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function generatePdfFromText(text, fileName) {
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    const maxWidth = pageWidth - margin * 2;
+    const lineHeight = 5;
+    let y = margin;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+
+    const lines = text.split("\n");
+
+    for (const rawLine of lines) {
+      // Section headers
+      const trimmed = rawLine.trim();
+      if (trimmed.startsWith("===") || trimmed.startsWith("---")) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(0, 143, 208);
+      } else if (/^[A-Z][A-Z\s]{4,}:?$/.test(trimmed)) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(50, 50, 50);
+      } else if (/^\d+[\.\)]\s/.test(trimmed)) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.setTextColor(30, 30, 30);
+      } else {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.setTextColor(60, 60, 60);
+      }
+
+      const wrapped = doc.splitTextToSize(rawLine || " ", maxWidth);
+      for (const wLine of wrapped) {
+        if (y + lineHeight > pageHeight - margin) {
+          doc.addPage();
+          y = margin;
+        }
+        doc.text(wLine, margin, y);
+        y += lineHeight;
+      }
+    }
+
+    doc.save(`${fileName}.pdf`);
+  } catch (error) {
+    console.error("PDF generation error:", error);
+    showError("Error al generar el PDF. Intenta descargar en formato TXT.");
+  }
+}

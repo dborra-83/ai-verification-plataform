@@ -128,9 +128,12 @@
 
     <!-- Sidebar -->
     <nav class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <h1><i class="bi bi-mortarboard me-2"></i><span id="platformName">EduTech AI</span></h1>
-            <p>Plataforma Educativa Docente</p>
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-icon"><i class="bi bi-mortarboard"></i></div>
+            <div class="sidebar-logo-text">
+                <strong id="platformName">EduTech AI</strong>
+                <span>Plataforma Educativa</span>
+            </div>
         </div>
         <div class="sidebar-nav">
             <div class="nav-section-header"><i class="bi bi-shield-check me-2"></i>Detección de IA</div>
@@ -150,11 +153,15 @@
             <a href="admin-dashboard.html" class="nav-item"><i class="bi bi-sliders"></i>Configuración</a>
 
             <div class="nav-section-header"><i class="bi bi-collection-play me-2"></i>Otras Demos</div>
+            <a href="https://universidad.demolatamchconnect.com/" class="nav-item" target="_blank">
+                <i class="bi bi-telephone-fill"></i>Amazon Connect (Educación)
+                <i class="bi bi-box-arrow-up-right ms-auto" style="font-size:0.8rem;opacity:0.7;"></i>
+            </a>
             <a href="https://d2wi2vfruzr64e.cloudfront.net/" class="nav-item" target="_blank">
                 <i class="bi bi-pc-display"></i>Entornos Virtuales
                 <i class="bi bi-box-arrow-up-right ms-auto" style="font-size:0.8rem;opacity:0.7;"></i>
             </a>
-            <a href="https://d1btovt86fwovd.cloudfront.net/" class="nav-item" target="_blank">
+            <a href="https://acadexia.demolatamchconnect.com/" class="nav-item" target="_blank">
                 <i class="bi bi-exclamation-triangle"></i>Detección Temprana de Riesgo
                 <i class="bi bi-box-arrow-up-right ms-auto" style="font-size:0.8rem;opacity:0.7;"></i>
             </a>
@@ -165,18 +172,15 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="main-content" style="background:#fff;">
+    <main class="main-content" style="background:var(--bg-surface);">
 
         <!-- Topbar -->
         <div class="topbar">
+            <button class="app-header-hamburger" onclick="toggleSidebar()" aria-label="Menú"><i class="bi bi-list"></i></button>
             <h2>Exámenes con IA — Acerca de</h2>
             <div class="topbar-actions">
-                <a href="exam-dashboard.html" class="btn btn-primary btn-sm">
-                    <i class="bi bi-speedometer2 me-1"></i>Ir al Dashboard
-                </a>
-                <a href="login.html" class="btn btn-sm btn-outline-danger">
-                    <i class="bi bi-box-arrow-right me-1"></i>Salir
-                </a>
+                <a href="exam-dashboard.html" class="header-btn"><i class="bi bi-speedometer2 me-1"></i>Dashboard</a>
+                <a href="login.html" class="header-btn"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
             </div>
         </div>
 

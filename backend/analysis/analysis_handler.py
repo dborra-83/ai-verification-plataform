@@ -139,7 +139,9 @@ def lambda_handler(event, context):
             )
             
         except Exception as processing_error:
-            print(f"Processing error: {processing_error}")
+            print(f"Processing error (type: {type(processing_error).__name__}): {processing_error}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
             # Update record as FAILED
             table.update_item(
                 Key={'analysisId': analysis_id},
@@ -151,7 +153,7 @@ def lambda_handler(event, context):
                 }
             )
             
-            return create_error_response(500, 'PROCESSING_ERROR', 'Failed to process document')
+            return create_error_response(500, 'PROCESSING_ERROR', f'Failed to process document: {str(processing_error)}')
         
         # Return success response
         return {
@@ -263,21 +265,41 @@ INSTRUCCIONES CRÍTICAS:
 Texto a analizar:
 {text[:4000]}"""  # Limit text to avoid token limits
 
-        # Call Bedrock with Claude 3.5 Sonnet
-        response = bedrock_client.invoke_model(
-            modelId='anthropic.claude-3-5-sonnet-20240620-v1:0',
-            body=json.dumps({
-                'anthropic_version': 'bedrock-2023-05-31',
-                'max_tokens': 1000,
-                'temperature': 0.3,
-                'messages': [
-                    {
-                        'role': 'user',
-                        'content': prompt
-                    }
-                ]
-            })
-        )
+        # Use only models confirmed ACTIVE in this account
+        model_ids = [
+            'anthropic.claude-3-haiku-20240307-v1:0',
+        ]
+        
+        response = None
+        last_error = None
+        used_model = None
+        for model_id in model_ids:
+            try:
+                print(f"Trying Bedrock model: {model_id}")
+                response = bedrock_client.invoke_model(
+                    modelId=model_id,
+                    body=json.dumps({
+                        'anthropic_version': 'bedrock-2023-05-31',
+                        'max_tokens': 1000,
+                        'temperature': 0.3,
+                        'messages': [
+                            {
+                                'role': 'user',
+                                'content': prompt
+                            }
+                        ]
+                    })
+                )
+                used_model = model_id
+                print(f"Successfully invoked model: {model_id}")
+                break
+            except Exception as model_error:
+                print(f"Model {model_id} failed: {model_error}")
+                last_error = model_error
+                continue
+        
+        if response is None:
+            raise Exception(f"All Bedrock models failed. Last error: {last_error}")
         
         # Parse response
         response_body = json.loads(response['body'].read())
@@ -304,7 +326,7 @@ Texto a analizar:
                     raise ValueError(f"Missing required field: {field}")
             
             # Add model information
-            analysis_result['modelUsed'] = 'anthropic.claude-3-5-sonnet-20240620-v1:0'
+            analysis_result['modelUsed'] = used_model or 'unknown'
             
             return analysis_result
             

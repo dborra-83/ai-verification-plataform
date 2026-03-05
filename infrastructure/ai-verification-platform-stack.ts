@@ -139,9 +139,7 @@ export class AiVerificationPlatformStack extends cdk.Stack {
       new iam.PolicyStatement({
         effect: iam.Effect.ALLOW,
         actions: ["bedrock:InvokeModel"],
-        resources: [
-          "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-5-sonnet-20240620-v1:0",
-        ],
+        resources: ["*"],
       }),
     );
 

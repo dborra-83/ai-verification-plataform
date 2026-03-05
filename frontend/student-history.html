@@ -16,9 +16,12 @@
 <div class="app-container">
     <!-- Sidebar -->
     <nav class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <h1><i class="bi bi-mortarboard me-2"></i><span id="platformName">EduTech AI</span></h1>
-            <p>Plataforma de Verificación</p>
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-icon"><i class="bi bi-mortarboard"></i></div>
+            <div class="sidebar-logo-text">
+                <strong id="platformName">EduTech AI</strong>
+                <span>Plataforma de Verificación</span>
+            </div>
         </div>
         <div class="sidebar-nav">
             <div class="nav-section-header"><i class="bi bi-shield-check me-2"></i>Detección de IA</div>
@@ -40,12 +43,11 @@
     <!-- Main Content -->
     <main class="main-content">
         <div class="topbar">
+            <button class="app-header-hamburger" onclick="toggleSidebar()" aria-label="Menú"><i class="bi bi-list"></i></button>
             <h2 id="pageTitle">Historial del Alumno</h2>
             <div class="topbar-actions">
-                <button class="btn btn-secondary" onclick="history.back()">
-                    <i class="bi bi-arrow-left me-2"></i>Volver
-                </button>
-                <div class="user-avatar" title="Usuario">U</div>
+                <button class="header-btn" onclick="history.back()"><i class="bi bi-arrow-left me-1"></i>Volver</button>
+                <div class="header-avatar">U</div>
             </div>
         </div>
 
