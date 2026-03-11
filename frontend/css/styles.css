@@ -178,23 +178,22 @@ html, body { height: 100%; margin: 0; }
 .sidebar-nav::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
 
 .nav-section-header {
-  padding: 10px 12px 4px;
-  color: var(--text-muted);
-  font-size: .72rem;
+  padding: 10px 12px 6px;
+  color: white;
+  font-size: .7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
-  margin-top: 8px;
-  /* Visually separate section headers from nav buttons */
-  border-top: 1px solid var(--border-color);
   margin-top: 12px;
-  padding-top: 12px;
-}
-/* First section header doesn't need a top border */
-.sidebar-nav > .nav-section-header:first-child {
-  border-top: none;
-  margin-top: 0;
   padding-top: 10px;
+  background: rgba(0,102,204,.55);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-bottom: 2px;
+}
+/* First section header doesn't need extra top margin */
+.sidebar-nav > .nav-section-header:first-child {
+  margin-top: 0;
 }
 
 .sidebar.collapsed .nav-section-header { display: none; }
