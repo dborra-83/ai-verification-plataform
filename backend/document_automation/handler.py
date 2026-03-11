@@ -8,6 +8,7 @@ import uuid
 import time
 import traceback
 from datetime import datetime
+from decimal import Decimal
 
 import boto3
 from botocore.exceptions import ClientError
@@ -47,11 +48,20 @@ MAX_FILE_BYTES = 10 * 1024 * 1024  # 10 MB
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def ok(body: dict, code: int = 200):
-    return {"statusCode": code, "headers": CORS, "body": json.dumps(body, ensure_ascii=False)}
+    return {"statusCode": code, "headers": CORS, "body": json.dumps(body, ensure_ascii=False, default=_json_serial)}
 
 
 def err(code: int, error_code: str, message: str):
     return {"statusCode": code, "headers": CORS, "body": json.dumps({"error": error_code, "message": message})}
+
+
+def _json_serial(obj):
+    """Serializa tipos no-JSON como Decimal y datetime."""
+    if isinstance(obj, Decimal):
+        return float(obj)
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    raise TypeError(f"Type {type(obj)} not serializable")
 
 
 def get_table():

@@ -47,6 +47,11 @@ const DOC_AUTO = (() => {
     setupDropZone();
     setupFileInput();
     document
+      .getElementById("selectFileBtn")
+      ?.addEventListener("click", () =>
+        document.getElementById("docFileInput").click(),
+      );
+    document
       .getElementById("analyzeBtn")
       ?.addEventListener("click", startAnalysis);
     document
@@ -59,9 +64,11 @@ const DOC_AUTO = (() => {
   function setupDropZone() {
     const zone = document.getElementById("docDropZone");
     if (!zone) return;
-    zone.addEventListener("click", () =>
-      document.getElementById("docFileInput").click(),
-    );
+    zone.addEventListener("click", (e) => {
+      // Evitar doble disparo si el click viene del botón interno
+      if (e.target.closest("button")) return;
+      document.getElementById("docFileInput").click();
+    });
     zone.addEventListener("dragover", (e) => {
       e.preventDefault();
       zone.classList.add("dragover");

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Historial de Análisis — EduTech AI</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="css/styles.css" rel="stylesheet">
+  <link href="css/doc-automation.css" rel="stylesheet">
+  <style>
+    .stat-card { background: var(--card-bg, #fff); border-radius: 12px; padding: 1.2rem 1.5rem; border: 1px solid var(--border-color, #e5e7eb); display: flex; align-items: center; gap: 1rem; }
+    .stat-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0; }
+    .stat-icon.blue { background: #eff6ff; color: #2563eb; }
+    .stat-icon.green { background: #f0fdf4; color: #16a34a; }
+    .stat-icon.red { background: #fef2f2; color: #dc2626; }
+    .stat-icon.purple { background: #faf5ff; color: #7c3aed; }
+    .stat-value { font-size: 1.8rem; font-weight: 700; line-height: 1; }
+    .stat-label { font-size: .8rem; color: #6b7280; margin-top: 2px; }
+    .history-row:hover { background: var(--hover-bg, #f8fafc); }
+    .doc-type-pill { background: #eff6ff; color: #1d4ed8; border-radius: 20px; padding: 2px 10px; font-size: .8rem; font-weight: 500; white-space: nowrap; }
+    .mini-conf-bar { width: 60px; height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
+    .mini-conf-bar div { height: 100%; background: linear-gradient(90deg, #3b82f6, #6366f1); border-radius: 3px; }
+    .detail-meta-card { background: var(--hover-bg, #f8fafc); border-radius: 8px; padding: .8rem 1rem; height: 100%; }
+    .detail-meta-label { font-size: .75rem; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+    .filters-bar { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; }
+    .filters-bar input, .filters-bar select { font-size: .875rem; }
+    #detailModal .modal-dialog { max-width: 780px; }
+    .table th { font-size: .8rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: .04em; border-bottom: 2px solid #e5e7eb; }
+    .table td { vertical-align: middle; font-size: .875rem; }
+  </style>
+</head>
+<body>
+<div class="app-container">
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon"><i class="bi bi-mortarboard"></i></div>
+      <div class="sidebar-logo-text">
+        <strong id="platformName">EduTech AI</strong>
+        <span>Plataforma Educativa</span>
+      </div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section-header"><i class="bi bi-shield-check me-2"></i>Detección de IA</div>
+      <a href="landing-deteccion-ia.html" class="nav-item"><i class="bi bi-info-circle"></i>Acerca de</a>
+      <a href="index.html" class="nav-item"><i class="bi bi-speedometer2"></i>Dashboard</a>
+      <a href="index.html#upload" class="nav-item"><i class="bi bi-cloud-upload"></i>Nuevo Análisis</a>
+      <a href="index.html#history" class="nav-item"><i class="bi bi-clock-history"></i>Historial</a>
+
+      <div class="nav-section-header"><i class="bi bi-file-earmark-text me-2"></i>Exámenes con IA</div>
+      <a href="landing-examenes-ia.html" class="nav-item"><i class="bi bi-info-circle"></i>Acerca de</a>
+      <a href="exam-dashboard.html" class="nav-item"><i class="bi bi-speedometer2"></i>Dashboard</a>
+      <a href="exam-generator.html" class="nav-item"><i class="bi bi-plus-circle"></i>Generador de Exámenes</a>
+      <a href="exam-history.html" class="nav-item"><i class="bi bi-journal-text"></i>Historial de Exámenes</a>
+
+      <div class="nav-section-header"><i class="bi bi-file-earmark-check me-2"></i>Automatización Documental</div>
+      <a href="doc-automation-landing.html" class="nav-item"><i class="bi bi-info-circle"></i>Acerca de</a>
+      <a href="doc-automation.html" class="nav-item"><i class="bi bi-cpu"></i>Procesar Documento</a>
+      <a href="doc-automation-history.html" class="nav-item active"><i class="bi bi-clock-history"></i>Historial de Análisis</a>
+      <a href="doc-generator.html" class="nav-item"><i class="bi bi-file-earmark-plus"></i>Generador de Ejemplos</a>
+
+      <div class="nav-section-header"><i class="bi bi-gear-wide-connected me-2"></i>Administración</div>
+      <a href="admin-dashboard.html" class="nav-item"><i class="bi bi-sliders"></i>Configuración</a>
+
+      <div class="nav-section-header"><i class="bi bi-collection-play me-2"></i>Otras Demos</div>
+      <a href="https://universidad.demolatamchconnect.com/" class="nav-item" target="_blank">
+        <i class="bi bi-telephone-fill"></i>Amazon Connect
+        <i class="bi bi-box-arrow-up-right ms-auto" style="font-size:.8rem;opacity:.7;"></i>
+      </a>
+      <a href="https://acadexia.demolatamchconnect.com/" class="nav-item" target="_blank">
+        <i class="bi bi-exclamation-triangle"></i>Detección Temprana
+        <i class="bi bi-box-arrow-up-right ms-auto" style="font-size:.8rem;opacity:.7;"></i>
+      </a>
+
+      <hr style="border-color:rgba(255,255,255,.2);margin:1rem 1.5rem;">
+      <a href="#" class="nav-item" onclick="logout()"><i class="bi bi-box-arrow-right"></i>Cerrar Sesión</a>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main-content">
+    <div class="topbar">
+      <button class="app-header-hamburger" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
+      <h2><i class="bi bi-clock-history me-2"></i>Historial de Análisis Documentales</h2>
+      <div class="topbar-actions">
+        <span id="user-email" style="font-size:.82rem;color:rgba(255,255,255,.8);"></span>
+        <button id="logout-btn" class="header-btn"><i class="bi bi-box-arrow-right me-1"></i>Salir</button>
+        <div class="header-avatar" id="userAvatar">U</div>
+      </div>
+    </div>
+
+    <div class="content-area">
+
+      <!-- Stats -->
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+          <div class="stat-card">
+            <div class="stat-icon blue"><i class="bi bi-file-earmark-text"></i></div>
+            <div>
+              <div class="stat-value" id="statTotal">—</div>
+              <div class="stat-label">Total procesados</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card">
+            <div class="stat-icon green"><i class="bi bi-check-circle"></i></div>
+            <div>
+              <div class="stat-value" id="statPassed">—</div>
+              <div class="stat-label">Sin errores</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card">
+            <div class="stat-icon red"><i class="bi bi-x-circle"></i></div>
+            <div>
+              <div class="stat-value" id="statFailed">—</div>
+              <div class="stat-label">Con errores</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card">
+            <div class="stat-icon purple"><i class="bi bi-tags"></i></div>
+            <div>
+              <div class="stat-value" id="statTypes">—</div>
+              <div class="stat-label">Tipos distintos</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla -->
+      <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <h5 class="mb-0"><i class="bi bi-table me-2"></i>Registros</h5>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-secondary" id="refreshBtn">
+              <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
+            </button>
+            <button class="btn btn-sm btn-outline-primary" id="exportAllBtn">
+              <i class="bi bi-download me-1"></i>Exportar JSON
+            </button>
+            <a href="doc-automation.html" class="btn btn-sm btn-primary">
+              <i class="bi bi-plus-circle me-1"></i>Nuevo análisis
+            </a>
+          </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="card-body border-bottom pb-3">
+          <div class="filters-bar">
+            <input type="search" class="form-control form-control-sm" id="searchInput"
+              placeholder="Buscar por tipo, ID o campos…" style="max-width:260px;">
+            <select class="form-select form-select-sm" id="filterType" style="max-width:200px;">
+              <option value="">Todos los tipos</option>
+            </select>
+            <select class="form-select form-select-sm" id="filterStatus" style="max-width:180px;">
+              <option value="">Todos los estados</option>
+              <option value="pass">Sin errores</option>
+              <option value="warning">Con advertencias</option>
+              <option value="fail">Con errores</option>
+            </select>
+            <span class="text-muted small ms-auto" id="resultCount"></span>
+          </div>
+        </div>
+
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr>
+                  <th class="ps-3">ID</th>
+                  <th>Archivo</th>
+                  <th>Tipo detectado</th>
+                  <th>Confianza</th>
+                  <th>Estado</th>
+                  <th>Fecha</th>
+                </tr>
+              </thead>
+              <tbody id="historyTbody">
+                <tr id="loadingRow">
+                  <td colspan="6" class="text-center py-4 text-muted">
+                    <div class="spinner-border spinner-border-sm me-2"></div>Cargando historial…
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card-footer d-flex justify-content-end">
+          <div id="pagination"></div>
+        </div>
+      </div>
+
+    </div><!-- /content-area -->
+  </main>
+</div>
+
+<!-- Modal detalle -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-file-earmark-magnify me-2"></i>Detalle del análisis</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="detailModalBody">
+        <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-primary btn-sm" onclick="DOC_HISTORY.exportSelected()">
+          <i class="bi bi-download me-1"></i>Exportar JSON
+        </button>
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="config.js"></script>
+<script src="js/platform-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/route-guard.js"></script>
+<script src="js/app.js"></script>
+<script src="js/ux-enhancements.js"></script>
+<script src="js/doc-automation-history.js"></script>
+</body>
+</html>
