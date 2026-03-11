@@ -117,8 +117,22 @@
                                         <input type="text" class="form-control" id="platformSubtitle" placeholder="Plataforma Educativa Docente">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label">URL del Logo</label>
-                                        <input type="url" class="form-control" id="logoUrl" placeholder="https://ejemplo.com/logo.png">
+                                        <label class="form-label">Logo Principal</label>
+                                        <input type="file" class="form-control" id="logoFileInput" accept="image/*" onchange="uploadLogoFile('logoFileInput','logoPreview','logoPreviewContainer','logoUrl')">
+                                        <small class="text-muted">PNG, JPG o SVG — máx. 2MB. Aparece en el sidebar.</small>
+                                        <div id="logoPreviewContainer" style="display:none; margin-top:8px;">
+                                            <img id="logoPreview" src="" alt="Logo Principal" style="max-height:60px; border-radius:6px; border:1px solid #ddd; padding:4px;">
+                                        </div>
+                                        <input type="hidden" id="logoUrl">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Logo Login</label>
+                                        <input type="file" class="form-control" id="logoLoginFileInput" accept="image/*" onchange="uploadLogoFile('logoLoginFileInput','logoLoginPreview','logoLoginPreviewContainer','logoLoginUrl')">
+                                        <small class="text-muted">PNG, JPG o SVG — máx. 2MB. Aparece en la pantalla de login.</small>
+                                        <div id="logoLoginPreviewContainer" style="display:none; margin-top:8px;">
+                                            <img id="logoLoginPreview" src="" alt="Logo Login" style="max-height:60px; border-radius:6px; border:1px solid #ddd; padding:4px;">
+                                        </div>
+                                        <input type="hidden" id="logoLoginUrl">
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Email de Soporte</label>
@@ -445,11 +459,46 @@
             const config = JSON.parse(localStorage.getItem('platformConfig') || '{}');
             document.getElementById('platformNameInput').value = config.platformName || 'EduTech AI';
             document.getElementById('platformSubtitle').value = config.subtitle || 'Plataforma Educativa Docente';
-            document.getElementById('logoUrl').value = config.logoUrl || '';
             document.getElementById('supportEmail').value = config.supportEmail || '';
             document.getElementById('themeSelect').value = config.theme || 'light';
             document.getElementById('primaryColor').value = config.primaryColor || '#008FD0';
             document.getElementById('fontSizeSelect').value = config.fontSize || 'normal';
+            // Show logo previews if saved
+            if (config.logoUrl) {
+                document.getElementById('logoPreview').src = config.logoUrl;
+                document.getElementById('logoPreviewContainer').style.display = 'block';
+            }
+            if (config.logoLoginUrl) {
+                document.getElementById('logoLoginPreview').src = config.logoLoginUrl;
+                document.getElementById('logoLoginPreviewContainer').style.display = 'block';
+            }
+        }
+
+        async function uploadLogoFile(inputId, previewId, previewContainerId, configKey) {
+            const input = document.getElementById(inputId);
+            const file = input.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                Swal.fire({ icon: 'error', title: 'Formato inválido', text: 'Solo se permiten imágenes (PNG, JPG, SVG, etc.)' });
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                Swal.fire({ icon: 'error', title: 'Archivo muy grande', text: 'El logo no debe superar 2MB' });
+                return;
+            }
+            // Convert to base64 data URL for local preview and storage
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const dataUrl = e.target.result;
+                document.getElementById(previewId).src = dataUrl;
+                document.getElementById(previewContainerId).style.display = 'block';
+                // Save to platformConfig
+                const config = JSON.parse(localStorage.getItem('platformConfig') || '{}');
+                config[configKey] = dataUrl;
+                localStorage.setItem('platformConfig', JSON.stringify(config));
+                Swal.fire({ icon: 'success', title: 'Logo cargado', text: 'Haz clic en "Guardar Cambios" para aplicar', timer: 2500, showConfirmButton: false });
+            };
+            reader.readAsDataURL(file);
         }
         
         function saveGeneralConfig() {
@@ -457,13 +506,23 @@
                 platformName: document.getElementById('platformNameInput').value,
                 subtitle: document.getElementById('platformSubtitle').value,
                 logoUrl: document.getElementById('logoUrl').value,
+                logoLoginUrl: document.getElementById('logoLoginUrl').value,
                 supportEmail: document.getElementById('supportEmail').value,
                 theme: document.getElementById('themeSelect').value,
                 primaryColor: document.getElementById('primaryColor').value,
                 fontSize: document.getElementById('fontSizeSelect').value
             };
             localStorage.setItem('platformConfig', JSON.stringify(config));
+            // Also update aiVerificationSettings so platform-config.js picks up the name
+            try {
+                const avSettings = JSON.parse(localStorage.getItem('aiVerificationSettings') || '{}');
+                avSettings.platformName = config.platformName;
+                localStorage.setItem('aiVerificationSettings', JSON.stringify(avSettings));
+            } catch(e) {}
             if (typeof PlatformConfig !== 'undefined') PlatformConfig.applyConfig();
+            // Update sidebar name immediately
+            const el = document.getElementById('platformName');
+            if (el) el.textContent = config.platformName;
             Swal.fire({ icon: 'success', title: 'Configuración Guardada', timer: 2000, showConfirmButton: false });
         }
         

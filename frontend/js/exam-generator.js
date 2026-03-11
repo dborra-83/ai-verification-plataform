@@ -363,7 +363,7 @@ async function extractTopicsFromDocuments() {
   topicsContainer.innerHTML = `
         <div class="text-center text-muted py-4">
             <i class="bi bi-hourglass-split me-2"></i>
-            Extrayendo temas con Claude 3.5 Sonnet...
+            Extrayendo temas con Claude Sonnet 4.6...
         </div>
     `;
 

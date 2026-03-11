@@ -234,7 +234,7 @@ function updateExamTable() {
             </td>
             <td>
                 <span class="badge bg-secondary">${getDifficultyLabel(
-                  exam.examConfig?.difficulty
+                  exam.examConfig?.difficulty,
                 )}</span>
             </td>
             <td>
@@ -310,7 +310,7 @@ function updateExamTable() {
                 </div>
             </td>
         </tr>
-    `
+    `,
     )
     .join("");
 }
@@ -326,7 +326,7 @@ function renderTopicTags(topics) {
 
   let html = visibleTopics
     .map(
-      (topic) => `<span class="badge bg-light text-dark me-1">${topic}</span>`
+      (topic) => `<span class="badge bg-light text-dark me-1">${topic}</span>`,
     )
     .join("");
 
@@ -340,7 +340,7 @@ function renderTopicTags(topics) {
 function updatePagination() {
   const totalItems = examHistoryState.filteredExams.length;
   examHistoryState.totalPages = Math.ceil(
-    totalItems / examHistoryState.itemsPerPage
+    totalItems / examHistoryState.itemsPerPage,
   );
 
   const pagination = document.getElementById("examHistoryPagination");
@@ -369,7 +369,7 @@ function updatePagination() {
   const startPage = Math.max(1, examHistoryState.currentPage - 2);
   const endPage = Math.min(
     examHistoryState.totalPages,
-    examHistoryState.currentPage + 2
+    examHistoryState.currentPage + 2,
   );
 
   if (startPage > 1) {
@@ -485,7 +485,7 @@ function applyFilters() {
     // Topic filter
     if (examHistoryState.filters.topic) {
       const topicMatch = exam.selectedTopics?.some((topic) =>
-        topic.toLowerCase().includes(examHistoryState.filters.topic)
+        topic.toLowerCase().includes(examHistoryState.filters.topic),
       );
       if (!topicMatch) return false;
     }
@@ -523,10 +523,10 @@ function performSearch() {
         exam.examId.toLowerCase().includes(query) ||
         exam.teacherId.toLowerCase().includes(query) ||
         exam.selectedTopics?.some((topic) =>
-          topic.toLowerCase().includes(query)
+          topic.toLowerCase().includes(query),
         )
       );
-    }
+    },
   );
 
   // Reset to first page
@@ -551,7 +551,7 @@ async function viewExamDetails(examId) {
 
     // Show modal
     const modal = new bootstrap.Modal(
-      document.getElementById("examDetailModal")
+      document.getElementById("examDetailModal"),
     );
     modal.show();
 
@@ -598,7 +598,7 @@ function populateExamDetailModal(exam) {
                     <tr>
                         <td><strong>Dificultad:</strong></td>
                         <td>${getDifficultyLabel(
-                          exam.examConfig?.difficulty
+                          exam.examConfig?.difficulty,
                         )}</td>
                     </tr>
                     <tr>
@@ -633,7 +633,7 @@ function populateExamDetailModal(exam) {
                       exam.selectedTopics
                         ?.map(
                           (topic) =>
-                            `<span class="badge bg-primary me-1 mb-1">${topic}</span>`
+                            `<span class="badge bg-primary me-1 mb-1">${topic}</span>`,
                         )
                         .join("") ||
                       '<span class="text-muted">No hay temas</span>'
@@ -650,7 +650,7 @@ function populateExamDetailModal(exam) {
                             `<div class="d-flex align-items-center mb-1">
                             <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
                             <small>${doc}</small>
-                        </div>`
+                        </div>`,
                         )
                         .join("") ||
                       '<span class="text-muted">No hay documentos</span>'
@@ -700,7 +700,7 @@ function populateExamDetailModal(exam) {
                                     </div>
                                 </div>
                             </div>
-                        `
+                        `,
                           )
                           .join("")}
                     </div>
@@ -749,7 +749,7 @@ async function downloadExamFiles(examId, format = "original") {
         try {
           // Get download URL with format specification
           const downloadResponse = await apiCall(
-            `/exam/download/${encodeURIComponent(file.s3Key)}?format=${format}`
+            `/exam/download/${encodeURIComponent(file.s3Key)}?format=${format}`,
           );
 
           if (downloadResponse.downloadUrl) {
@@ -820,7 +820,7 @@ async function downloadIndividualFile(fileId, fileName, format = "original") {
     showLoading("Descargando archivo...");
 
     const downloadResponse = await apiCall(
-      `/exam/download/${encodeURIComponent(fileId)}?format=${format}`
+      `/exam/download/${encodeURIComponent(fileId)}?format=${format}`,
     );
 
     if (downloadResponse.downloadUrl) {
@@ -843,7 +843,7 @@ async function downloadIndividualFile(fileId, fileName, format = "original") {
   }
 }
 
-function downloadExamFiles() {
+function downloadSelectedExamFiles() {
   if (examHistoryState.selectedExam) {
     downloadExamFiles(examHistoryState.selectedExam.examId);
   }
@@ -858,7 +858,7 @@ function setupModals() {
       // Set default dates
       const today = new Date();
       const thirtyDaysAgo = new Date(
-        today.getTime() - 30 * 24 * 60 * 60 * 1000
+        today.getTime() - 30 * 24 * 60 * 60 * 1000,
       );
 
       document.getElementById("exportStartDate").value = thirtyDaysAgo
@@ -907,7 +907,7 @@ async function performExport() {
 
     // Close modal
     const modal = bootstrap.Modal.getInstance(
-      document.getElementById("exportModal")
+      document.getElementById("exportModal"),
     );
     modal.hide();
 
@@ -951,7 +951,7 @@ async function retryExamGeneration(examId) {
 
       hideLoading();
       showSuccess(
-        'Generación reintentada. El examen aparecerá como "En Proceso".'
+        'Generación reintentada. El examen aparecerá como "En Proceso".',
       );
 
       // Refresh the history
@@ -1034,7 +1034,7 @@ window.changePage = changePage;
 function showExamAnalyticsSection() {
   // Hide main content and show analytics
   document.querySelector(
-    ".content-area > div:not(#examAnalyticsSection)"
+    ".content-area > div:not(#examAnalyticsSection)",
   ).style.display = "none";
   document.getElementById("examAnalyticsSection").style.display = "block";
   document.getElementById("pageTitle").textContent =
@@ -1047,7 +1047,7 @@ function showExamAnalyticsSection() {
 function showExamHistory() {
   // Show main content and hide analytics
   document.querySelector(
-    ".content-area > div:not(#examAnalyticsSection)"
+    ".content-area > div:not(#examAnalyticsSection)",
   ).style.display = "block";
   document.getElementById("examAnalyticsSection").style.display = "none";
   document.getElementById("pageTitle").textContent = "Historial de Exámenes";
@@ -1194,7 +1194,7 @@ function loadTopTopicsTable() {
         <td>${topic.exams}</td>
         <td>${topic.frequency}</td>
       </tr>
-    `
+    `,
       )
       .join("");
   }
@@ -1221,7 +1221,7 @@ function loadTopTeachersTable() {
         <td>${teacher.exams}</td>
         <td>${teacher.avgQuestions}</td>
       </tr>
-    `
+    `,
       )
       .join("");
   }

@@ -20,8 +20,9 @@
     <div class="login-hero">
         <div class="login-card">
             <div class="login-logo">
-                <div style="width:56px;height:56px;border-radius:14px;background:rgba(0,102,204,.12);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
-                    <i class="bi bi-shield-check" style="font-size: 1.8rem; color: var(--primary);"></i>
+                <div id="loginLogoContainer" style="width:56px;height:56px;border-radius:14px;background:rgba(0,102,204,.12);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+                    <i class="bi bi-shield-check" id="loginLogoIcon" style="font-size: 1.8rem; color: var(--primary);"></i>
+                    <img id="loginLogoImg" src="" alt="Logo" style="display:none; max-height:48px; max-width:48px; border-radius:8px;">
                 </div>
                 <h1>Plataforma Demo — Educación</h1>
                 <p>Demo de diferentes plataformas para la vertical de educación</p>
@@ -82,5 +83,21 @@
     
     <!-- Login Page Logic -->
     <script src="js/login.js?v=5"></script>
+    <script>
+        // Apply custom logo from admin config if set
+        (function() {
+            try {
+                const config = JSON.parse(localStorage.getItem('platformConfig') || '{}');
+                if (config.logoLoginUrl) {
+                    const icon = document.getElementById('loginLogoIcon');
+                    const img = document.getElementById('loginLogoImg');
+                    const container = document.getElementById('loginLogoContainer');
+                    if (icon) icon.style.display = 'none';
+                    if (img) { img.src = config.logoLoginUrl; img.style.display = 'block'; }
+                    if (container) { container.style.background = 'transparent'; }
+                }
+            } catch(e) {}
+        })();
+    </script>
 </body>
 </html>
