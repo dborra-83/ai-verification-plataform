@@ -162,17 +162,69 @@ The platform uses AWS service discovery and doesn't require manual environment c
 ```
 ai-verification-platform/
 ├── frontend/                 # Web interface
-│   ├── css/                 # Stylesheets
+│   ├── css/                 # Stylesheets (styles.css + doc-automation.css)
 │   ├── js/                  # JavaScript modules
 │   └── *.html              # HTML pages
 ├── backend/                 # Lambda functions
-│   ├── analysis/           # AI analysis service
+│   ├── analysis/           # AI detection service
 │   ├── query/              # Data retrieval service
-│   └── upload/             # File upload service
+│   ├── upload/             # File upload service
+│   ├── exam-generation/    # Exam generator service
+│   ├── exam-history/       # Exam history service
+│   ├── exam-topic-extraction/ # Topic extraction service
+│   ├── admin/              # Admin & audit service
+│   ├── authorizer/         # Cognito JWT authorizer
+│   └── document_automation/ # Document Automation module (NEW)
+│       ├── handler.py      # Main Lambda: Textract + Bedrock orchestration
+│       ├── prompts.py      # All Bedrock prompts (editable)
+│       └── validators.py   # Institutional validation rules
 ├── infrastructure/         # AWS CDK code
 ├── scripts/               # Deployment utilities
+│   ├── generate_demo_docs.py      # Generates 4 sample PDFs
+│   └── setup-doc-automation.ps1  # Setup script for the new module
 └── package.json          # Project configuration
 ```
+
+## 🆕 Módulo: Automatización Inteligente de Documentos
+
+Nuevo módulo para universidades que automatiza la revisión de documentos en procesos de admisión.
+
+### Flujo
+
+1. El documento (PDF/JPG/PNG) se sube a S3 vía URL pre-firmada
+2. Amazon Textract extrae el texto con OCR
+3. Amazon Bedrock (Claude 3.5 Sonnet) clasifica el tipo de documento
+4. Bedrock extrae campos estructurados según el tipo
+5. Se aplican reglas de validación institucionales configurables
+6. Bedrock detecta hallazgos y recomienda la acción operativa
+7. El resultado se guarda en DynamoDB y se retorna al frontend
+
+### Endpoints
+
+| Método | Path                        | Descripción                            |
+| ------ | --------------------------- | -------------------------------------- |
+| POST   | `/doc-automation/upload`    | Genera URL pre-firmada para subir a S3 |
+| POST   | `/doc-automation/analyze`   | Ejecuta el flujo completo de análisis  |
+| GET    | `/doc-automation/history`   | Lista documentos procesados            |
+| GET    | `/doc-automation/demo-docs` | Lista documentos de ejemplo en S3      |
+
+### Setup del módulo
+
+```bash
+# Después de hacer cdk deploy, ejecutar:
+npm run setup:doc-automation
+
+# O manualmente:
+pip install fpdf2
+python scripts/generate_demo_docs.py
+aws s3 cp scripts/demo_docs/ s3://[BUCKET]/demo-docs/ --recursive
+```
+
+### Páginas frontend
+
+- `doc-automation-landing.html` — Landing page explicativa
+- `doc-automation.html` — Interfaz principal de procesamiento
+- `doc-generator.html` — Generador de documentos de ejemplo (jsPDF, sin Lambda)
 
 ## 🛠️ Development
 

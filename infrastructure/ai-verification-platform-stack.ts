@@ -935,6 +935,120 @@ export class AiVerificationPlatformStack extends cdk.Stack {
       },
     );
 
+    // ══════════════════════════════════════════════════════════════
+    // MÓDULO: Document Automation
+    // ══════════════════════════════════════════════════════════════
+
+    // DynamoDB — historial de documentos procesados
+    const docHistoryTable = new dynamodb.Table(this, "DocAutomationHistory", {
+      tableName: "DocAutomationHistory",
+      partitionKey: {
+        name: "document_id",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: { name: "processed_at", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    // Lambda — Document Automation Handler
+    const docAutomationLambda = new lambda.Function(
+      this,
+      "DocAutomationHandler",
+      {
+        runtime: lambda.Runtime.PYTHON_3_11,
+        handler: "handler.lambda_handler",
+        code: lambda.Code.fromAsset("backend/document_automation"),
+        role: lambdaRole,
+        timeout: cdk.Duration.seconds(120),
+        memorySize: 1024,
+        environment: {
+          S3_BUCKET: uploadBucket.bucketName,
+          BEDROCK_MODEL_ID:
+            process.env.BEDROCK_MODEL_ID ||
+            "anthropic.claude-3-5-sonnet-20241022-v2:0",
+          DYNAMO_TABLE: docHistoryTable.tableName,
+          TEXTRACT_MODE: process.env.TEXTRACT_MODE || "sync",
+          DEMO_DOCS_S3_PREFIX: process.env.DEMO_DOCS_S3_PREFIX || "demo-docs/",
+        },
+      },
+    );
+
+    // Permisos adicionales: Textract + DynamoDB nueva tabla
+    docAutomationLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "textract:DetectDocumentText",
+          "textract:AnalyzeDocument",
+          "textract:StartDocumentTextDetection",
+          "textract:GetDocumentTextDetection",
+        ],
+        resources: ["*"],
+      }),
+    );
+
+    docAutomationLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "dynamodb:PutItem",
+          "dynamodb:GetItem",
+          "dynamodb:Query",
+          "dynamodb:Scan",
+        ],
+        resources: [docHistoryTable.tableArn],
+      }),
+    );
+
+    // API Gateway — recursos bajo /doc-automation
+    const docAutomationResource = api.root.addResource("doc-automation");
+
+    const docUploadResource = docAutomationResource.addResource("upload");
+    docUploadResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(docAutomationLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    const docAnalyzeResource = docAutomationResource.addResource("analyze");
+    docAnalyzeResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(docAutomationLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    const docHistoryResource = docAutomationResource.addResource("history");
+    docHistoryResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(docAutomationLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    const docDemoDocsResource = docAutomationResource.addResource("demo-docs");
+    docDemoDocsResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(docAutomationLambda),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
+    new cdk.CfnOutput(this, "DocAutomationTableName", {
+      value: docHistoryTable.tableName,
+      description: "DynamoDB table for Document Automation history",
+    });
+
     // Outputs
     new cdk.CfnOutput(this, "FrontendBucketName", {
       value: frontendBucket.bucketName,

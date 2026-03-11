@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automatización Inteligente de Documentos — CloudHesive</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="css/styles.css" rel="stylesheet">
+  <link href="css/doc-automation.css" rel="stylesheet">
+</head>
+<body style="background:var(--bg-base);">
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg" style="background:var(--bg-surface);border-bottom:1px solid var(--border-color);padding:.75rem 2rem;">
+  <a class="navbar-brand fw-800 d-flex align-items-center gap-2" href="index.html" style="color:var(--primary);font-weight:800;">
+    <i class="bi bi-mortarboard-fill"></i> EduTech AI
+  </a>
+  <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <div class="collapse navbar-collapse" id="navMenu">
+    <ul class="navbar-nav ms-auto gap-1">
+      <li class="nav-item"><a class="nav-link" href="index.html">Detección IA</a></li>
+      <li class="nav-item"><a class="nav-link" href="landing-examenes-ia.html">Exámenes IA</a></li>
+      <li class="nav-item"><a class="nav-link fw-bold" href="doc-automation-landing.html" style="color:var(--primary);">Automatización Documental</a></li>
+      <li class="nav-item"><a class="btn btn-primary btn-sm ms-2" href="doc-automation.html">Ver Demo</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section style="background:linear-gradient(135deg,var(--primary-dark) 0%,var(--primary) 60%,#0099cc 100%);color:white;padding:90px 0 70px;">
+  <div class="container">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <span class="lp-label" style="background:rgba(255,255,255,.15);color:white;">Nuevo Módulo — Demo</span>
+        <h1 style="font-size:clamp(2rem,4vw,3rem);font-weight:900;line-height:1.15;margin:16px 0 20px;">
+          Automatización Inteligente de Documentos para Universidades
+        </h1>
+        <p style="font-size:1.1rem;color:rgba(255,255,255,.85);margin-bottom:32px;line-height:1.6;">
+          Procesa, clasifica y valida documentos académicos en segundos usando Amazon Textract y Amazon Bedrock.
+          Elimina la revisión manual y acelera los procesos de admisión.
+        </p>
+        <div class="d-flex gap-3 flex-wrap">
+          <a href="doc-automation.html" class="btn-hero-primary">
+            <i class="bi bi-play-circle-fill"></i> Ver Demo en Vivo
+          </a>
+          <a href="doc-generator.html" class="btn-hero-secondary">
+            <i class="bi bi-file-earmark-plus"></i> Generar Documento de Ejemplo
+          </a>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <!-- Diagrama de flujo SVG inline -->
+        <div class="lp-hero-visual">
+          <div class="arch-flow">
+            <div class="arch-node"><i class="bi bi-file-earmark-pdf" style="color:#dc3545;"></i><br><small>Documento</small></div>
+            <div class="arch-arrow"><i class="bi bi-arrow-right"></i></div>
+            <div class="arch-node highlight"><i class="bi bi-eye"></i><br><small>Textract OCR</small></div>
+            <div class="arch-arrow"><i class="bi bi-arrow-right"></i></div>
+            <div class="arch-node highlight-green"><i class="bi bi-robot"></i><br><small>Bedrock IA</small></div>
+            <div class="arch-arrow"><i class="bi bi-arrow-right"></i></div>
+            <div class="arch-node"><i class="bi bi-shield-check" style="color:#28a745;"></i><br><small>Validación</small></div>
+            <div class="arch-arrow"><i class="bi bi-arrow-right"></i></div>
+            <div class="arch-node"><i class="bi bi-check2-circle" style="color:var(--primary);"></i><br><small>Decisión</small></div>
+          </div>
+          <p class="text-center text-muted small mt-3 mb-0">Flujo completo en menos de 30 segundos</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- El Problema -->
+<section class="lp-section" style="background:var(--bg-base);">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="lp-label">El Problema</span>
+      <h2 class="lp-section-title">La gestión manual de documentos frena a las universidades</h2>
+      <p class="lp-section-subtitle mx-auto">Cada proceso de admisión implica cientos de documentos revisados a mano, con errores y demoras.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-3">
+        <div class="pain-card">
+          <div class="pain-icon">⏳</div>
+          <h5>Demoras críticas</h5>
+          <p>Revisar 500+ documentos manualmente toma semanas. Los postulantes esperan respuestas que tardan días.</p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="pain-card">
+          <div class="pain-icon">❌</div>
+          <h5>Errores humanos</h5>
+          <p>Documentos vencidos, campos incompletos o promedios incorrectos pasan desapercibidos en revisiones manuales.</p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="pain-card">
+          <div class="pain-icon">📂</div>
+          <h5>Sin trazabilidad</h5>
+          <p>No hay registro centralizado de qué documentos fueron revisados, por quién y con qué criterio.</p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="pain-card">
+          <div class="pain-icon">💸</div>
+          <h5>Alto costo operativo</h5>
+          <p>Equipos enteros dedicados a tareas repetitivas que la IA puede automatizar con mayor precisión.</p>
+        </div>
+      </div>
+    </div>
+    <div class="row g-4 mt-2">
+      <div class="col-md-4">
+        <div class="metric-card">
+          <div class="metric-number text-primary">+500</div>
+          <div class="metric-label">documentos por proceso de admisión en una universidad mediana</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="metric-card">
+          <div class="metric-number" style="color:var(--accent);">85%</div>
+          <div class="metric-label">reducción en tiempo de revisión con automatización IA</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="metric-card">
+          <div class="metric-number" style="color:#dc3545;">30s</div>
+          <div class="metric-label">tiempo promedio de análisis completo por documento</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- El Flujo -->
+<section class="lp-section" style="background:var(--bg-surface-2);">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="lp-label lp-label-green">Cómo funciona</span>
+      <h2 class="lp-section-title">El flujo completo en 5 pasos</h2>
+    </div>
+    <div class="row g-4">
+      <div class="col-md col-sm-6">
+        <div class="flow-step-card">
+          <div class="flow-step-number">1</div>
+          <div class="flow-step-icon"><i class="bi bi-cloud-upload"></i></div>
+          <div class="flow-step-title">Recepción</div>
+          <div class="flow-step-desc">El documento se sube a Amazon S3 de forma segura vía URL pre-firmada.</div>
+        </div>
+      </div>
+      <div class="col-md col-sm-6">
+        <div class="flow-step-card">
+          <div class="flow-step-number">2</div>
+          <div class="flow-step-icon"><i class="bi bi-eye"></i></div>
+          <div class="flow-step-title">OCR con Textract</div>
+          <div class="flow-step-desc">Amazon Textract extrae texto, tablas y campos estructurados del documento.</div>
+        </div>
+      </div>
+      <div class="col-md col-sm-6">
+        <div class="flow-step-card">
+          <div class="flow-step-number">3</div>
+          <div class="flow-step-icon"><i class="bi bi-robot"></i></div>
+          <div class="flow-step-title">Clasificación con Bedrock</div>
+          <div class="flow-step-desc">Claude 3.5 Sonnet clasifica el tipo de documento y extrae campos clave.</div>
+        </div>
+      </div>
+      <div class="col-md col-sm-6">
+        <div class="flow-step-card">
+          <div class="flow-step-number">4</div>
+          <div class="flow-step-icon"><i class="bi bi-shield-check"></i></div>
+          <div class="flow-step-title">Validación automática</div>
+          <div class="flow-step-desc">Se aplican reglas institucionales configurables: promedio mínimo, vigencia, campos requeridos.</div>
+        </div>
+      </div>
+      <div class="col-md col-sm-6">
+        <div class="flow-step-card">
+          <div class="flow-step-number">5</div>
+          <div class="flow-step-icon"><i class="bi bi-check2-circle"></i></div>
+          <div class="flow-step-title">Decisión recomendada</div>
+          <div class="flow-step-desc">La IA recomienda la acción: aprobar, derivar a revisión manual o solicitar documentación adicional.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Servicios AWS -->
+<section class="lp-section" style="background:var(--bg-base);">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="lp-label">Tecnología</span>
+      <h2 class="lp-section-title">Servicios AWS utilizados</h2>
+    </div>
+    <div class="row g-4 justify-content-center">
+      <div class="col-md-2 col-sm-4 col-6">
+        <div class="aws-service-card">
+          <div class="aws-logo">🔍</div>
+          <div class="aws-service-name">Amazon Textract</div>
+          <div class="aws-service-role">OCR y extracción de texto estructurado</div>
+        </div>
+      </div>
+      <div class="col-md-2 col-sm-4 col-6">
+        <div class="aws-service-card">
+          <div class="aws-logo">🤖</div>
+          <div class="aws-service-name">Amazon Bedrock</div>
+          <div class="aws-service-role">Clasificación, extracción y recomendaciones con Claude</div>
+        </div>
+      </div>
+      <div class="col-md-2 col-sm-4 col-6">
+        <div class="aws-service-card">
+          <div class="aws-logo">🪣</div>
+          <div class="aws-service-name">Amazon S3</div>
+          <div class="aws-service-role">Almacenamiento seguro de documentos</div>
+        </div>
+      </div>
+      <div class="col-md-2 col-sm-4 col-6">
+        <div class="aws-service-card">
+          <div class="aws-logo">⚡</div>
+          <div class="aws-service-name">AWS Lambda</div>
+          <div class="aws-service-role">Orquestación serverless del flujo</div>
+        </div>
+      </div>
+      <div class="col-md-2 col-sm-4 col-6">
+        <div class="aws-service-card">
+          <div class="aws-logo">🗄️</div>
+          <div class="aws-service-name">Amazon DynamoDB</div>
+          <div class="aws-service-role">Historial de documentos procesados</div>
+        </div>
+      </div>
+      <div class="col-md-2 col-sm-4 col-6">
+        <div class="aws-service-card">
+          <div class="aws-logo">🔌</div>
+          <div class="aws-service-name">API Gateway</div>
+          <div class="aws-service-role">Endpoints REST seguros con autenticación</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Tipos de documentos -->
+<section class="lp-section" style="background:var(--bg-surface-2);">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="lp-label">Cobertura</span>
+      <h2 class="lp-section-title">Tipos de documentos soportados</h2>
+    </div>
+    <div class="text-center">
+      <span class="doc-type-chip"><i class="bi bi-mortarboard me-1"></i>Certificado Académico</span>
+      <span class="doc-type-chip"><i class="bi bi-person-vcard me-1"></i>Documento de Identidad</span>
+      <span class="doc-type-chip"><i class="bi bi-clipboard-check me-1"></i>Formulario de Inscripción</span>
+      <span class="doc-type-chip"><i class="bi bi-envelope me-1"></i>Carta de Motivación</span>
+      <span class="doc-type-chip"><i class="bi bi-credit-card me-1"></i>Comprobante de Pago</span>
+      <span class="doc-type-chip"><i class="bi bi-journal-text me-1"></i>Historial Académico</span>
+      <span class="doc-type-chip"><i class="bi bi-file-earmark-text me-1"></i>Constancia Administrativa</span>
+      <span class="doc-type-chip"><i class="bi bi-file-earmark me-1"></i>Otros documentos</span>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="lp-cta-section">
+  <div class="container text-center">
+    <h2 class="lp-section-title">¿Listo para ver la demo?</h2>
+    <p class="lp-section-subtitle mx-auto">Sube un documento real o usa uno de los ejemplos predefinidos y ve el análisis completo en segundos.</p>
+    <div class="d-flex gap-3 justify-content-center flex-wrap mt-4">
+      <a href="doc-automation.html" class="btn-hero-primary">
+        <i class="bi bi-play-circle-fill"></i> Ir a la Demo
+      </a>
+      <a href="doc-generator.html" class="btn-hero-secondary">
+        <i class="bi bi-file-earmark-plus"></i> Generar Documento de Ejemplo
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="container">
+    <p class="mb-1"><strong style="color:white;">EduTech AI</strong> — Plataforma Educativa Demo</p>
+    <p class="mb-0">CloudHesive · Módulo Automatización Documental · Demo Sandbox</p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="config.js"></script>
+<script src="js/platform-config.js"></script>
+<script>
+  // Fade-up animation
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("visible"); });
+  }, { threshold: 0.1 });
+  document.querySelectorAll(".fade-up").forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

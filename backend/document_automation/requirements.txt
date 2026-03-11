@@ -1,0 +1,3 @@
+# Dependencias del Lambda document_automation
+# boto3, botocore y python-dateutil ya están disponibles en el runtime Python 3.11 de Lambda
+# No se requieren dependencias adicionales — todo usa stdlib + boto3 del runtime
