@@ -1,418 +1,253 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduTech AI - Generador de Exámenes con IA</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="css/styles.css" rel="stylesheet">
-    <style>
-        .landing-hero {
-            background: linear-gradient(135deg, #0a1732 0%, #0d3b5e 60%, #08bdba 100%);
-            color: #fff;
-            padding: 4rem 2.5rem 3.5rem;
-            position: relative; overflow: hidden;
-        }
-        .landing-hero::before {
-            content: ''; position: absolute; top: -80px; right: -80px;
-            width: 350px; height: 350px; border-radius: 50%;
-            background: rgba(8,189,186,0.15);
-        }
-        .landing-hero::after {
-            content: ''; position: absolute; bottom: -60px; left: -60px;
-            width: 250px; height: 250px; border-radius: 50%;
-            background: rgba(0,143,208,0.1);
-        }
-        .hero-badge {
-            display: inline-block;
-            background: rgba(8,189,186,0.25); border: 1px solid rgba(8,189,186,0.5);
-            color: #5eead4; padding: 0.3rem 1rem; border-radius: 50px;
-            font-size: 0.78rem; font-weight: 600; letter-spacing: 0.05em;
-            text-transform: uppercase; margin-bottom: 1.25rem;
-        }
-        .landing-hero h1 { font-size: 2.4rem; font-weight: 800; line-height: 1.15; }
-        .landing-hero h1 span { color: #5eead4; }
-        .landing-hero p.lead { font-size: 1.05rem; opacity: 0.85; max-width: 520px; }
-        .hero-stats { display: flex; gap: 2rem; margin-top: 2rem; flex-wrap: wrap; }
-        .hero-stat strong { display: block; font-size: 1.8rem; font-weight: 800; color: #5eead4; }
-        .hero-stat span { font-size: 0.82rem; opacity: 0.75; }
-        .hero-visual {
-            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 14px; padding: 1.75rem;
-        }
-        .question-preview {
-            background: rgba(255,255,255,0.08); border-radius: 10px;
-            padding: 0.9rem; margin-bottom: 0.65rem; font-size: 0.82rem;
-        }
-        .question-preview .q-num { color: #5eead4; font-weight: 700; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
-        .question-preview .q-text { color: rgba(255,255,255,0.9); margin: 0.25rem 0; }
-        .option-item { color: rgba(255,255,255,0.6); font-size: 0.78rem; padding: 0.12rem 0; }
-        .option-item.correct { color: #5eead4; font-weight: 600; }
-
-        .landing-section { padding: 3.5rem 2.5rem; background: #fff; }
-        .landing-section.alt { background: #E9F3FA; }
-        .section-label {
-            font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
-            text-transform: uppercase; color: #08BDBA; margin-bottom: 0.6rem;
-        }
-        .section-title { font-size: 1.9rem; font-weight: 800; color: #000024; line-height: 1.2; }
-        .section-sub { font-size: 1rem; color: #64748b; max-width: 520px; }
-
-        .feature-card {
-            border: 1px solid #e2e8f0; border-radius: 14px;
-            padding: 1.75rem; height: 100%; transition: all 0.25s; background: #fff;
-        }
-        .feature-card:hover { border-color: #08BDBA; box-shadow: 0 6px 24px rgba(8,189,186,0.12); transform: translateY(-2px); }
-        .feature-icon {
-            width: 46px; height: 46px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.25rem; margin-bottom: 1rem;
-        }
-        .feature-card h5 { font-size: 1rem; font-weight: 700; color: #000024; margin-bottom: 0.4rem; }
-        .feature-card p { font-size: 0.87rem; color: #64748b; margin: 0; }
-
-        .workflow-card { background: #000024; border-radius: 16px; padding: 2.5rem; color: #fff; }
-        .workflow-step {
-            display: flex; align-items: flex-start; gap: 1rem;
-            padding: 0.9rem 0; border-bottom: 1px solid rgba(255,255,255,0.08);
-        }
-        .workflow-step:last-child { border-bottom: none; }
-        .ws-num {
-            width: 30px; height: 30px; border-radius: 50%;
-            background: #08BDBA; color: #fff;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.82rem; font-weight: 700; flex-shrink: 0;
-        }
-        .ws-title { font-weight: 600; font-size: 0.92rem; }
-        .ws-desc { font-size: 0.8rem; opacity: 0.6; margin-top: 0.15rem; }
-
-        .qtype-card {
-            border-radius: 12px; padding: 1.5rem; text-align: center;
-            border: 2px solid transparent; transition: all 0.2s;
-        }
-        .qtype-card:hover { border-color: #08BDBA; }
-        .qtype-icon { font-size: 1.8rem; margin-bottom: 0.65rem; }
-
-        .format-pill {
-            display: inline-flex; align-items: center; gap: 0.4rem;
-            background: #E9F3FA; border-radius: 50px;
-            padding: 0.35rem 0.9rem; font-size: 0.82rem; font-weight: 600; color: #000024;
-        }
-
-        .landing-cta {
-            background: linear-gradient(135deg, #0a1732 0%, #0d3b5e 100%);
-            color: #fff; padding: 3.5rem 2.5rem; text-align: center;
-        }
-        .landing-cta h2 { font-size: 2rem; font-weight: 800; }
-        .btn-landing {
-            background: #08BDBA; color: #fff;
-            padding: 0.75rem 2rem; border-radius: 50px;
-            font-weight: 700; font-size: 0.95rem;
-            border: none; text-decoration: none;
-            display: inline-block; transition: all 0.2s;
-        }
-        .btn-landing:hover { background: #06a09d; color: #fff; transform: translateY(-2px); }
-        .btn-landing-outline {
-            border: 2px solid rgba(255,255,255,0.4); color: #fff;
-            padding: 0.75rem 2rem; border-radius: 50px;
-            font-weight: 600; font-size: 0.95rem;
-            text-decoration: none; display: inline-block; transition: all 0.2s;
-        }
-        .btn-landing-outline:hover { border-color: #fff; color: #fff; background: rgba(255,255,255,0.08); }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generador de Exámenes con IA — EduTech AI</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="css/styles.css" rel="stylesheet">
+  <link href="css/doc-automation.css" rel="stylesheet">
+  <style>
+    .question-preview { background:rgba(255,255,255,.08);border-radius:10px;padding:.9rem;margin-bottom:.65rem;font-size:.82rem; }
+    .question-preview .q-num { color:#5eead4;font-weight:700;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em; }
+    .question-preview .q-text { color:rgba(255,255,255,.9);margin:.25rem 0; }
+    .option-item { color:rgba(255,255,255,.6);font-size:.78rem;padding:.12rem 0; }
+    .option-item.correct { color:#5eead4;font-weight:600; }
+    .qtype-card { border-radius:12px;padding:1.5rem;text-align:center;border:2px solid transparent;transition:all .2s; }
+    .qtype-card:hover { border-color:#08BDBA; }
+    .format-pill { display:inline-flex;align-items:center;gap:.4rem;background:#E9F3FA;border-radius:50px;padding:.35rem .9rem;font-size:.82rem;font-weight:600;color:#000024; }
+  </style>
 </head>
-<body>
-<div class="app-container">
+<body style="background:var(--bg-base);">
 
-    <!-- Sidebar -->
-    <nav class="sidebar" id="sidebar">
-        <div class="sidebar-logo">
-            <div class="sidebar-logo-icon"><i class="bi bi-mortarboard"></i></div>
-            <div class="sidebar-logo-text">
-                <strong id="platformName">EduTech AI</strong>
-                <span>Plataforma Educativa</span>
-            </div>
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg" style="background:var(--bg-surface);border-bottom:1px solid var(--border-color);padding:.75rem 2rem;">
+  <a class="navbar-brand fw-800 d-flex align-items-center gap-2" href="index.html" style="color:var(--primary);font-weight:800;">
+    <i class="bi bi-mortarboard-fill"></i> EduTech AI
+  </a>
+  <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <div class="collapse navbar-collapse" id="navMenu">
+    <ul class="navbar-nav ms-auto gap-1">
+      <li class="nav-item"><a class="nav-link" href="landing-deteccion-ia.html">Detección IA</a></li>
+      <li class="nav-item"><a class="nav-link fw-bold" href="landing-examenes-ia.html" style="color:var(--primary);">Exámenes IA</a></li>
+      <li class="nav-item"><a class="nav-link" href="doc-automation-landing.html">Automatización Documental</a></li>
+      <li class="nav-item"><a class="btn btn-primary btn-sm ms-2" href="exam-generator.html">Ver Demo</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section style="background:linear-gradient(135deg,#0a1732 0%,#0d3b5e 60%,#08bdba 100%);color:white;padding:90px 0 70px;position:relative;overflow:hidden;">
+  <div style="position:absolute;top:-80px;right:-80px;width:350px;height:350px;border-radius:50%;background:rgba(8,189,186,.15);"></div>
+  <div style="position:absolute;bottom:-60px;left:-60px;width:250px;height:250px;border-radius:50%;background:rgba(0,143,208,.1);"></div>
+  <div class="container" style="position:relative;z-index:1;">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <span class="lp-label" style="background:rgba(8,189,186,.25);border:1px solid rgba(8,189,186,.5);color:#5eead4;">
+          <i class="bi bi-stars me-1"></i>Powered by Amazon Bedrock
+        </span>
+        <h1 style="font-size:clamp(2rem,4vw,3rem);font-weight:900;line-height:1.15;margin:16px 0 20px;">
+          Genera exámenes <span style="color:#5eead4;">inteligentes</span> desde tus propios materiales
+        </h1>
+        <p style="font-size:1.1rem;color:rgba(255,255,255,.85);margin-bottom:32px;line-height:1.6;">
+          Sube un PDF con el contenido de tu clase y la IA genera automáticamente preguntas de opción múltiple, verdadero/falso y desarrollo. Listo en segundos.
+        </p>
+        <div class="d-flex gap-3 flex-wrap">
+          <a href="exam-generator.html" class="btn-hero-primary"><i class="bi bi-plus-circle"></i> Generar examen ahora</a>
+          <a href="#como-funciona" class="btn-hero-secondary">Ver cómo funciona</a>
         </div>
-        <div class="sidebar-nav">
-            <div class="nav-section-header"><i class="bi bi-shield-check me-2"></i>Detección de IA</div>
-            <a href="landing-deteccion-ia.html" class="nav-item"><i class="bi bi-info-circle"></i>Acerca de</a>
-            <a href="index.html" class="nav-item"><i class="bi bi-speedometer2"></i>Dashboard</a>
-            <a href="index.html#upload" class="nav-item"><i class="bi bi-cloud-upload"></i>Nuevo Análisis</a>
-            <a href="index.html#history" class="nav-item"><i class="bi bi-clock-history"></i>Historial</a>
-            <a href="index.html#analytics" class="nav-item"><i class="bi bi-graph-up"></i>Analytics y Reportes</a>
-
-            <div class="nav-section-header"><i class="bi bi-file-earmark-text me-2"></i>Exámenes con IA</div>
-            <a href="landing-examenes-ia.html" class="nav-item active"><i class="bi bi-info-circle"></i>Acerca de</a>
-            <a href="exam-dashboard.html" class="nav-item"><i class="bi bi-speedometer2"></i>Dashboard</a>
-            <a href="exam-generator.html" class="nav-item"><i class="bi bi-plus-circle"></i>Generador de Exámenes</a>
-            <a href="exam-history.html" class="nav-item"><i class="bi bi-journal-text"></i>Historial de Exámenes</a>
-
-            <div class="nav-section-header"><i class="bi bi-file-earmark-check me-2"></i>Automatización Documental</div>
-            <a href="doc-automation-landing.html" class="nav-item"><i class="bi bi-info-circle"></i>Acerca de</a>
-            <a href="doc-automation.html" class="nav-item"><i class="bi bi-cpu"></i>Procesar Documento</a>
-
-            <div class="nav-section-header"><i class="bi bi-gear-wide-connected me-2"></i>Administración</div>
-            <a href="admin-dashboard.html" class="nav-item"><i class="bi bi-sliders"></i>Configuración</a>
-
-            <div class="nav-section-header"><i class="bi bi-collection-play me-2"></i>Otras Demos</div>
-            <a href="https://universidad.demolatamchconnect.com/" class="nav-item" target="_blank">
-                <i class="bi bi-telephone-fill"></i>Amazon Connect
-                <i class="bi bi-box-arrow-up-right ms-auto" style="font-size:0.8rem;opacity:0.7;"></i>
-            </a>
-            <a href="#" class="nav-item" style="opacity:.55;cursor:default;pointer-events:none;">
-                <i class="bi bi-pc-display"></i>Entornos Virtuales
-                <span class="ms-auto" style="font-size:.7rem;background:rgba(0,102,204,.12);color:var(--primary);padding:2px 7px;border-radius:20px;font-weight:600;">Próximamente</span>
-            </a>
-            <a href="https://acadexia.demolatamchconnect.com/" class="nav-item" target="_blank">
-                <i class="bi bi-exclamation-triangle"></i>Detección Temprana
-                <i class="bi bi-box-arrow-up-right ms-auto" style="font-size:0.8rem;opacity:0.7;"></i>
-            </a>
-
-            <hr style="border-color:rgba(255,255,255,0.2);margin:1rem 1.5rem;">
-            <a href="login.html" class="nav-item"><i class="bi bi-box-arrow-right"></i>Cerrar Sesión</a>
+        <div class="d-flex gap-4 mt-4 flex-wrap">
+          <div><strong style="display:block;font-size:1.8rem;font-weight:800;color:#5eead4;">3</strong><span style="font-size:.82rem;opacity:.75;">Tipos de preguntas</span></div>
+          <div><strong style="display:block;font-size:1.8rem;font-weight:800;color:#5eead4;">&lt;60s</strong><span style="font-size:.82rem;opacity:.75;">Tiempo de generación</span></div>
+          <div><strong style="display:block;font-size:1.8rem;font-weight:800;color:#5eead4;">PDF/DOCX</strong><span style="font-size:.82rem;opacity:.75;">Exportación</span></div>
         </div>
-    </nav>
-
-    <!-- Main Content -->
-    <main class="main-content" style="background:var(--bg-surface);">
-
-        <!-- Topbar -->
-        <div class="topbar">
-            <button class="app-header-hamburger" onclick="toggleSidebar()" aria-label="Menú"><i class="bi bi-list"></i></button>
-            <h2>Exámenes con IA — Acerca de</h2>
-            <div class="topbar-actions">
-                <a href="exam-dashboard.html" class="header-btn"><i class="bi bi-speedometer2 me-1"></i>Dashboard</a>
-                <a href="login.html" class="header-btn"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
-            </div>
+      </div>
+      <div class="col-lg-5 offset-lg-1">
+        <div class="lp-hero-visual">
+          <div class="text-center mb-3"><small style="color:rgba(255,255,255,.5);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;">Examen generado — Física Cuántica</small></div>
+          <div class="question-preview">
+            <div class="q-num">Pregunta 1 · Opción múltiple</div>
+            <div class="q-text">¿Cuál es el principio de incertidumbre de Heisenberg?</div>
+            <div class="option-item">A. La energía se conserva en sistemas cerrados</div>
+            <div class="option-item correct">B. No es posible conocer simultáneamente posición y momento ✓</div>
+            <div class="option-item">C. La luz viaja a velocidad constante</div>
+            <div class="option-item">D. Los electrones orbitan en niveles fijos</div>
+          </div>
+          <div class="question-preview">
+            <div class="q-num">Pregunta 2 · Verdadero / Falso</div>
+            <div class="q-text">El efecto fotoeléctrico demuestra la naturaleza ondulatoria de la luz.</div>
+            <div class="option-item correct">Respuesta: Falso ✓ — demuestra su naturaleza corpuscular</div>
+          </div>
+          <div class="mt-3 p-2 rounded d-flex align-items-center gap-2" style="background:rgba(8,189,186,.15);border:1px solid rgba(8,189,186,.3);">
+            <i class="bi bi-check-circle" style="color:#5eead4;"></i>
+            <small style="color:#5eead4;">10 preguntas generadas · Listo para exportar</small>
+          </div>
         </div>
+      </div>
+    </div>
+  </div>
+</section>
 
-        <!-- Hero -->
-        <div class="landing-hero">
-            <div class="row align-items-center g-4" style="position:relative;z-index:1;">
-                <div class="col-lg-6">
-                    <div class="hero-badge"><i class="bi bi-stars me-1"></i>Powered by Amazon Bedrock</div>
-                    <h1>Genera exámenes <span>inteligentes</span> desde tus propios materiales</h1>
-                    <p class="lead mt-3">Sube un PDF con el contenido de tu clase y la IA genera automáticamente preguntas de opción múltiple, verdadero/falso y desarrollo. Listo en segundos.</p>
-                    <div class="d-flex gap-3 mt-4 flex-wrap">
-                        <a href="exam-generator.html" class="btn-landing"><i class="bi bi-plus-circle me-2"></i>Generar examen ahora</a>
-                        <a href="#como-funciona" class="btn-landing-outline">Ver cómo funciona</a>
-                    </div>
-                    <div class="hero-stats">
-                        <div class="hero-stat"><strong>3</strong><span>Tipos de preguntas</span></div>
-                        <div class="hero-stat"><strong>&lt;60s</strong><span>Tiempo de generación</span></div>
-                        <div class="hero-stat"><strong>PDF/DOCX</strong><span>Exportación</span></div>
-                    </div>
-                </div>
-                <div class="col-lg-5 offset-lg-1">
-                    <div class="hero-visual">
-                        <div class="text-center mb-3">
-                            <small style="color:rgba(255,255,255,0.5);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;">Examen generado — Física Cuántica</small>
-                        </div>
-                        <div class="question-preview">
-                            <div class="q-num">Pregunta 1 · Opción múltiple</div>
-                            <div class="q-text">¿Cuál es el principio de incertidumbre de Heisenberg?</div>
-                            <div class="option-item">A. La energía se conserva en sistemas cerrados</div>
-                            <div class="option-item correct">B. No es posible conocer simultáneamente posición y momento ✓</div>
-                            <div class="option-item">C. La luz viaja a velocidad constante</div>
-                            <div class="option-item">D. Los electrones orbitan en niveles fijos</div>
-                        </div>
-                        <div class="question-preview">
-                            <div class="q-num">Pregunta 2 · Verdadero / Falso</div>
-                            <div class="q-text">El efecto fotoeléctrico demuestra la naturaleza ondulatoria de la luz.</div>
-                            <div class="option-item correct">Respuesta: Falso ✓ — demuestra su naturaleza corpuscular</div>
-                        </div>
-                        <div class="mt-3 p-2 rounded d-flex align-items-center gap-2" style="background:rgba(8,189,186,0.15);border:1px solid rgba(8,189,186,0.3);">
-                            <i class="bi bi-check-circle" style="color:#5eead4;"></i>
-                            <small style="color:#5eead4;">10 preguntas generadas · Listo para exportar</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<!-- Funcionalidades -->
+<section class="lp-section" style="background:var(--bg-base);">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="lp-label">Funcionalidades</span>
+      <h2 class="lp-section-title">Genera, personaliza y exporta</h2>
+      <p class="lp-section-subtitle mx-auto">Todo el flujo de creación de exámenes en una sola herramienta.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-4"><div class="flow-step-card text-start" style="padding:1.5rem;">
+        <div class="flow-step-icon" style="font-size:1.4rem;margin-bottom:.75rem;"><i class="bi bi-file-earmark-arrow-up" style="color:#0d9488;"></i></div>
+        <h5 style="font-weight:700;font-size:1rem;margin-bottom:.4rem;">Carga de material de estudio</h5>
+        <p style="font-size:.87rem;color:#64748b;margin:0;">Sube el PDF de tu clase. La IA extrae los temas clave y los usa como base para generar las preguntas.</p>
+      </div></div>
+      <div class="col-md-6 col-lg-4"><div class="flow-step-card text-start" style="padding:1.5rem;">
+        <div class="flow-step-icon" style="font-size:1.4rem;margin-bottom:.75rem;"><i class="bi bi-list-check" style="color:#3b82f6;"></i></div>
+        <h5 style="font-weight:700;font-size:1rem;margin-bottom:.4rem;">Selección de temas</h5>
+        <p style="font-size:.87rem;color:#64748b;margin:0;">Elige qué temas incluir. El sistema extrae automáticamente los temas del documento.</p>
+      </div></div>
+      <div class="col-md-6 col-lg-4"><div class="flow-step-card text-start" style="padding:1.5rem;">
+        <div class="flow-step-icon" style="font-size:1.4rem;margin-bottom:.75rem;"><i class="bi bi-stars" style="color:#f59e0b;"></i></div>
+        <h5 style="font-weight:700;font-size:1rem;margin-bottom:.4rem;">Generación con IA</h5>
+        <p style="font-size:.87rem;color:#64748b;margin:0;">Amazon Bedrock genera preguntas coherentes con el material, con opciones plausibles y respuesta correcta.</p>
+      </div></div>
+      <div class="col-md-6 col-lg-4"><div class="flow-step-card text-start" style="padding:1.5rem;">
+        <div class="flow-step-icon" style="font-size:1.4rem;margin-bottom:.75rem;"><i class="bi bi-pencil" style="color:#ef4444;"></i></div>
+        <h5 style="font-weight:700;font-size:1rem;margin-bottom:.4rem;">Edición manual</h5>
+        <p style="font-size:.87rem;color:#64748b;margin:0;">Revisa y edita cada pregunta generada antes de exportar.</p>
+      </div></div>
+      <div class="col-md-6 col-lg-4"><div class="flow-step-card text-start" style="padding:1.5rem;">
+        <div class="flow-step-icon" style="font-size:1.4rem;margin-bottom:.75rem;"><i class="bi bi-download" style="color:#22c55e;"></i></div>
+        <h5 style="font-weight:700;font-size:1rem;margin-bottom:.4rem;">Exportación múltiple</h5>
+        <p style="font-size:.87rem;color:#64748b;margin:0;">Descarga en PDF, DOCX o JSON para integrarlo con otros sistemas.</p>
+      </div></div>
+      <div class="col-md-6 col-lg-4"><div class="flow-step-card text-start" style="padding:1.5rem;">
+        <div class="flow-step-icon" style="font-size:1.4rem;margin-bottom:.75rem;"><i class="bi bi-key" style="color:#10b981;"></i></div>
+        <h5 style="font-weight:700;font-size:1rem;margin-bottom:.4rem;">Clave de respuestas</h5>
+        <p style="font-size:.87rem;color:#64748b;margin:0;">El sistema genera automáticamente la clave de respuestas junto con el examen.</p>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Tipos de preguntas -->
+<section class="lp-section" style="background:var(--bg-surface-2);">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="lp-label">Tipos de preguntas</span>
+      <h2 class="lp-section-title">Tres formatos para cada necesidad</h2>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-4"><div class="qtype-card" style="background:#eff6ff;">
+        <div style="font-size:1.8rem;margin-bottom:.65rem;">🔵</div>
+        <h5 class="fw-bold mb-2">Opción múltiple</h5>
+        <p class="text-muted small mb-3">4 opciones de respuesta con una correcta. Ideal para evaluar conocimiento conceptual.</p>
+        <div class="text-start p-3 rounded" style="background:#fff;font-size:.82rem;">
+          <div class="fw-bold mb-2">¿Cuál es la capital de Francia?</div>
+          <div class="text-muted">A. Londres</div>
+          <div style="color:#22c55e;font-weight:600;">B. París ✓</div>
+          <div class="text-muted">C. Berlín</div>
+          <div class="text-muted">D. Roma</div>
         </div>
-
-        <!-- Funcionalidades -->
-        <div class="landing-section">
-            <div class="text-center mb-4">
-                <div class="section-label">Funcionalidades</div>
-                <h2 class="section-title">Genera, personaliza y exporta</h2>
-                <p class="section-sub mx-auto mt-2">Todo el flujo de creación de exámenes en una sola herramienta.</p>
-            </div>
-            <div class="row g-3">
-                <div class="col-md-6 col-lg-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:#f0fdfa;"><i class="bi bi-file-earmark-arrow-up" style="color:#0d9488;"></i></div>
-                        <h5>Carga de material de estudio</h5>
-                        <p>Sube el PDF de tu clase, apunte o libro de texto. La IA extrae los temas clave y los usa como base para generar las preguntas.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:#eff6ff;"><i class="bi bi-list-check" style="color:#3b82f6;"></i></div>
-                        <h5>Selección de temas</h5>
-                        <p>Elige qué temas incluir en el examen. El sistema extrae automáticamente los temas del documento y te permite seleccionarlos.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:#fdf4ff;"><i class="bi bi-sliders" style="color:#a855f7;"></i></div>
-                        <h5>Configuración del examen</h5>
-                        <p>Define la cantidad de preguntas, el tipo, el nivel de dificultad y el idioma del examen.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:#fef3c7;"><i class="bi bi-stars" style="color:#f59e0b;"></i></div>
-                        <h5>Generación con IA</h5>
-                        <p>Amazon Bedrock genera preguntas coherentes con el material, con opciones plausibles y respuesta correcta identificada.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:#fff1f2;"><i class="bi bi-pencil" style="color:#ef4444;"></i></div>
-                        <h5>Edición manual</h5>
-                        <p>Revisa y edita cada pregunta generada antes de exportar. Modifica el enunciado, las opciones o la respuesta correcta.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:#f0fdf4;"><i class="bi bi-download" style="color:#22c55e;"></i></div>
-                        <h5>Exportación múltiple</h5>
-                        <p>Descarga el examen en PDF listo para imprimir, en DOCX para editar en Word, o en JSON para integrarlo con otros sistemas.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:#eff6ff;"><i class="bi bi-journal-text" style="color:#3b82f6;"></i></div>
-                        <h5>Historial de exámenes</h5>
-                        <p>Accede a todos los exámenes generados, filtra por materia o fecha, y reutiliza o modifica exámenes anteriores.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:#ecfdf5;"><i class="bi bi-key" style="color:#10b981;"></i></div>
-                        <h5>Clave de respuestas</h5>
-                        <p>El sistema genera automáticamente la clave de respuestas junto con el examen. Ideal para corrección rápida.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:#fff7ed;"><i class="bi bi-speedometer2" style="color:#f97316;"></i></div>
-                        <h5>Dashboard de exámenes</h5>
-                        <p>Visualiza estadísticas de uso: exámenes generados, materias más activas, tiempo promedio de generación y más.</p>
-                    </div>
-                </div>
-            </div>
+      </div></div>
+      <div class="col-md-4"><div class="qtype-card" style="background:#f0fdfa;">
+        <div style="font-size:1.8rem;margin-bottom:.65rem;">✅</div>
+        <h5 class="fw-bold mb-2">Verdadero / Falso</h5>
+        <p class="text-muted small mb-3">Afirmaciones que el alumno debe clasificar. Útil para verificar comprensión de conceptos clave.</p>
+        <div class="text-start p-3 rounded" style="background:#fff;font-size:.82rem;">
+          <div class="fw-bold mb-2">El agua hierve a 100°C a nivel del mar.</div>
+          <div style="color:#22c55e;font-weight:600;">Verdadero ✓</div>
+          <div class="text-muted mt-2" style="font-size:.78rem;">Justificación incluida en la clave</div>
         </div>
-
-        <!-- Tipos de preguntas -->
-        <div class="landing-section alt">
-            <div class="text-center mb-4">
-                <div class="section-label">Tipos de preguntas</div>
-                <h2 class="section-title">Tres formatos para cada necesidad</h2>
-            </div>
-            <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="qtype-card" style="background:#eff6ff;">
-                        <div class="qtype-icon">🔵</div>
-                        <h5 class="fw-bold mb-2">Opción múltiple</h5>
-                        <p class="text-muted small mb-3">4 opciones de respuesta con una correcta. Ideal para evaluar conocimiento conceptual y comprensión.</p>
-                        <div class="text-start p-3 rounded" style="background:#fff;font-size:0.82rem;">
-                            <div class="fw-bold mb-2">¿Cuál es la capital de Francia?</div>
-                            <div class="text-muted">A. Londres</div>
-                            <div style="color:#22c55e;font-weight:600;">B. París ✓</div>
-                            <div class="text-muted">C. Berlín</div>
-                            <div class="text-muted">D. Roma</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="qtype-card" style="background:#f0fdfa;">
-                        <div class="qtype-icon">✅</div>
-                        <h5 class="fw-bold mb-2">Verdadero / Falso</h5>
-                        <p class="text-muted small mb-3">Afirmaciones que el alumno debe clasificar. Útil para verificar comprensión de conceptos clave.</p>
-                        <div class="text-start p-3 rounded" style="background:#fff;font-size:0.82rem;">
-                            <div class="fw-bold mb-2">El agua hierve a 100°C a nivel del mar.</div>
-                            <div style="color:#22c55e;font-weight:600;">Verdadero ✓</div>
-                            <div class="text-muted mt-2" style="font-size:0.78rem;">Justificación incluida en la clave</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="qtype-card" style="background:#fdf4ff;">
-                        <div class="qtype-icon">📝</div>
-                        <h5 class="fw-bold mb-2">Desarrollo</h5>
-                        <p class="text-muted small mb-3">Preguntas abiertas que requieren respuesta elaborada. Evalúa capacidad de análisis y síntesis.</p>
-                        <div class="text-start p-3 rounded" style="background:#fff;font-size:0.82rem;">
-                            <div class="fw-bold mb-2">Explica el proceso de fotosíntesis y su importancia para los ecosistemas.</div>
-                            <div class="text-muted" style="font-size:0.78rem;">Respuesta modelo incluida en la clave</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      </div></div>
+      <div class="col-md-4"><div class="qtype-card" style="background:#fdf4ff;">
+        <div style="font-size:1.8rem;margin-bottom:.65rem;">📝</div>
+        <h5 class="fw-bold mb-2">Desarrollo</h5>
+        <p class="text-muted small mb-3">Preguntas abiertas que requieren respuesta elaborada. Evalúa capacidad de análisis.</p>
+        <div class="text-start p-3 rounded" style="background:#fff;font-size:.82rem;">
+          <div class="fw-bold mb-2">Explica el proceso de fotosíntesis y su importancia para los ecosistemas.</div>
+          <div class="text-muted" style="font-size:.78rem;">Respuesta modelo incluida en la clave</div>
         </div>
+      </div></div>
+    </div>
+  </div>
+</section>
 
-        <!-- Cómo funciona -->
-        <div class="landing-section" id="como-funciona">
-            <div class="row align-items-center g-5">
-                <div class="col-lg-5">
-                    <div class="section-label">Proceso</div>
-                    <h2 class="section-title">De tu material al examen en 4 pasos</h2>
-                    <p class="section-sub mt-3">El flujo está diseñado para que un docente pueda generar un examen completo en menos de 2 minutos.</p>
-                    <div class="mt-4 d-flex flex-wrap gap-2">
-                        <span class="format-pill"><i class="bi bi-file-pdf" style="color:#ef4444;"></i>PDF</span>
-                        <span class="format-pill"><i class="bi bi-file-word" style="color:#3b82f6;"></i>DOCX</span>
-                        <span class="format-pill"><i class="bi bi-filetype-json" style="color:#f59e0b;"></i>JSON</span>
-                    </div>
-                    <a href="exam-generator.html" class="btn-landing mt-4 d-inline-block">Generar examen ahora</a>
-                </div>
-                <div class="col-lg-6 offset-lg-1">
-                    <div class="workflow-card">
-                        <div class="workflow-step">
-                            <div class="ws-num">1</div>
-                            <div><div class="ws-title">Sube tu material</div><div class="ws-desc">Carga el PDF con el contenido de tu clase. El sistema extrae automáticamente los temas principales.</div></div>
-                        </div>
-                        <div class="workflow-step">
-                            <div class="ws-num">2</div>
-                            <div><div class="ws-title">Selecciona temas y configura</div><div class="ws-desc">Elige qué temas incluir, cuántas preguntas por tipo, el nivel de dificultad y el idioma.</div></div>
-                        </div>
-                        <div class="workflow-step">
-                            <div class="ws-num">3</div>
-                            <div><div class="ws-title">La IA genera el examen</div><div class="ws-desc">Amazon Bedrock crea las preguntas basándose en el contenido real de tu material, con respuestas correctas y distractores plausibles.</div></div>
-                        </div>
-                        <div class="workflow-step">
-                            <div class="ws-num">4</div>
-                            <div><div class="ws-title">Revisa y exporta</div><div class="ws-desc">Edita las preguntas que necesites y descarga el examen en el formato que prefieras, junto con la clave de respuestas.</div></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!-- Cómo funciona -->
+<section class="lp-section" id="como-funciona" style="background:var(--bg-base);">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="lp-label lp-label-green">Proceso</span>
+      <h2 class="lp-section-title">De tu material al examen en 4 pasos</h2>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-3 col-sm-6"><div class="flow-step-card">
+        <div class="flow-step-number">1</div><div class="flow-step-icon"><i class="bi bi-cloud-upload"></i></div>
+        <div class="flow-step-title">Sube tu material</div>
+        <div class="flow-step-desc">Carga el PDF con el contenido de tu clase. El sistema extrae automáticamente los temas principales.</div>
+      </div></div>
+      <div class="col-md-3 col-sm-6"><div class="flow-step-card">
+        <div class="flow-step-number">2</div><div class="flow-step-icon"><i class="bi bi-sliders"></i></div>
+        <div class="flow-step-title">Selecciona y configura</div>
+        <div class="flow-step-desc">Elige qué temas incluir, cuántas preguntas por tipo, el nivel de dificultad y el idioma.</div>
+      </div></div>
+      <div class="col-md-3 col-sm-6"><div class="flow-step-card">
+        <div class="flow-step-number">3</div><div class="flow-step-icon"><i class="bi bi-robot"></i></div>
+        <div class="flow-step-title">La IA genera el examen</div>
+        <div class="flow-step-desc">Amazon Bedrock crea las preguntas basándose en el contenido real de tu material.</div>
+      </div></div>
+      <div class="col-md-3 col-sm-6"><div class="flow-step-card">
+        <div class="flow-step-number">4</div><div class="flow-step-icon"><i class="bi bi-download"></i></div>
+        <div class="flow-step-title">Revisa y exporta</div>
+        <div class="flow-step-desc">Edita las preguntas que necesites y descarga en PDF, DOCX o JSON.</div>
+      </div></div>
+    </div>
+    <div class="text-center mt-4">
+      <div class="d-flex gap-2 justify-content-center flex-wrap">
+        <span class="format-pill"><i class="bi bi-file-pdf" style="color:#ef4444;"></i>PDF</span>
+        <span class="format-pill"><i class="bi bi-file-word" style="color:#3b82f6;"></i>DOCX</span>
+        <span class="format-pill"><i class="bi bi-filetype-json" style="color:#f59e0b;"></i>JSON</span>
+      </div>
+    </div>
+  </div>
+</section>
 
-        <!-- CTA -->
-        <div class="landing-cta">
-            <h2>Ahorra horas de trabajo cada semana</h2>
-            <p class="mt-3 mb-4" style="opacity:0.75;font-size:1.05rem;">Genera exámenes de calidad en segundos. Dedica más tiempo a enseñar.</p>
-            <div class="d-flex gap-3 justify-content-center flex-wrap">
-                <a href="exam-generator.html" class="btn-landing"><i class="bi bi-plus-circle me-2"></i>Generar examen ahora</a>
-                <a href="landing-deteccion-ia.html" class="btn-landing-outline"><i class="bi bi-shield-check me-2"></i>Ver Detección de IA</a>
-            </div>
-        </div>
+<!-- CTA -->
+<section class="lp-cta-section">
+  <div class="container text-center">
+    <h2 class="lp-section-title">Ahorra horas de trabajo cada semana</h2>
+    <p class="lp-section-subtitle mx-auto">Genera exámenes de calidad en segundos. Dedica más tiempo a enseñar.</p>
+    <div class="d-flex gap-3 justify-content-center flex-wrap mt-4">
+      <a href="exam-generator.html" class="btn-hero-primary"><i class="bi bi-plus-circle"></i> Generar examen ahora</a>
+      <a href="landing-deteccion-ia.html" class="btn-hero-secondary"><i class="bi bi-shield-check"></i> Ver Detección de IA</a>
+    </div>
+  </div>
+</section>
 
-    </main>
-</div>
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="container">
+    <p class="mb-1"><strong style="color:white;">EduTech AI</strong> — Plataforma Educativa Demo</p>
+    <p class="mb-0">CloudHesive · Módulo Exámenes con IA · Demo Sandbox</p>
+  </div>
+</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="config.js?v=10"></script>
+<script src="config.js"></script>
+<script src="js/platform-config.js"></script>
 <script>
-    if (typeof PlatformConfig !== 'undefined') PlatformConfig.applyConfig();
-    document.querySelectorAll('a[href^="#"]').forEach(a => {
-        a.addEventListener('click', e => {
-            const target = document.querySelector(a.getAttribute('href'));
-            if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); }
-        });
+  if (typeof PlatformConfig !== 'undefined') PlatformConfig.applyConfig();
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const t = document.querySelector(a.getAttribute('href'));
+      if (t) { e.preventDefault(); t.scrollIntoView({ behavior:'smooth' }); }
     });
+  });
 </script>
 </body>
 </html>

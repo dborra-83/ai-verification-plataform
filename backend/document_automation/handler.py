@@ -29,7 +29,7 @@ bedrock = boto3.client("bedrock-runtime")
 dynamodb = boto3.resource("dynamodb")
 
 BUCKET = os.environ.get("S3_BUCKET", "")
-MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-3-5-sonnet-20241022-v2:0")
+MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-6")
 TABLE_NAME = os.environ.get("DYNAMO_TABLE", "DocAutomationHistory")
 TEXTRACT_MODE = os.environ.get("TEXTRACT_MODE", "sync")
 DEMO_PREFIX = os.environ.get("DEMO_DOCS_S3_PREFIX", "demo-docs/")
@@ -62,6 +62,17 @@ def _json_serial(obj):
     if isinstance(obj, datetime):
         return obj.isoformat()
     raise TypeError(f"Type {type(obj)} not serializable")
+
+
+def _to_dynamo(obj):
+    """Convierte recursivamente floats a Decimal para DynamoDB."""
+    if isinstance(obj, float):
+        return Decimal(str(obj))
+    if isinstance(obj, dict):
+        return {k: _to_dynamo(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_to_dynamo(i) for i in obj]
+    return obj
 
 
 def get_table():
@@ -250,9 +261,9 @@ def analyze(s3_key: str) -> dict:
         "ocr_quality": ocr_quality,
     }
 
-    # 8. Guardar en DynamoDB
+    # 8. Guardar en DynamoDB (floats → Decimal requerido por DynamoDB)
     try:
-        get_table().put_item(Item=result)
+        get_table().put_item(Item=_to_dynamo(result))
     except Exception as e:
         print(f"DynamoDB save error (non-fatal): {e}")
 

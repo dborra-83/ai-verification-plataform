@@ -207,76 +207,31 @@ const DOC_AUTO = (() => {
   // ── Análisis ─────────────────────────────────────────────────────
   async function startAnalysis() {
     if (!selectedFile && !selectedS3Key) return;
-    showProgress();
-    hideResults();
 
-    try {
-      let s3Key = selectedS3Key;
+    // Serializar el job y navegar a la página de análisis
+    const job = { name: "", s3Key: null, fileData: null, fileType: null };
 
-      if (selectedFile) {
-        // 1. Upload
-        setStep(0);
-        const uploadResp = await apiCall("/doc-automation/upload", {
-          method: "POST",
-          body: JSON.stringify({
-            filename: selectedFile.name,
-            contentType: selectedFile.type,
-          }),
-        });
-        if (!uploadResp.ok) throw new Error("Error al obtener URL de subida");
-        const { uploadUrl, s3Key: key } = await uploadResp.json();
-        s3Key = key;
-
-        // PUT directo a S3
-        const putResp = await fetch(uploadUrl, {
-          method: "PUT",
-          body: selectedFile,
-          headers: { "Content-Type": selectedFile.type },
-        });
-        if (!putResp.ok) throw new Error("Error al subir el archivo a S3");
-      }
-
-      // 2-7. Analyze (el backend hace todo)
-      setStep(1);
-      await delay(400);
-      setStep(2);
-      const analyzeResp = await apiCall("/doc-automation/analyze", {
-        method: "POST",
-        body: JSON.stringify({ s3Key }),
-      });
-
-      if (!analyzeResp.ok) {
-        const errData = await analyzeResp.json().catch(() => ({}));
-        const msg = errData.message || `Error ${analyzeResp.status}`;
-        if (errData.error === "DOCUMENTO_ILEGIBLE") {
-          throw new Error(
-            "El documento no es legible. Verifique que el archivo tenga texto visible.",
-          );
-        }
-        throw new Error(msg);
-      }
-
-      setStep(3);
-      await delay(200);
-      setStep(4);
-      await delay(200);
-      setStep(5);
-      await delay(200);
-      setStep(6);
-
-      const result = await analyzeResp.json();
-      lastResult = result;
-
-      hideProgress();
-      renderResults(result);
-    } catch (e) {
-      hideProgress();
-      showError(e.message || "Error inesperado al procesar el documento.");
+    if (selectedFile) {
+      job.name = selectedFile.name;
+      job.fileType = selectedFile.type;
+      // Convertir a base64 para pasar via sessionStorage
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const b64 = e.target.result.split(",")[1];
+        job.fileData = b64;
+        sessionStorage.setItem("docAnalyzeJob", JSON.stringify(job));
+        window.location.href = "doc-automation-analyze.html";
+      };
+      reader.readAsDataURL(selectedFile);
+      return;
     }
-  }
 
-  function delay(ms) {
-    return new Promise((r) => setTimeout(r, ms));
+    if (selectedS3Key) {
+      job.s3Key = selectedS3Key;
+      job.name = selectedS3Key.split("/").pop();
+      sessionStorage.setItem("docAnalyzeJob", JSON.stringify(job));
+      window.location.href = "doc-automation-analyze.html";
+    }
   }
 
   // ── Progress UI ──────────────────────────────────────────────────
@@ -479,6 +434,19 @@ const DOC_AUTO = (() => {
         <button class="btn btn-outline-primary" id="exportBtn" onclick="DOC_AUTO.exportResult()">
           <i class="bi bi-download me-2"></i>Exportar análisis (JSON)
         </button>
+      </div>
+
+      <!-- Panel JSON completo -->
+      <div class="result-panel mt-3">
+        <div class="panel-header d-flex align-items-center justify-content-between">
+          <span><i class="bi bi-braces"></i> Resultado JSON — Integración con otros sistemas</span>
+          <button class="btn btn-sm btn-outline-secondary" onclick="DOC_AUTO.copyJson()" id="copyJsonBtn">
+            <i class="bi bi-clipboard me-1"></i>Copiar
+          </button>
+        </div>
+        <div class="panel-body p-0">
+          <pre id="jsonViewer" style="background:#1e1e2e;color:#cdd6f4;padding:1.25rem;border-radius:0 0 10px 10px;font-size:.78rem;line-height:1.6;overflow-x:auto;max-height:400px;overflow-y:auto;margin:0;max-width:100%;box-sizing:border-box;word-break:normal;white-space:pre;">${escHtml(JSON.stringify(r, null, 2))}</pre>
+        </div>
       </div>`;
   }
 
@@ -532,7 +500,22 @@ const DOC_AUTO = (() => {
   }
 
   // ── Public API ───────────────────────────────────────────────────
-  return { init, clearFile, selectDemoDoc, exportResult };
+  function copyJson() {
+    if (!lastResult) return;
+    navigator.clipboard
+      .writeText(JSON.stringify(lastResult, null, 2))
+      .then(() => {
+        const btn = document.getElementById("copyJsonBtn");
+        if (btn) {
+          btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Copiado';
+          setTimeout(() => {
+            btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copiar';
+          }, 2000);
+        }
+      });
+  }
+
+  return { init, clearFile, selectDemoDoc, exportResult, copyJson };
 })();
 
 document.addEventListener("DOMContentLoaded", () => DOC_AUTO.init());

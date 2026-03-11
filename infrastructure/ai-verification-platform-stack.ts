@@ -120,6 +120,14 @@ export class AiVerificationPlatformStack extends cdk.Stack {
     lambdaRole.addToPolicy(
       new iam.PolicyStatement({
         effect: iam.Effect.ALLOW,
+        actions: ["s3:ListBucket"],
+        resources: [uploadBucket.bucketArn],
+      }),
+    );
+
+    lambdaRole.addToPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
         actions: [
           "dynamodb:PutItem",
           "dynamodb:GetItem",
@@ -965,8 +973,7 @@ export class AiVerificationPlatformStack extends cdk.Stack {
         environment: {
           S3_BUCKET: uploadBucket.bucketName,
           BEDROCK_MODEL_ID:
-            process.env.BEDROCK_MODEL_ID ||
-            "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+            process.env.BEDROCK_MODEL_ID || "us.anthropic.claude-sonnet-4-6",
           DYNAMO_TABLE: docHistoryTable.tableName,
           TEXTRACT_MODE: process.env.TEXTRACT_MODE || "sync",
           DEMO_DOCS_S3_PREFIX: process.env.DEMO_DOCS_S3_PREFIX || "demo-docs/",

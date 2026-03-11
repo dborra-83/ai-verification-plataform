@@ -1,407 +1,221 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduTech AI - Detección de IA en Trabajos Académicos</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="css/styles.css" rel="stylesheet">
-    <style>
-        /* Landing content inside main-content — override ice background for sections */
-        .landing-hero {
-            background: linear-gradient(135deg, #000024 0%, #003366 60%, #008FD0 100%);
-            color: #fff;
-            padding: 4rem 2.5rem 3.5rem;
-            position: relative;
-            overflow: hidden;
-        }
-        .landing-hero::before {
-            content: '';
-            position: absolute; top: -80px; right: -80px;
-            width: 350px; height: 350px; border-radius: 50%;
-            background: rgba(0,143,208,0.15);
-        }
-        .landing-hero::after {
-            content: '';
-            position: absolute; bottom: -60px; left: -60px;
-            width: 250px; height: 250px; border-radius: 50%;
-            background: rgba(8,189,186,0.1);
-        }
-        .hero-badge {
-            display: inline-block;
-            background: rgba(0,143,208,0.25);
-            border: 1px solid rgba(0,143,208,0.5);
-            color: #7dd3f8; padding: 0.3rem 1rem;
-            border-radius: 50px; font-size: 0.78rem; font-weight: 600;
-            letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 1.25rem;
-        }
-        .landing-hero h1 { font-size: 2.4rem; font-weight: 800; line-height: 1.15; }
-        .landing-hero h1 span { color: #7dd3f8; }
-        .landing-hero p.lead { font-size: 1.05rem; opacity: 0.85; max-width: 520px; }
-        .hero-stats { display: flex; gap: 2rem; margin-top: 2rem; flex-wrap: wrap; }
-        .hero-stat strong { display: block; font-size: 1.8rem; font-weight: 800; color: #7dd3f8; }
-        .hero-stat span { font-size: 0.82rem; opacity: 0.75; }
-        .hero-visual {
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 14px; padding: 1.75rem;
-        }
-        .score-ring {
-            width: 100px; height: 100px; border-radius: 50%;
-            background: conic-gradient(#ef4444 0% 78%, rgba(255,255,255,0.1) 78% 100%);
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 0.75rem; position: relative;
-        }
-        .score-ring::before {
-            content: ''; position: absolute;
-            width: 72px; height: 72px; border-radius: 50%; background: #0d1b3e;
-        }
-        .score-ring span { position: relative; z-index: 1; font-size: 1.3rem; font-weight: 800; color: #ef4444; }
-        .signal-item {
-            display: flex; align-items: center; gap: 0.5rem;
-            padding: 0.4rem 0; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 0.82rem;
-        }
-        .signal-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-
-        /* Landing sections inside main-content */
-        .landing-section { padding: 3.5rem 2.5rem; background: #fff; }
-        .landing-section.alt { background: #E9F3FA; }
-        .section-label {
-            font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
-            text-transform: uppercase; color: #008FD0; margin-bottom: 0.6rem;
-        }
-        .section-title { font-size: 1.9rem; font-weight: 800; color: #000024; line-height: 1.2; }
-        .section-sub { font-size: 1rem; color: #64748b; max-width: 520px; }
-
-        .feature-card {
-            border: 1px solid #e2e8f0; border-radius: 14px;
-            padding: 1.75rem; height: 100%; transition: all 0.25s; background: #fff;
-        }
-        .feature-card:hover { border-color: #008FD0; box-shadow: 0 6px 24px rgba(0,143,208,0.12); transform: translateY(-2px); }
-        .feature-icon {
-            width: 46px; height: 46px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.25rem; margin-bottom: 1rem;
-        }
-        .feature-card h5 { font-size: 1rem; font-weight: 700; color: #000024; margin-bottom: 0.4rem; }
-        .feature-card p { font-size: 0.87rem; color: #64748b; margin: 0; }
-
-        .workflow-card {
-            background: #000024; border-radius: 16px; padding: 2.5rem; color: #fff;
-        }
-        .workflow-step {
-            display: flex; align-items: flex-start; gap: 1rem;
-            padding: 0.9rem 0; border-bottom: 1px solid rgba(255,255,255,0.08);
-        }
-        .workflow-step:last-child { border-bottom: none; }
-        .ws-num {
-            width: 30px; height: 30px; border-radius: 50%;
-            background: #008FD0; color: #fff;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.82rem; font-weight: 700; flex-shrink: 0;
-        }
-        .ws-title { font-weight: 600; font-size: 0.92rem; }
-        .ws-desc { font-size: 0.8rem; opacity: 0.6; margin-top: 0.15rem; }
-
-        .landing-cta {
-            background: linear-gradient(135deg, #000024 0%, #003366 100%);
-            color: #fff; padding: 3.5rem 2.5rem; text-align: center;
-        }
-        .landing-cta h2 { font-size: 2rem; font-weight: 800; }
-        .btn-landing {
-            background: #008FD0; color: #fff;
-            padding: 0.75rem 2rem; border-radius: 50px;
-            font-weight: 700; font-size: 0.95rem;
-            border: none; text-decoration: none;
-            display: inline-block; transition: all 0.2s;
-        }
-        .btn-landing:hover { background: #0077b0; color: #fff; transform: translateY(-2px); }
-        .btn-landing-outline {
-            border: 2px solid rgba(255,255,255,0.4); color: #fff;
-            padding: 0.75rem 2rem; border-radius: 50px;
-            font-weight: 600; font-size: 0.95rem;
-            text-decoration: none; display: inline-block; transition: all 0.2s;
-        }
-        .btn-landing-outline:hover { border-color: #fff; color: #fff; background: rgba(255,255,255,0.08); }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detección de IA en Trabajos Académicos — EduTech AI</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="css/styles.css" rel="stylesheet">
+  <link href="css/doc-automation.css" rel="stylesheet">
+  <style>
+    .lp-hero-visual .score-ring {
+      width:100px;height:100px;border-radius:50%;
+      background:conic-gradient(#ef4444 0% 78%,rgba(255,255,255,.1) 78% 100%);
+      display:flex;align-items:center;justify-content:center;margin:0 auto .75rem;position:relative;
+    }
+    .lp-hero-visual .score-ring::before {
+      content:'';position:absolute;width:72px;height:72px;border-radius:50%;background:#0d1b3e;
+    }
+    .lp-hero-visual .score-ring span { position:relative;z-index:1;font-size:1.3rem;font-weight:800;color:#ef4444; }
+    .signal-item { display:flex;align-items:center;gap:.5rem;padding:.4rem 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:.82rem; }
+    .signal-item:last-child { border-bottom:none; }
+    .signal-dot { width:7px;height:7px;border-radius:50%;flex-shrink:0; }
+  </style>
 </head>
-<body>
-<div class="app-container">
+<body style="background:var(--bg-base);">
 
-    <!-- Sidebar -->
-    <nav class="sidebar" id="sidebar">
-        <div class="sidebar-logo">
-            <div class="sidebar-logo-icon"><i class="bi bi-mortarboard"></i></div>
-            <div class="sidebar-logo-text">
-                <strong id="platformName">EduTech AI</strong>
-                <span>Plataforma Educativa</span>
-            </div>
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg" style="background:var(--bg-surface);border-bottom:1px solid var(--border-color);padding:.75rem 2rem;">
+  <a class="navbar-brand fw-800 d-flex align-items-center gap-2" href="index.html" style="color:var(--primary);font-weight:800;">
+    <i class="bi bi-mortarboard-fill"></i> EduTech AI
+  </a>
+  <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <div class="collapse navbar-collapse" id="navMenu">
+    <ul class="navbar-nav ms-auto gap-1">
+      <li class="nav-item"><a class="nav-link fw-bold" href="landing-deteccion-ia.html" style="color:var(--primary);">Detección IA</a></li>
+      <li class="nav-item"><a class="nav-link" href="landing-examenes-ia.html">Exámenes IA</a></li>
+      <li class="nav-item"><a class="nav-link" href="doc-automation-landing.html">Automatización Documental</a></li>
+      <li class="nav-item"><a class="btn btn-primary btn-sm ms-2" href="index.html">Ver Demo</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section style="background:linear-gradient(135deg,#000024 0%,#003366 60%,#008FD0 100%);color:white;padding:90px 0 70px;position:relative;overflow:hidden;">
+  <div style="position:absolute;top:-80px;right:-80px;width:350px;height:350px;border-radius:50%;background:rgba(0,143,208,.15);"></div>
+  <div style="position:absolute;bottom:-60px;left:-60px;width:250px;height:250px;border-radius:50%;background:rgba(8,189,186,.1);"></div>
+  <div class="container" style="position:relative;z-index:1;">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <span class="lp-label" style="background:rgba(0,143,208,.25);border:1px solid rgba(0,143,208,.5);color:#7dd3f8;">
+          <i class="bi bi-shield-check me-1"></i>Powered by Amazon Bedrock
+        </span>
+        <h1 style="font-size:clamp(2rem,4vw,3rem);font-weight:900;line-height:1.15;margin:16px 0 20px;">
+          Detecta contenido <span style="color:#7dd3f8;">generado por IA</span> en trabajos académicos
+        </h1>
+        <p style="font-size:1.1rem;color:rgba(255,255,255,.85);margin-bottom:32px;line-height:1.6;">
+          Analiza documentos PDF con inteligencia artificial para identificar si fueron escritos por un alumno o generados por herramientas como ChatGPT, Gemini o Copilot.
+        </p>
+        <div class="d-flex gap-3 flex-wrap">
+          <a href="index.html" class="btn-hero-primary"><i class="bi bi-speedometer2"></i> Ir al Dashboard</a>
+          <a href="#como-funciona" class="btn-hero-secondary">Ver cómo funciona</a>
         </div>
-        <div class="sidebar-nav">
-            <div class="nav-section-header"><i class="bi bi-shield-check me-2"></i>Detección de IA</div>
-            <a href="landing-deteccion-ia.html" class="nav-item active"><i class="bi bi-info-circle"></i>Acerca de</a>
-            <a href="index.html" class="nav-item"><i class="bi bi-speedometer2"></i>Dashboard</a>
-            <a href="index.html#upload" class="nav-item"><i class="bi bi-cloud-upload"></i>Nuevo Análisis</a>
-            <a href="index.html#history" class="nav-item"><i class="bi bi-clock-history"></i>Historial</a>
-            <a href="index.html#analytics" class="nav-item"><i class="bi bi-graph-up"></i>Analytics y Reportes</a>
-
-            <div class="nav-section-header"><i class="bi bi-file-earmark-text me-2"></i>Exámenes con IA</div>
-            <a href="landing-examenes-ia.html" class="nav-item"><i class="bi bi-info-circle"></i>Acerca de</a>
-            <a href="exam-dashboard.html" class="nav-item"><i class="bi bi-speedometer2"></i>Dashboard</a>
-            <a href="exam-generator.html" class="nav-item"><i class="bi bi-plus-circle"></i>Generador de Exámenes</a>
-            <a href="exam-history.html" class="nav-item"><i class="bi bi-journal-text"></i>Historial de Exámenes</a>
-
-            <div class="nav-section-header"><i class="bi bi-file-earmark-check me-2"></i>Automatización Documental</div>
-            <a href="doc-automation-landing.html" class="nav-item"><i class="bi bi-info-circle"></i>Acerca de</a>
-            <a href="doc-automation.html" class="nav-item"><i class="bi bi-cpu"></i>Procesar Documento</a>
-
-            <div class="nav-section-header"><i class="bi bi-gear-wide-connected me-2"></i>Administración</div>
-            <a href="admin-dashboard.html" class="nav-item"><i class="bi bi-sliders"></i>Configuración</a>
-
-            <div class="nav-section-header"><i class="bi bi-collection-play me-2"></i>Otras Demos</div>
-            <a href="https://universidad.demolatamchconnect.com/" class="nav-item" target="_blank">
-                <i class="bi bi-telephone-fill"></i>Amazon Connect
-                <i class="bi bi-box-arrow-up-right ms-auto" style="font-size:0.8rem;opacity:0.7;"></i>
-            </a>
-            <a href="#" class="nav-item" style="opacity:.55;cursor:default;pointer-events:none;">
-                <i class="bi bi-pc-display"></i>Entornos Virtuales
-                <span class="ms-auto" style="font-size:.7rem;background:rgba(0,102,204,.12);color:var(--primary);padding:2px 7px;border-radius:20px;font-weight:600;">Próximamente</span>
-            </a>
-            <a href="https://acadexia.demolatamchconnect.com/" class="nav-item" target="_blank">
-                <i class="bi bi-exclamation-triangle"></i>Detección Temprana
-                <i class="bi bi-box-arrow-up-right ms-auto" style="font-size:0.8rem;opacity:0.7;"></i>
-            </a>
-
-            <hr style="border-color:rgba(255,255,255,0.2);margin:1rem 1.5rem;">
-            <a href="login.html" class="nav-item"><i class="bi bi-box-arrow-right"></i>Cerrar Sesión</a>
+        <div class="d-flex gap-4 mt-4 flex-wrap">
+          <div><strong style="display:block;font-size:1.8rem;font-weight:800;color:#7dd3f8;">94%</strong><span style="font-size:.82rem;opacity:.75;">Precisión de detección</span></div>
+          <div><strong style="display:block;font-size:1.8rem;font-weight:800;color:#7dd3f8;">&lt;30s</strong><span style="font-size:.82rem;opacity:.75;">Tiempo de análisis</span></div>
+          <div><strong style="display:block;font-size:1.8rem;font-weight:800;color:#7dd3f8;">PDF</strong><span style="font-size:.82rem;opacity:.75;">Formato soportado</span></div>
         </div>
-    </nav>
-
-    <!-- Main Content -->
-    <main class="main-content" style="background:var(--bg-surface);">
-
-        <!-- Topbar -->
-        <div class="topbar">
-            <button class="app-header-hamburger" onclick="toggleSidebar()" aria-label="Menú"><i class="bi bi-list"></i></button>
-            <h2>Detección de IA — Acerca de</h2>
-            <div class="topbar-actions">
-                <a href="index.html" class="header-btn"><i class="bi bi-speedometer2 me-1"></i>Dashboard</a>
-                <a href="login.html" class="header-btn"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
-            </div>
+      </div>
+      <div class="col-lg-5 offset-lg-1">
+        <div class="lp-hero-visual">
+          <div class="text-center mb-3"><small style="color:rgba(255,255,255,.5);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;">Resultado del análisis</small></div>
+          <div class="score-ring"><span>78%</span></div>
+          <p class="text-center mb-3" style="color:rgba(255,255,255,.7);font-size:.82rem;">Probabilidad de contenido IA</p>
+          <div class="signal-item"><div class="signal-dot" style="background:#ef4444;"></div><span style="color:rgba(255,255,255,.8);">Estructura repetitiva detectada</span></div>
+          <div class="signal-item"><div class="signal-dot" style="background:#f59e0b;"></div><span style="color:rgba(255,255,255,.8);">Vocabulario inusualmente formal</span></div>
+          <div class="signal-item"><div class="signal-dot" style="background:#ef4444;"></div><span style="color:rgba(255,255,255,.8);">Ausencia de errores ortográficos</span></div>
+          <div class="signal-item"><div class="signal-dot" style="background:#22c55e;"></div><span style="color:rgba(255,255,255,.8);">Citas bibliográficas presentes</span></div>
+          <div class="mt-3 p-2 rounded" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);">
+            <small style="color:#fca5a5;"><i class="bi bi-exclamation-triangle me-1"></i>Alto riesgo — Se recomienda revisión</small>
+          </div>
         </div>
+      </div>
+    </div>
+  </div>
+</section>
 
-        <!-- Hero -->
-        <div class="landing-hero">
-            <div class="row align-items-center g-4" style="position:relative;z-index:1;">
-                <div class="col-lg-6">
-                    <div class="hero-badge"><i class="bi bi-shield-check me-1"></i>Powered by Amazon Bedrock</div>
-                    <h1>Detecta contenido <span>generado por IA</span> en trabajos académicos</h1>
-                    <p class="lead mt-3">Analiza documentos PDF con inteligencia artificial para identificar si fueron escritos por un alumno o generados por herramientas como ChatGPT, Gemini o Copilot.</p>
-                    <div class="d-flex gap-3 mt-4 flex-wrap">
-                        <a href="index.html" class="btn-landing"><i class="bi bi-speedometer2 me-2"></i>Ir al Dashboard</a>
-                        <a href="#como-funciona" class="btn-landing-outline">Ver cómo funciona</a>
-                    </div>
-                    <div class="hero-stats">
-                        <div class="hero-stat"><strong>94%</strong><span>Precisión de detección</span></div>
-                        <div class="hero-stat"><strong>&lt;30s</strong><span>Tiempo de análisis</span></div>
-                        <div class="hero-stat"><strong>PDF</strong><span>Formato soportado</span></div>
-                    </div>
-                </div>
-                <div class="col-lg-5 offset-lg-1">
-                    <div class="hero-visual">
-                        <div class="text-center mb-3">
-                            <small style="color:rgba(255,255,255,0.5);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;">Resultado del análisis</small>
-                        </div>
-                        <div class="score-ring"><span>78%</span></div>
-                        <p class="text-center mb-3" style="color:rgba(255,255,255,0.7);font-size:0.82rem;">Probabilidad de contenido IA</p>
-                        <div class="signal-item"><div class="signal-dot" style="background:#ef4444;"></div><span style="color:rgba(255,255,255,0.8);">Estructura repetitiva detectada</span></div>
-                        <div class="signal-item"><div class="signal-dot" style="background:#f59e0b;"></div><span style="color:rgba(255,255,255,0.8);">Vocabulario inusualmente formal</span></div>
-                        <div class="signal-item"><div class="signal-dot" style="background:#ef4444;"></div><span style="color:rgba(255,255,255,0.8);">Ausencia de errores ortográficos</span></div>
-                        <div class="signal-item" style="border:none;"><div class="signal-dot" style="background:#22c55e;"></div><span style="color:rgba(255,255,255,0.8);">Citas bibliográficas presentes</span></div>
-                        <div class="mt-3 p-2 rounded" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);">
-                            <small style="color:#fca5a5;"><i class="bi bi-exclamation-triangle me-1"></i>Alto riesgo — Se recomienda revisión</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!-- Funcionalidades -->
+<section class="lp-section" style="background:var(--bg-base);">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="lp-label">Funcionalidades</span>
+      <h2 class="lp-section-title">Todo lo que necesita un docente</h2>
+      <p class="lp-section-subtitle mx-auto">Herramientas diseñadas para simplificar la evaluación de integridad académica.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-4"><div class="flow-step-card text-start" style="padding:1.5rem;">
+        <div class="flow-step-icon" style="font-size:1.4rem;margin-bottom:.75rem;"><i class="bi bi-file-earmark-pdf" style="color:#3b82f6;"></i></div>
+        <h5 style="font-weight:700;font-size:1rem;margin-bottom:.4rem;">Análisis de documentos PDF</h5>
+        <p style="font-size:.87rem;color:#64748b;margin:0;">Sube cualquier trabajo en PDF y obtén un análisis detallado en segundos.</p>
+      </div></div>
+      <div class="col-md-6 col-lg-4"><div class="flow-step-card text-start" style="padding:1.5rem;">
+        <div class="flow-step-icon" style="font-size:1.4rem;margin-bottom:.75rem;"><i class="bi bi-graph-up" style="color:#22c55e;"></i></div>
+        <h5 style="font-weight:700;font-size:1rem;margin-bottom:.4rem;">Puntuación de probabilidad</h5>
+        <p style="font-size:.87rem;color:#64748b;margin:0;">Score de 0 a 100% indicando la probabilidad de contenido generado por IA.</p>
+      </div></div>
+      <div class="col-md-6 col-lg-4"><div class="flow-step-card text-start" style="padding:1.5rem;">
+        <div class="flow-step-icon" style="font-size:1.4rem;margin-bottom:.75rem;"><i class="bi bi-exclamation-triangle" style="color:#f59e0b;"></i></div>
+        <h5 style="font-weight:700;font-size:1rem;margin-bottom:.4rem;">Señales detectadas</h5>
+        <p style="font-size:.87rem;color:#64748b;margin:0;">Identifica patrones: estructura repetitiva, vocabulario inusual, coherencia excesiva.</p>
+      </div></div>
+      <div class="col-md-6 col-lg-4"><div class="flow-step-card text-start" style="padding:1.5rem;">
+        <div class="flow-step-icon" style="font-size:1.4rem;margin-bottom:.75rem;"><i class="bi bi-clock-history" style="color:#a855f7;"></i></div>
+        <h5 style="font-weight:700;font-size:1rem;margin-bottom:.4rem;">Historial de análisis</h5>
+        <p style="font-size:.87rem;color:#64748b;margin:0;">Accede a todos los análisis realizados, filtra por curso, alumno o fecha.</p>
+      </div></div>
+      <div class="col-md-6 col-lg-4"><div class="flow-step-card text-start" style="padding:1.5rem;">
+        <div class="flow-step-icon" style="font-size:1.4rem;margin-bottom:.75rem;"><i class="bi bi-person-lines-fill" style="color:#ef4444;"></i></div>
+        <h5 style="font-weight:700;font-size:1rem;margin-bottom:.4rem;">Historial por alumno</h5>
+        <p style="font-size:.87rem;color:#64748b;margin:0;">Visualiza el historial completo de un alumno con gráfico de tendencia.</p>
+      </div></div>
+      <div class="col-md-6 col-lg-4"><div class="flow-step-card text-start" style="padding:1.5rem;">
+        <div class="flow-step-icon" style="font-size:1.4rem;margin-bottom:.75rem;"><i class="bi bi-sliders" style="color:#22c55e;"></i></div>
+        <h5 style="font-weight:700;font-size:1rem;margin-bottom:.4rem;">Umbrales por curso</h5>
+        <p style="font-size:.87rem;color:#64748b;margin:0;">Configura un umbral de riesgo diferente para cada materia.</p>
+      </div></div>
+    </div>
+  </div>
+</section>
 
-        <!-- Funcionalidades -->
-        <div class="landing-section">
-            <div class="text-center mb-4">
-                <div class="section-label">Funcionalidades</div>
-                <h2 class="section-title">Todo lo que necesita un docente</h2>
-                <p class="section-sub mx-auto mt-2">Herramientas diseñadas para simplificar la evaluación de integridad académica.</p>
-            </div>
-            <div class="row g-3">
-                <div class="col-md-6 col-lg-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:#eff6ff;"><i class="bi bi-file-earmark-pdf" style="color:#3b82f6;"></i></div>
-                        <h5>Análisis de documentos PDF</h5>
-                        <p>Sube cualquier trabajo en PDF y obtén un análisis detallado en segundos. Compatible con trabajos prácticos, monografías e informes.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:#f0fdf4;"><i class="bi bi-graph-up" style="color:#22c55e;"></i></div>
-                        <h5>Puntuación de probabilidad</h5>
-                        <p>Score de 0 a 100% indicando la probabilidad de contenido generado por IA, con nivel de confianza del análisis.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:#fef3c7;"><i class="bi bi-exclamation-triangle" style="color:#f59e0b;"></i></div>
-                        <h5>Señales detectadas</h5>
-                        <p>Identifica patrones específicos: estructura repetitiva, vocabulario inusual, ausencia de errores naturales, coherencia excesiva.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:#fdf4ff;"><i class="bi bi-clock-history" style="color:#a855f7;"></i></div>
-                        <h5>Historial de análisis</h5>
-                        <p>Accede a todos los análisis realizados, filtra por curso, alumno o fecha, y exporta reportes en PDF o CSV.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:#fff1f2;"><i class="bi bi-person-lines-fill" style="color:#ef4444;"></i></div>
-                        <h5>Historial por alumno</h5>
-                        <p>Visualiza el historial completo de un alumno con gráfico de tendencia para detectar patrones de comportamiento.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:#ecfdf5;"><i class="bi bi-pencil-square" style="color:#10b981;"></i></div>
-                        <h5>Notas del docente</h5>
-                        <p>Agrega comentarios manuales a cada análisis para contextualizar el resultado con información adicional.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:#eff6ff;"><i class="bi bi-tags" style="color:#3b82f6;"></i></div>
-                        <h5>Etiquetas personalizadas</h5>
-                        <p>Organiza los análisis con etiquetas propias: "Revisado", "Pendiente entrevista", "Aprobado con observaciones".</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:#fff7ed;"><i class="bi bi-arrow-clockwise" style="color:#f97316;"></i></div>
-                        <h5>Re-análisis</h5>
-                        <p>Vuelve a analizar un documento con el modelo más actualizado de Bedrock cuando se mejora el motor de detección.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:#f0fdf4;"><i class="bi bi-sliders" style="color:#22c55e;"></i></div>
-                        <h5>Umbrales por curso</h5>
-                        <p>Configura un umbral de riesgo diferente para cada materia. Matemáticas puede tener un umbral distinto al de Literatura.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!-- Cómo funciona -->
+<section class="lp-section" id="como-funciona" style="background:var(--bg-surface-2);">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="lp-label lp-label-green">Proceso</span>
+      <h2 class="lp-section-title">¿Cómo funciona el análisis?</h2>
+    </div>
+    <div class="row g-4">
+      <div class="col-md col-sm-6"><div class="flow-step-card">
+        <div class="flow-step-number">1</div><div class="flow-step-icon"><i class="bi bi-cloud-upload"></i></div>
+        <div class="flow-step-title">Subida del documento</div>
+        <div class="flow-step-desc">El docente sube el PDF. El archivo se almacena de forma segura en Amazon S3.</div>
+      </div></div>
+      <div class="col-md col-sm-6"><div class="flow-step-card">
+        <div class="flow-step-number">2</div><div class="flow-step-icon"><i class="bi bi-file-text"></i></div>
+        <div class="flow-step-title">Extracción de texto</div>
+        <div class="flow-step-desc">Se extrae el contenido textual del PDF preservando la estructura del documento.</div>
+      </div></div>
+      <div class="col-md col-sm-6"><div class="flow-step-card">
+        <div class="flow-step-number">3</div><div class="flow-step-icon"><i class="bi bi-robot"></i></div>
+        <div class="flow-step-title">Análisis con IA</div>
+        <div class="flow-step-desc">Amazon Bedrock analiza el texto buscando patrones lingüísticos típicos de contenido generado por IA.</div>
+      </div></div>
+      <div class="col-md col-sm-6"><div class="flow-step-card">
+        <div class="flow-step-number">4</div><div class="flow-step-icon"><i class="bi bi-file-earmark-bar-graph"></i></div>
+        <div class="flow-step-title">Generación del reporte</div>
+        <div class="flow-step-desc">Se genera un reporte con score de probabilidad, señales detectadas y recomendaciones.</div>
+      </div></div>
+      <div class="col-md col-sm-6"><div class="flow-step-card">
+        <div class="flow-step-number">5</div><div class="flow-step-icon"><i class="bi bi-person-check"></i></div>
+        <div class="flow-step-title">Decisión del docente</div>
+        <div class="flow-step-desc">El docente revisa el reporte y toma la decisión final. La IA es una herramienta de apoyo.</div>
+      </div></div>
+    </div>
+  </div>
+</section>
 
-        <!-- Cómo funciona -->
-        <div class="landing-section alt" id="como-funciona">
-            <div class="row align-items-center g-5">
-                <div class="col-lg-5">
-                    <div class="section-label">Proceso</div>
-                    <h2 class="section-title">¿Cómo funciona el análisis?</h2>
-                    <p class="section-sub mt-3">El sistema utiliza Amazon Bedrock con modelos de lenguaje avanzados para analizar múltiples dimensiones del texto.</p>
-                    <a href="index.html" class="btn-landing mt-4 d-inline-block">Ir al Dashboard</a>
-                </div>
-                <div class="col-lg-6 offset-lg-1">
-                    <div class="workflow-card">
-                        <div class="workflow-step">
-                            <div class="ws-num">1</div>
-                            <div><div class="ws-title">Subida del documento</div><div class="ws-desc">El docente sube el PDF. El archivo se almacena de forma segura en Amazon S3.</div></div>
-                        </div>
-                        <div class="workflow-step">
-                            <div class="ws-num">2</div>
-                            <div><div class="ws-title">Extracción de texto</div><div class="ws-desc">Se extrae el contenido textual del PDF preservando la estructura del documento.</div></div>
-                        </div>
-                        <div class="workflow-step">
-                            <div class="ws-num">3</div>
-                            <div><div class="ws-title">Análisis con IA</div><div class="ws-desc">Amazon Bedrock analiza el texto buscando patrones lingüísticos, coherencia, vocabulario y estructura típicos de contenido generado por IA.</div></div>
-                        </div>
-                        <div class="workflow-step">
-                            <div class="ws-num">4</div>
-                            <div><div class="ws-title">Generación del reporte</div><div class="ws-desc">Se genera un reporte con score de probabilidad, señales detectadas, recomendaciones y nivel de confianza.</div></div>
-                        </div>
-                        <div class="workflow-step">
-                            <div class="ws-num">5</div>
-                            <div><div class="ws-title">Decisión del docente</div><div class="ws-desc">El docente revisa el reporte, agrega notas y toma la decisión final. La IA es una herramienta de apoyo, no un juez.</div></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!-- Servicios AWS -->
+<section class="lp-section" style="background:var(--bg-base);">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="lp-label">Tecnología</span>
+      <h2 class="lp-section-title">Servicios AWS utilizados</h2>
+    </div>
+    <div class="row g-4 justify-content-center">
+      <div class="col-md-2 col-sm-4 col-6"><div class="aws-service-card"><div class="aws-logo">🤖</div><div class="aws-service-name">Amazon Bedrock</div><div class="aws-service-role">Análisis de texto con Claude Sonnet 4.6</div></div></div>
+      <div class="col-md-2 col-sm-4 col-6"><div class="aws-service-card"><div class="aws-logo">🪣</div><div class="aws-service-name">Amazon S3</div><div class="aws-service-role">Almacenamiento seguro de documentos</div></div></div>
+      <div class="col-md-2 col-sm-4 col-6"><div class="aws-service-card"><div class="aws-logo">⚡</div><div class="aws-service-name">AWS Lambda</div><div class="aws-service-role">Procesamiento serverless</div></div></div>
+      <div class="col-md-2 col-sm-4 col-6"><div class="aws-service-card"><div class="aws-logo">🗄️</div><div class="aws-service-name">Amazon DynamoDB</div><div class="aws-service-role">Historial de análisis</div></div></div>
+      <div class="col-md-2 col-sm-4 col-6"><div class="aws-service-card"><div class="aws-logo">🔌</div><div class="aws-service-name">API Gateway</div><div class="aws-service-role">Endpoints REST seguros</div></div></div>
+    </div>
+  </div>
+</section>
 
-        <!-- Analytics -->
-        <div class="landing-section">
-            <div class="text-center mb-4">
-                <div class="section-label">Analytics</div>
-                <h2 class="section-title">Visibilidad completa de tu curso</h2>
-                <p class="section-sub mx-auto mt-2">Métricas y reportes para entender el comportamiento de integridad académica.</p>
-            </div>
-            <div class="row g-3">
-                <div class="col-md-6 col-lg-3">
-                    <div class="text-center p-4 rounded-3" style="background:#E9F3FA;">
-                        <i class="bi bi-bar-chart-fill fs-1 mb-3" style="color:#008FD0;"></i>
-                        <h6 class="fw-bold">Tasa de detección</h6>
-                        <p class="text-muted small mb-0">Porcentaje de trabajos con alto riesgo por curso y período.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-3">
-                    <div class="text-center p-4 rounded-3" style="background:#E9F3FA;">
-                        <i class="bi bi-graph-up-arrow fs-1 mb-3" style="color:#22c55e;"></i>
-                        <h6 class="fw-bold">Tendencias temporales</h6>
-                        <p class="text-muted small mb-0">Evolución del uso de IA a lo largo del semestre.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-3">
-                    <div class="text-center p-4 rounded-3" style="background:#E9F3FA;">
-                        <i class="bi bi-person-check fs-1 mb-3" style="color:#a855f7;"></i>
-                        <h6 class="fw-bold">Perfil por alumno</h6>
-                        <p class="text-muted small mb-0">Historial individual con gráfico de tendencia por estudiante.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-3">
-                    <div class="text-center p-4 rounded-3" style="background:#E9F3FA;">
-                        <i class="bi bi-download fs-1 mb-3" style="color:#f59e0b;"></i>
-                        <h6 class="fw-bold">Exportación</h6>
-                        <p class="text-muted small mb-0">Descarga reportes en PDF o CSV para actas y registros institucionales.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!-- CTA -->
+<section class="lp-cta-section">
+  <div class="container text-center">
+    <h2 class="lp-section-title">¿Listo para empezar?</h2>
+    <p class="lp-section-subtitle mx-auto">Analiza tu primer documento en menos de un minuto.</p>
+    <div class="d-flex gap-3 justify-content-center flex-wrap mt-4">
+      <a href="index.html" class="btn-hero-primary"><i class="bi bi-speedometer2"></i> Ir al Dashboard</a>
+      <a href="landing-examenes-ia.html" class="btn-hero-secondary"><i class="bi bi-file-earmark-text"></i> Ver Exámenes con IA</a>
+    </div>
+  </div>
+</section>
 
-        <!-- CTA -->
-        <div class="landing-cta">
-            <h2>¿Listo para empezar?</h2>
-            <p class="mt-3 mb-4" style="opacity:0.75;font-size:1.05rem;">Analiza tu primer documento en menos de un minuto.</p>
-            <div class="d-flex gap-3 justify-content-center flex-wrap">
-                <a href="index.html" class="btn-landing"><i class="bi bi-speedometer2 me-2"></i>Ir al Dashboard</a>
-                <a href="landing-examenes-ia.html" class="btn-landing-outline"><i class="bi bi-file-earmark-text me-2"></i>Ver Exámenes con IA</a>
-            </div>
-        </div>
-
-    </main>
-</div>
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="container">
+    <p class="mb-1"><strong style="color:white;">EduTech AI</strong> — Plataforma Educativa Demo</p>
+    <p class="mb-0">CloudHesive · Módulo Detección de IA · Demo Sandbox</p>
+  </div>
+</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="config.js?v=10"></script>
+<script src="config.js"></script>
+<script src="js/platform-config.js"></script>
 <script>
-    // Apply platform name if config available
-    if (typeof PlatformConfig !== 'undefined') PlatformConfig.applyConfig();
-    // Smooth scroll for anchor links
-    document.querySelectorAll('a[href^="#"]').forEach(a => {
-        a.addEventListener('click', e => {
-            const target = document.querySelector(a.getAttribute('href'));
-            if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); }
-        });
+  if (typeof PlatformConfig !== 'undefined') PlatformConfig.applyConfig();
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const t = document.querySelector(a.getAttribute('href'));
+      if (t) { e.preventDefault(); t.scrollIntoView({ behavior:'smooth' }); }
     });
+  });
 </script>
 </body>
 </html>

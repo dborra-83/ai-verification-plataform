@@ -304,9 +304,9 @@ Responde ÚNICAMENTE con JSON válido en este formato exacto:
 TEXTO A ANALIZAR:
 {text[:6000]}"""  # Limit text to avoid token limits
 
-        # Call Bedrock with Claude 3.5 Sonnet v2 via inference profile
+        # Call Bedrock with Claude Sonnet 4.6 via inference profile
         response = bedrock_client.invoke_model(
-            modelId='us.anthropic.claude-3-5-sonnet-20241022-v2:0',
+            modelId='us.anthropic.claude-sonnet-4-6',
             body=json.dumps({
                 'anthropic_version': 'bedrock-2023-05-31',
                 'max_tokens': 2000,

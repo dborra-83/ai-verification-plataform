@@ -22,6 +22,7 @@
     const isAuthenticated = checkAuthentication();
     if (isAuthenticated) {
       initializeTopbar();
+      applyAdminVisibility();
     }
   });
 
@@ -103,9 +104,37 @@
     window.location.href = "login.html";
   }
 
+  function isAdminUser() {
+    try {
+      const authData = localStorage.getItem("ai_verification_auth");
+      if (!authData) return false;
+      const parsed = JSON.parse(authData);
+      // Decode idToken JWT to check cognito:groups
+      if (parsed.idToken) {
+        const payload = JSON.parse(atob(parsed.idToken.split(".")[1]));
+        const groups = payload["cognito:groups"] || [];
+        return (
+          groups.includes("admin") ||
+          groups.includes("Admin") ||
+          groups.includes("Admins")
+        );
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  function applyAdminVisibility() {
+    if (isAdminUser()) return; // admins see everything
+    // Hide admin-only nav elements for non-admins
+    document.querySelectorAll(".admin-nav-section").forEach((el) => {
+      el.style.display = "none";
+    });
+  }
+
   window.RouteGuard = {
     checkAuthentication,
     initializeTopbar,
     handleLogout,
+    isAdminUser,
   };
 })();
