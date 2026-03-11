@@ -966,7 +966,7 @@ export class AiVerificationPlatformStack extends cdk.Stack {
           S3_BUCKET: uploadBucket.bucketName,
           BEDROCK_MODEL_ID:
             process.env.BEDROCK_MODEL_ID ||
-            "anthropic.claude-3-5-sonnet-20241022-v2:0",
+            "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
           DYNAMO_TABLE: docHistoryTable.tableName,
           TEXTRACT_MODE: process.env.TEXTRACT_MODE || "sync",
           DEMO_DOCS_S3_PREFIX: process.env.DEMO_DOCS_S3_PREFIX || "demo-docs/",
