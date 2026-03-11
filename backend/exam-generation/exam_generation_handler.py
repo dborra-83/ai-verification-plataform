@@ -746,9 +746,9 @@ Responde ÚNICAMENTE con JSON válido en este formato exacto:
   ]
 }}"""
 
-        # Call Bedrock with Claude Sonnet 4.6
+        # Call Bedrock with Claude 3 Haiku (ON_DEMAND, no Marketplace subscription required)
         response = bedrock_client.invoke_model(
-            modelId='us.anthropic.claude-sonnet-4-6',
+            modelId='anthropic.claude-3-haiku-20240307-v1:0',
             body=json.dumps({
                 'anthropic_version': 'bedrock-2023-05-31',
                 'max_tokens': 4000,
@@ -831,9 +831,9 @@ Responde ÚNICAMENTE con JSON válido en este formato exacto:
   ]
 }}"""
 
-        # Call Bedrock with Claude Sonnet 4.6
+        # Call Bedrock with Claude 3 Haiku (ON_DEMAND, no Marketplace subscription required)
         response = bedrock_client.invoke_model(
-            modelId='us.anthropic.claude-sonnet-4-6',
+            modelId='anthropic.claude-3-haiku-20240307-v1:0',
             body=json.dumps({
                 'anthropic_version': 'bedrock-2023-05-31',
                 'max_tokens': 3000,
