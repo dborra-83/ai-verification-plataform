@@ -99,3 +99,19 @@ backend/authorizer/_cffi_backend*.so
 # Temporary and development files
 test-small.txt
 CONFLUENCE_COMMERCIAL_DOCUMENT.md
+
+# Lambda deployment artifacts
+*.zip
+
+# Response/payload test files
+response*.json
+payload.json
+
+# Compiled infrastructure JS (generated from TypeScript)
+infrastructure/*.js
+infrastructure/*.d.ts
+
+# One-time deployment config snapshots
+scripts/dist-config*.json
+scripts/iam-policy*.json
+scripts/security-headers-policy.json
