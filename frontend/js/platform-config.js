@@ -20,15 +20,39 @@
   });
 
   function initializePlatformConfig() {
-    // Get saved platform name from settings
+    // Get saved platform name — check platformConfig first (set by admin), then aiVerificationSettings
+    const platformConfig = getPlatformConfig();
     const settings = getSettings();
-    const platformName = settings.platformName || "EduTech AI";
+    const platformName =
+      platformConfig.platformName || settings.platformName || "EduTech AI";
 
     // Update platform name elements
     updatePlatformName(platformName);
 
     // Update page title
     updatePageTitle(platformName);
+
+    // Apply logo if set
+    if (platformConfig.logoUrl) {
+      const logoIcon = document.querySelector(".sidebar-logo-icon i");
+      const logoImg = document.querySelector(".sidebar-logo-icon img");
+      if (logoIcon && !logoImg) {
+        const img = document.createElement("img");
+        img.src = platformConfig.logoUrl;
+        img.alt = "Logo";
+        img.style.cssText = "max-height:36px;max-width:36px;border-radius:6px;";
+        logoIcon.parentElement.innerHTML = "";
+        logoIcon.parentElement.appendChild(img);
+      }
+    }
+  }
+
+  function getPlatformConfig() {
+    try {
+      return JSON.parse(localStorage.getItem("platformConfig") || "{}");
+    } catch (e) {
+      return {};
+    }
   }
 
   function updatePlatformName(platformName) {
@@ -62,6 +86,7 @@
   // Make functions globally available
   window.updatePlatformName = updatePlatformName;
   window.updatePageTitle = updatePageTitle;
+  window.PlatformConfig = { applyConfig: initializePlatformConfig };
 
   // Helper function to get settings (fallback if app.js not loaded)
   function getSettings() {

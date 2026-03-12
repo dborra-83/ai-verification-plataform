@@ -266,79 +266,100 @@ function createFallbackCharts(filteredAnalyses, completedAnalyses, period) {
     const maxCount = Math.max(...Object.values(dateGroups), 1);
     const dataPoints = Object.entries(dateGroups);
 
-    // Create SVG line chart
-    const svgWidth = 100; // percentage
-    const svgHeight = 160; // pixels
-    const padding = 20;
+    // Unified SVG coordinate system — all values in same unit
+    const W = 800,
+      H = 220,
+      padL = 40,
+      padR = 20,
+      padT = 20,
+      padB = 40;
+    const chartW = W - padL - padR;
+    const chartH = H - padT - padB;
+    const n = dataPoints.length;
 
-    // Calculate points for the line
-    const points = dataPoints.map(([date, count], index) => {
-      const x =
-        (index / (dataPoints.length - 1)) * (svgWidth - 2 * padding) + padding;
-      const y =
-        svgHeight - padding - (count / maxCount) * (svgHeight - 2 * padding);
-      return { x, y, count, date };
-    });
+    const points = dataPoints.map(([date, count], i) => ({
+      x: padL + (n > 1 ? (i / (n - 1)) * chartW : chartW / 2),
+      y: padT + chartH - (count / maxCount) * chartH,
+      count,
+      date,
+    }));
 
-    // Create SVG path
-    const linePath = points
-      .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
-      .join(" ");
+    // Smooth bezier line
+    function bezierPath(pts) {
+      if (pts.length < 2)
+        return pts
+          .map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`)
+          .join(" ");
+      let d = `M${pts[0].x},${pts[0].y}`;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const cp1x = pts[i].x + (pts[i + 1].x - pts[i].x) * 0.4;
+        const cp1y = pts[i].y;
+        const cp2x = pts[i + 1].x - (pts[i + 1].x - pts[i].x) * 0.4;
+        const cp2y = pts[i + 1].y;
+        d += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${pts[i + 1].x},${pts[i + 1].y}`;
+      }
+      return d;
+    }
 
-    // Create area path (for fill under line)
-    const areaPath = `M ${points[0].x} ${svgHeight - padding} L ${points
-      .map((p) => `${p.x} ${p.y}`)
-      .join(" L ")} L ${points[points.length - 1].x} ${svgHeight - padding} Z`;
+    const linePath = bezierPath(points);
+    const areaPath = `${linePath} L${points[points.length - 1].x},${padT + chartH} L${points[0].x},${padT + chartH} Z`;
+
+    // Y-axis grid lines
+    const gridLines = [0, 0.25, 0.5, 0.75, 1]
+      .map((frac) => {
+        const y = padT + chartH - frac * chartH;
+        const val = Math.round(frac * maxCount);
+        return `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#e5e7eb" stroke-width="1"/>
+              <text x="${padL - 6}" y="${y + 4}" text-anchor="end" font-size="11" fill="#9ca3af">${val}</text>`;
+      })
+      .join("");
+
+    // X-axis labels — show only a subset to avoid crowding
+    const step = Math.ceil(n / 8);
+    const xLabels = dataPoints
+      .map(([date], i) => {
+        if (i % step !== 0 && i !== n - 1) return "";
+        const x = padL + (n > 1 ? (i / (n - 1)) * chartW : chartW / 2);
+        const label = new Date(date).toLocaleDateString("es-ES", {
+          month: "short",
+          day: "numeric",
+        });
+        return `<text x="${x}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#6b7280">${label}</text>`;
+      })
+      .join("");
+
+    // Tooltip circles
+    const circles = points
+      .map((p) => {
+        const label = new Date(p.date).toLocaleDateString("es-ES", {
+          month: "short",
+          day: "numeric",
+        });
+        return `<circle cx="${p.x}" cy="${p.y}" r="5" fill="#008FD0" stroke="white" stroke-width="2">
+                <title>${p.count} análisis — ${label}</title>
+              </circle>`;
+      })
+      .join("");
 
     parent.innerHTML = `
-            <div class="fallback-chart">
-                <div class="chart-title mb-3">Tendencia de Análisis (últimos ${period} días)</div>
-                <div class="line-chart">
-                    <div class="line-chart-container">
-                        <svg class="line-chart-svg" viewBox="0 0 100 ${svgHeight}" preserveAspectRatio="none">
-                            <defs>
-                                <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                    <stop offset="0%" style="stop-color:rgba(0, 143, 208, 0.3);stop-opacity:1" />
-                                    <stop offset="100%" style="stop-color:rgba(0, 143, 208, 0.05);stop-opacity:1" />
-                                </linearGradient>
-                            </defs>
-                            <path class="line-chart-area" d="${areaPath}" fill="url(#areaGradient)" />
-                            <path class="line-chart-line" d="${linePath}" />
-                            ${points
-                              .map(
-                                (point) => `
-                                <circle class="line-chart-point" 
-                                        cx="${point.x}" 
-                                        cy="${point.y}" 
-                                        r="4" 
-                                        title="${
-                                          point.count
-                                        } análisis el ${new Date(
-                                          point.date,
-                                        ).toLocaleDateString("es-ES", {
-                                          month: "short",
-                                          day: "numeric",
-                                        })}">
-                                </circle>
-                            `,
-                              )
-                              .join("")}
-                        </svg>
-                    </div>
-                    <div class="line-chart-labels">
-                        ${dataPoints
-                          .map(([date, count]) => {
-                            const dateLabel = new Date(date).toLocaleDateString(
-                              "es-ES",
-                              { month: "short", day: "numeric" },
-                            );
-                            return `<div class="line-chart-label">${dateLabel}</div>`;
-                          })
-                          .join("")}
-                    </div>
-                </div>
-            </div>
-        `;
+      <div style="padding:1rem 0.5rem 0.5rem;">
+        <div style="font-size:.85rem;color:#6b7280;margin-bottom:.75rem;">Tendencia de Análisis (últimos ${period} días)</div>
+        <div style="overflow-x:auto;">
+          <svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:320px;height:auto;display:block;" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#008FD0" stop-opacity="0.25"/>
+                <stop offset="100%" stop-color="#008FD0" stop-opacity="0.02"/>
+              </linearGradient>
+            </defs>
+            ${gridLines}
+            ${xLabels}
+            <path d="${areaPath}" fill="url(#areaGrad)"/>
+            <path d="${linePath}" fill="none" stroke="#008FD0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            ${circles}
+          </svg>
+        </div>
+      </div>`;
 
     console.log("Analysis time line chart created");
   }

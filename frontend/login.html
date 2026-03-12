@@ -18,19 +18,23 @@
 </head>
 <body>
     <div class="login-hero">
+        <div style="position:fixed;top:1rem;right:1rem;display:flex;gap:.5rem;z-index:100;">
+            <button class="header-btn theme-toggle" onclick="ThemeManager.toggleTheme()" title="Modo oscuro" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:white;border-radius:8px;padding:.35rem .6rem;cursor:pointer;"></button>
+            <button class="header-btn lang-toggle" onclick="i18n.toggleLang()" title="Cambiar idioma" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:white;border-radius:8px;padding:.35rem .6rem;cursor:pointer;font-size:.8rem;font-weight:600;">EN</button>
+        </div>
         <div class="login-card">
             <div class="login-logo">
-                <div id="loginLogoContainer" style="width:56px;height:56px;border-radius:14px;background:rgba(0,102,204,.12);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
-                    <i class="bi bi-shield-check" id="loginLogoIcon" style="font-size: 1.8rem; color: var(--primary);"></i>
-                    <img id="loginLogoImg" src="" alt="Logo" style="display:none; max-height:48px; max-width:48px; border-radius:8px;">
+                <div id="loginLogoContainer" style="width:80px;height:80px;border-radius:16px;background:rgba(0,102,204,.12);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+                    <i class="bi bi-shield-check" id="loginLogoIcon" style="font-size: 2.4rem; color: var(--primary);"></i>
+                    <img id="loginLogoImg" src="" alt="Logo" style="display:none; max-height:68px; max-width:68px; border-radius:10px;">
                 </div>
-                <h1>Plataforma Demo — Educación</h1>
-                <p>Demo de diferentes plataformas para la vertical de educación</p>
+                <h1 data-i18n="login.title">Plataforma Demo — Educación</h1>
+                <p data-i18n="login.subtitle">Demo de diferentes plataformas para la vertical de educación</p>
             </div>
             
             <form id="loginForm">
                 <div class="mb-3">
-                    <label for="username" class="form-label">Correo Electrónico</label>
+                    <label for="username" class="form-label" data-i18n="login.email">Correo Electrónico</label>
                     <div class="input-group">
                         <span class="input-group-text">
                             <i class="bi bi-envelope"></i>
@@ -40,7 +44,7 @@
                 </div>
                 
                 <div class="mb-4">
-                    <label for="password" class="form-label">Contraseña</label>
+                    <label for="password" class="form-label" data-i18n="login.password">Contraseña</label>
                     <div class="input-group">
                         <span class="input-group-text">
                             <i class="bi bi-lock"></i>
@@ -51,18 +55,18 @@
                 
                 <button type="submit" class="btn btn-primary w-100 mb-3">
                     <i class="bi bi-box-arrow-in-right me-2"></i>
-                    Iniciar Sesión
+                    <span data-i18n="login.submit">Iniciar Sesión</span>
                 </button>
                 
                 <div class="text-center mt-3">
                     <small class="text-muted">
-                        ¿No tienes cuenta? <a href="signup.html" class="text-decoration-none">Regístrate aquí</a>
+                        <span data-i18n="login.no_account">¿No tienes cuenta?</span> <a href="signup.html" class="text-decoration-none" data-i18n="login.register">Regístrate aquí</a>
                     </small>
                 </div>
                 
                 <div class="text-center mt-2">
                     <small>
-                        <a href="forgot-password.html" class="text-decoration-none">¿Olvidaste tu contraseña?</a>
+                        <a href="forgot-password.html" class="text-decoration-none" data-i18n="login.forgot">¿Olvidaste tu contraseña?</a>
                     </small>
                 </div>
             </form>
@@ -76,15 +80,13 @@
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1472.0.min.js"></script>
     
     <!-- Platform Configuration -->
-    <script src="js/platform-config.js?v=5"></script>
-    
-    <!-- Auth Module (Regular Script) -->
-    <script src="js/auth.js?v=5"></script>
-    
-    <!-- Login Page Logic -->
-    <script src="js/login.js?v=5"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/platform-config.js?v=11"></script>
+    <script src="js/auth.js?v=11"></script>
+    <script src="js/login.js?v=11"></script>
     <script>
-        // Apply custom logo from admin config if set
+        // Apply custom logo and title/subtitle from admin config
         (function() {
             try {
                 const config = JSON.parse(localStorage.getItem('platformConfig') || '{}');
@@ -95,6 +97,18 @@
                     if (icon) icon.style.display = 'none';
                     if (img) { img.src = config.logoLoginUrl; img.style.display = 'block'; }
                     if (container) { container.style.background = 'transparent'; }
+                }
+                // Override i18n keys with admin-configured values
+                const lang = localStorage.getItem('lang') || 'es';
+                const titleKey = lang === 'en' ? 'loginTitleEn' : 'loginTitleEs';
+                const subtitleKey = lang === 'en' ? 'loginSubtitleEn' : 'loginSubtitleEs';
+                if (config[titleKey]) {
+                    const el = document.querySelector('[data-i18n="login.title"]');
+                    if (el) el.textContent = config[titleKey];
+                }
+                if (config[subtitleKey]) {
+                    const el = document.querySelector('[data-i18n="login.subtitle"]');
+                    if (el) el.textContent = config[subtitleKey];
                 }
             } catch(e) {}
         })();

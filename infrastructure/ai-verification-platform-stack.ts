@@ -898,6 +898,34 @@ export class AiVerificationPlatformStack extends cdk.Stack {
       },
     );
 
+    // Course thresholds endpoint
+    const courseThresholdsResource =
+      configResource.addResource("course-thresholds");
+    courseThresholdsResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(configLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+    courseThresholdsResource.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(configLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+    courseThresholdsResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(configLambda),
+      {
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      },
+    );
+
     // CloudFront Distribution for Frontend
     const distribution = new cloudfront.Distribution(
       this,

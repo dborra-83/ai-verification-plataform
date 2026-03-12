@@ -124,11 +124,8 @@
   }
 
   function applyAdminVisibility() {
-    if (isAdminUser()) return; // admins see everything
-    // Hide admin-only nav elements for non-admins
-    document.querySelectorAll(".admin-nav-section").forEach((el) => {
-      el.style.display = "none";
-    });
+    // Configuración is visible to all users (demo platform)
+    // No elements are hidden based on admin role
   }
 
   window.RouteGuard = {

@@ -1261,8 +1261,25 @@ async function loadCourseThresholds() {
       addCourseThresholdRow(course, value);
     });
   } catch (error) {
-    console.error("Error loading course thresholds:", error);
-    container.innerHTML = `<p class="text-muted small">No hay umbrales por curso definidos. Usa "Agregar Curso" para añadir uno.</p>`;
+    console.warn(
+      "course-thresholds API unavailable, using local fallback:",
+      error,
+    );
+    // Try local fallback
+    try {
+      const local = JSON.parse(localStorage.getItem("dashboardConfig") || "{}");
+      const thresholds = local.courseThresholds || {};
+      container.innerHTML = "";
+      if (Object.keys(thresholds).length > 0) {
+        Object.entries(thresholds).forEach(([course, value]) => {
+          addCourseThresholdRow(course, value);
+        });
+      } else {
+        container.innerHTML = `<p class="text-muted small">No hay umbrales por curso definidos. Usa "Agregar Curso" para añadir uno.</p>`;
+      }
+    } catch (e) {
+      container.innerHTML = `<p class="text-muted small">No hay umbrales por curso definidos. Usa "Agregar Curso" para añadir uno.</p>`;
+    }
   }
 }
 
@@ -1316,10 +1333,18 @@ async function saveCourseThresholds() {
     }
   });
 
-  await apiCall("/admin/config/course-thresholds", {
-    method: "PUT",
-    body: JSON.stringify({ thresholds }),
-  });
+  try {
+    await apiCall("/admin/config/course-thresholds", {
+      method: "PUT",
+      body: JSON.stringify({ thresholds }),
+    });
+  } catch (error) {
+    // Endpoint may not be deployed yet — save locally as fallback
+    console.warn("course-thresholds API unavailable, saving locally:", error);
+    const local = JSON.parse(localStorage.getItem("dashboardConfig") || "{}");
+    local.courseThresholds = thresholds;
+    localStorage.setItem("dashboardConfig", JSON.stringify(local));
+  }
 }
 
 // Hook: load thresholds when dashboard tab is shown
